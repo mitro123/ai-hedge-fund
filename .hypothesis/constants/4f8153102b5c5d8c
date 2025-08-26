@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/backtest.py
+# hypothesis_version: 6.138.0
+
+[0.0, 0.001, 0.02, 4.34, 100, 252, 400, 404, 500, 1000, 10000, 100000, '%Y-%m-%d', '/', '/backtest', '/{backtest_id}', 'Backtest nenalezen', 'COMPLETE', 'Daily Return', 'Date', 'ERROR', 'Filtr podle tickeru', 'Gross Exposure', 'IN_PROGRESS', 'Long Exposure', 'Net Exposure', 'PENDING', 'Portfolio Value', 'Short Exposure', 'UNKNOWN', 'action', 'api_keys', 'backtest_id', 'buy', 'completed_at', 'created_at', 'current_prices', 'date', 'description', 'end_date', 'error', 'executed_trades', 'final_portfolio', 'gpt-4.1', 'id', 'initial_capital', 'message', 'name', 'openrouter', 'performance_metrics', 'portfolio_values', 'price', 'quantity', 'results', 'sell', 'start_date', 'status', 'strftime', 'ticker', 'tickers', 'value']

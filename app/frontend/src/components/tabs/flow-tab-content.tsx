@@ -7,7 +7,7 @@ import { flowService } from '@/services/flow-service';
 import { Flow as FlowType } from '@/types/flow';
 import { useEffect } from 'react';
 
-// Import the flow connection manager to check if flow is actively running
+// Import správce připojení flow pro kontrolu, zda flow aktivně běží
 
 interface FlowTabContentProps {
   flow: FlowType;
@@ -18,23 +18,23 @@ export function FlowTabContent({ flow, className }: FlowTabContentProps) {
   const { loadFlow } = useFlowContext();
   const { activeTabId } = useTabsContext();
 
-  // Enhanced load function that restores both use-node-state and node context data
+  // Vylepšená funkce načítání, která obnoví jak use-node-state, tak data kontextu uzlů
   const loadFlowWithCompleteState = async (flowToLoad: FlowType) => {
     try {
       const flowId = flowToLoad.id.toString();
       
-      // First, set the flow ID for node state isolation
+      // Nejprve nastavit ID flow pro izolaci stavu uzlů
       setNodeStateFlowId(flowId);
       
-      // DO NOT clear configuration state when switching tabs - useNodeState handles flow isolation automatically
-      // DO NOT reset runtime data when switching tabs - preserve all runtime state
-      // Runtime data should only be reset when explicitly starting a new run via the Play button
-      console.log(`[FlowTabContent] Loading flow ${flowId}, preserving all state (configuration + runtime)`);
+      // NEMAZAT konfigurační stav při přepínání záložek - useNodeState automaticky řeší izolaci flow
+      // NERESETOVAT runtime data při přepínání záložek - zachovat všechna runtime data
+      // Runtime data by měla být resetována pouze při explicitním spuštění nového běhu tlačítkem Play
+      console.log(`[FlowTabContent] Načítám flow ${flowId}, zachovávám všechny stavy (konfigurace + runtime)`);
 
-      // Load the flow using the basic context function (handles React Flow state)
+      // Načíst flow pomocí základní kontextové funkce (řeší stav React Flow)
       await loadFlow(flowToLoad);
 
-      // Then restore internal states for each node (use-node-state data)
+      // Poté obnovit vnitřní stavy pro každý uzel (data use-node-state)
       if (flowToLoad.nodes) {
         flowToLoad.nodes.forEach((node: any) => {
           if (node.data?.internal_state) {
@@ -43,29 +43,29 @@ export function FlowTabContent({ flow, className }: FlowTabContentProps) {
         });
       }
       
-      // NOTE: We intentionally do NOT restore nodeContextData here
-      // Runtime execution data (messages, analysis, agent status) should start fresh
-      // Only configuration data (tickers, model selections) is restored above
+      // POZNÁMKA: Záměrně zde NEOBNOVUJEME nodeContextData
+      // Runtime data spuštění (zprávy, analýzy, stav agentů) by měla začít znovu
+      // Pouze konfigurační data (tickery, výběr modelů) jsou obnovena výše
     } catch (error) {
       console.error('Failed to load flow with complete state:', error);
       throw error;
     }
   };
 
-  // Fetch the latest flow state when this tab becomes active
+  // Načíst nejnovější stav flow, když se tato záložka stane aktivní
   useEffect(() => {
     const isThisTabActive = activeTabId === `flow-${flow.id}`;
     
     if (isThisTabActive) {
       const fetchAndLoadFlow = async () => {
         try {
-          // Fetch the latest flow data from the backend
+          // Načíst nejnovější data flow z backendu
           const latestFlow = await flowService.getFlow(flow.id);
-          // Load the fresh flow data with complete state restoration
+          // Načíst čerstvá data flow s úplnou obnovou stavu
           await loadFlowWithCompleteState(latestFlow);
         } catch (error) {
           console.error('Failed to fetch latest flow state:', error);
-          // Fallback to loading the cached flow data with complete state restoration
+          // Záložní načtení cachovaných dat flow s úplnou obnovou stavu
           await loadFlowWithCompleteState(flow);
         }
       };
@@ -79,4 +79,4 @@ export function FlowTabContent({ flow, className }: FlowTabContentProps) {
       <Flow />
     </div>
   );
-} 
+}

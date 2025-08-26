@@ -41,7 +41,7 @@ export function InvestmentReportNode({
         selected={selected}
         isConnectable={isConnectable}
         icon={<FileText className="h-5 w-5" />}
-        name={data.name || "Investment Report"}
+        name={data.name || "Investiční zpráva"}
         description={data.description}
         hasRightHandle={false}
         status={status}
@@ -50,7 +50,7 @@ export function InvestmentReportNode({
           <div className="border-t border-border p-3">
             <div className="flex flex-col gap-2">
               <div className="text-subtitle text-muted-foreground flex items-center gap-1">
-                Results
+                Výsledky
               </div>
               
               <OutputNodeStatus

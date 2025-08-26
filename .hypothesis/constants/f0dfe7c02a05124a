@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/phil_fisher.py
+# hypothesis_version: 6.138.0
+
+[0.0, 1e-09, 0.02, 0.03, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.7, 0.8, 1.0, 4.5, 7.5, '; ', 'Analýza sentimentu', 'Done', 'Komodita přeskočena', 'Phil Fisher Agent', 'Přeskakuji komoditu', 'analysis_data', 'analyst_signals', 'annual', 'bearish', 'bullish', 'cash_and_equivalents', 'confidence', 'data', 'decline', 'details', 'downturn', 'earnings_per_share', 'ebit', 'ebitda', 'end_date', 'fraud', 'free_cash_flow', 'gross_margin', 'growth_quality', 'human', 'insider_activity', 'investigation', 'lawsuit', 'margins_stability', 'max_score', 'messages', 'metadata', 'negative', 'net_income', 'neutral', 'operating_income', 'operating_margin', 'phil_fisher_agent', 'reasoning', 'recall', 'revenue', 'score', 'sentiment_analysis', 'shareholders_equity', 'show_reasoning', 'signal', 'system', 'ticker', 'tickers', 'total_debt', 'valuation_analysis']

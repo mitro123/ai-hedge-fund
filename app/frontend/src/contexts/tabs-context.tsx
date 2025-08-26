@@ -2,7 +2,7 @@ import { Flow } from '@/types/flow';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
 // Define tab types
-export type TabType = 'flow' | 'settings';
+export type TabType = 'flow' | 'settings' | 'openbb';
 
 export interface Tab {
   id: string;
@@ -68,6 +68,9 @@ export function TabsProvider({ children }: TabsProviderProps) {
     }
     if (type === 'settings') {
       return 'settings';
+    }
+    if (type === 'openbb') {
+      return 'openbb';
     }
     return `${type}-${Date.now()}`;
   }, []);
@@ -268,4 +271,4 @@ export function TabsProvider({ children }: TabsProviderProps) {
       {children}
     </TabsContext.Provider>
   );
-} 
+}

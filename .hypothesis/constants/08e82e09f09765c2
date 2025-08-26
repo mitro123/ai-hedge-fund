@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/flows.py
+# hypothesis_version: 6.138.0
+
+[204, 400, 404, 500, '/', '/flows', '/search/{name}', '/{flow_id}', '/{flow_id}/duplicate', 'Flow not found', 'Invalid request', 'description', 'flows', 'message', 'model']

@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/exceptions.py
+# hypothesis_version: 6.138.0
+
+[200, 500, 'AGENT_ANALYSIS_ERROR', 'AGENT_NOT_FOUND', 'API_KEY_MISSING', 'API_RATE_LIMIT', 'API_RESPONSE_ERROR', 'CONFIGURATION_ERROR', 'DATA_FETCH_ERROR', 'INSUFFICIENT_DATA', 'INSUFFICIENT_FUNDS', 'INVALID_POSITION', 'LLM_RESPONSE_ERROR', 'LLM_TIMEOUT', 'MODEL_NOT_FOUND', 'UNEXPECTED_ERROR', 'VALIDATION_ERROR', 'agent_name', 'api_key_name', 'available_amount', 'config_key', 'data_type', 'details', 'error_code', 'error_type', 'field_name', 'function', 'message', 'model_name', 'provider', 'required_amount', 'required_data', 'response_content', 'response_text', 'retry_after', 'status_code', 'ticker', 'timeout_seconds', 'url', 'value']

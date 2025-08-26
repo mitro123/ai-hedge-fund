@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/portfolio_manager.py
+# hypothesis_version: 6.138.0
+
+[0.0, 'Done', 'Portfolio Manager', '_', 'analyst_signals', 'buy', 'confidence', 'cover', 'current_price', 'current_prices', 'data', 'hold', 'human', 'margin_requirement', 'max_shares', 'messages', 'metadata', 'portfolio', 'portfolio_cash', 'portfolio_manager', 'portfolio_manager_', 'portfolio_positions', 'positions', 'sell', 'short', 'show_reasoning', 'signal', 'signals_by_ticker', 'system', 'tickers', 'total_margin_used']

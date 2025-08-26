@@ -1,0 +1,38 @@
+{
+  "openbb": {
+    "installed": true,
+    "version": "latest",
+    "path": "/workspaces/ai-hedge-fund/OpenBB",
+    "platform_path": "/workspaces/ai-hedge-fund/OpenBB/openbb_platform"
+  },
+  "providers": {
+    "yfinance": {
+      "enabled": true,
+      "requires_api_key": false
+    },
+    "fred": {
+      "enabled": true,
+      "requires_api_key": false
+    },
+    "benzinga": {
+      "enabled": true,
+      "requires_api_key": false,
+      "note": "Limited free tier"
+    },
+    "fmp": {
+      "enabled": false,
+      "requires_api_key": true,
+      "api_key_env": "FINANCIAL_MODELING_PREP_API_KEY"
+    },
+    "alpha_vantage": {
+      "enabled": false,
+      "requires_api_key": true,
+      "api_key_env": "ALPHA_VANTAGE_API_KEY"
+    },
+    "polygon": {
+      "enabled": false,
+      "requires_api_key": true,
+      "api_key_env": "POLYGON_API_KEY"
+    }
+  }
+}

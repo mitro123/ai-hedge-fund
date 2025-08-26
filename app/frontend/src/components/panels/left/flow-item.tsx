@@ -78,7 +78,7 @@ export default function FlowItem({ flow, onLoadFlow, onDeleteFlow, onRefresh, is
   };
 
   const handleDeleteFlow = async () => {
-    if (window.confirm(`Are you sure you want to delete "${flow.name}"?`)) {
+    if (window.confirm(`Opravdu chcete smazat "${flow.name}"?`)) {
       try {
         await onDeleteFlow(flow);
       } catch (error) {
@@ -88,14 +88,14 @@ export default function FlowItem({ flow, onLoadFlow, onDeleteFlow, onRefresh, is
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+    return new Date(dateString).toLocaleString('cs-CZ', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
       second: '2-digit',
-      hour12: true
+      hour12: false
     });
   };
 
@@ -142,7 +142,7 @@ export default function FlowItem({ flow, onLoadFlow, onDeleteFlow, onRefresh, is
             {hasActiveConnection && (
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Zap className="h-3 w-3 text-yellow-500 animate-pulse" />
-                <span className="text-xs text-yellow-500 font-medium">Running</span>
+                <span className="text-xs text-yellow-500 font-medium">Běží</span>
               </div>
             )}
           </div>
@@ -174,7 +174,7 @@ export default function FlowItem({ flow, onLoadFlow, onDeleteFlow, onRefresh, is
             size="icon"
             onClick={handleMenuClick}
             className="h-6 w-6 text-muted-foreground hover-item opacity-0 group-hover:opacity-100 transition-opacity rounded"
-            title="More options"
+            title="Další možnosti"
           >
             <MoreHorizontal size={14} />
           </Button>
@@ -198,4 +198,4 @@ export default function FlowItem({ flow, onLoadFlow, onDeleteFlow, onRefresh, is
       />
     </>
   );
-} 
+}

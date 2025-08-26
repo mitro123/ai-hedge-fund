@@ -1,0 +1,74 @@
+{
+  "timestamp": "2025-08-14T10:53:57.396775",
+  "total_tests": 9,
+  "passed": 9,
+  "failed": 0,
+  "total_time": 2.9873733520507812,
+  "python_version": "3.12.1 (main, Jul 10 2025, 11:57:50) [GCC 13.3.0]",
+  "platform": "linux",
+  "tests": [
+    {
+      "name": "Environment Setup",
+      "success": true,
+      "message": "Test passed",
+      "duration": 0.0001246929168701172,
+      "timestamp": "2025-08-14T10:53:54.409606"
+    },
+    {
+      "name": "Basic Imports",
+      "success": true,
+      "message": "Test passed",
+      "duration": 0.8751146793365479,
+      "timestamp": "2025-08-14T10:53:55.284767"
+    },
+    {
+      "name": "Optional Dependencies",
+      "success": true,
+      "message": "Test passed",
+      "duration": 0.05382847785949707,
+      "timestamp": "2025-08-14T10:53:55.338636"
+    },
+    {
+      "name": "Launcher Functionality",
+      "success": true,
+      "message": "Test passed",
+      "duration": 6.198883056640625e-06,
+      "timestamp": "2025-08-14T10:53:55.338694"
+    },
+    {
+      "name": "Mock Implementations",
+      "success": true,
+      "message": "Test passed",
+      "duration": 4.553794860839844e-05,
+      "timestamp": "2025-08-14T10:53:55.338765"
+    },
+    {
+      "name": "Data Processing",
+      "success": true,
+      "message": "Test passed",
+      "duration": 0.0013949871063232422,
+      "timestamp": "2025-08-14T10:53:55.340192"
+    },
+    {
+      "name": "File Operations",
+      "success": true,
+      "message": "Test passed",
+      "duration": 0.0005161762237548828,
+      "timestamp": "2025-08-14T10:53:55.340785"
+    },
+    {
+      "name": "System Resources",
+      "success": true,
+      "message": "Test passed",
+      "duration": 0.000125885009765625,
+      "timestamp": "2025-08-14T10:53:55.340956"
+    },
+    {
+      "name": "Network Connectivity",
+      "success": true,
+      "message": "Test passed",
+      "duration": 2.0556657314300537,
+      "timestamp": "2025-08-14T10:53:57.396662"
+    }
+  ]
+}

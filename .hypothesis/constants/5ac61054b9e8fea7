@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/storage.py
+# hypothesis_version: 6.138.0
+
+[200, 400, 500, '/save-json', '/storage', 'description', 'filename', 'message', 'model', 'outputs', 'success', 'utf-8', 'w']

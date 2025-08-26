@@ -1,36 +1,46 @@
-from src.graph.state import AgentState, show_agent_reasoning
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
+"""Rakesh Jhunjhunwala Agent - Implementuje investiční strategii zaměřenou na kvalitní růstové společnosti
+s bezpečnostní marží."""
+
 import json
+from typing import Any, cast, Dict, List, Optional
+
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
 from typing_extensions import Literal
-from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
+
+from src.exceptions import APIKeyError
+from src.graph.state import AgentState, show_agent_reasoning
+from src.tools.api import get_market_cap, search_line_items
+from src.utils.api_key import get_api_key_from_state
 from src.utils.llm import call_llm
 from src.utils.progress import progress
-from src.utils.api_key import get_api_key_from_state
+
 
 class RakeshJhunjhunwalaSignal(BaseModel):
     signal: Literal["bullish", "bearish", "neutral"]
     confidence: float
     reasoning: str
 
-def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhunwala_agent"):
-    """Analyzes stocks using Rakesh Jhunjhunwala's principles and LLM reasoning."""
+
+def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhunwala_agent") -> Dict[str, Any]:
+    """Analyzuje akcie pomocí Rakesh Jhunjhunwala's principů a LLM zdůvodnění."""
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
-    # Collect all analysis for LLM reasoning
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
+    # Shromáždění všech analýz pro LLM zdůvodnění
     analysis_data = {}
     jhunjhunwala_analysis = {}
 
     for ticker in tickers:
+        # Základní data
+        progress.update_status(agent_id, ticker, "Načítání finančních metrik")
+        # metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
 
-        # Core Data
-        progress.update_status(agent_id, ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
-
-        progress.update_status(agent_id, ticker, "Fetching financial line items")
+        progress.update_status(agent_id, ticker, "Načítání finančních položek")
         financial_line_items = search_line_items(
             ticker,
             [
@@ -46,36 +56,38 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
                 "current_liabilities",
                 "free_cash_flow",
                 "dividends_and_other_cash_distributions",
-                "issuance_or_purchase_of_equity_shares"
+                "issuance_or_purchase_of_equity_shares",
             ],
             end_date,
             api_key=api_key,
         )
 
-        progress.update_status(agent_id, ticker, "Getting market cap")
+        progress.update_status(agent_id, ticker, "Získávání tržní kapitalizace")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
+        if market_cap is not None and market_cap <= 0:
+            market_cap = None
 
-        # ─── Analyses ───────────────────────────────────────────────────────────
-        progress.update_status(agent_id, ticker, "Analyzing growth")
+        # ─── Analýzy ───────────────────────────────────────────────────────────
+        progress.update_status(agent_id, ticker, "Analýza růstu")
         growth_analysis = analyze_growth(financial_line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing profitability")
+        progress.update_status(agent_id, ticker, "Analýza ziskovosti")
         profitability_analysis = analyze_profitability(financial_line_items)
-        
-        progress.update_status(agent_id, ticker, "Analyzing balance sheet")
+
+        progress.update_status(agent_id, ticker, "Analýza rozvahy")
         balancesheet_analysis = analyze_balance_sheet(financial_line_items)
-        
-        progress.update_status(agent_id, ticker, "Analyzing cash flow")
+
+        progress.update_status(agent_id, ticker, "Analýza peněžního toku")
         cashflow_analysis = analyze_cash_flow(financial_line_items)
-        
-        progress.update_status(agent_id, ticker, "Analyzing management actions")
+
+        progress.update_status(agent_id, ticker, "Analýza akcí managementu")
         management_analysis = analyze_management_actions(financial_line_items)
-        
-        progress.update_status(agent_id, ticker, "Calculating intrinsic value")
-        # Calculate intrinsic value once
+
+        progress.update_status(agent_id, ticker, "Výpočet vnitřní hodnoty")
+        # Výpočet vnitřní hodnoty jednou
         intrinsic_value = calculate_intrinsic_value(financial_line_items, market_cap)
 
-        # ─── Score & margin of safety ──────────────────────────────────────────
+        # ─── Skóre a bezpečnostní marže ──────────────────────────────────────────
         total_score = (
             growth_analysis["score"]
             + profitability_analysis["score"]
@@ -83,44 +95,54 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
             + cashflow_analysis["score"]
             + management_analysis["score"]
         )
-        # Fixed: Correct max_score calculation based on actual scoring breakdown
-        max_score = 24  # 8(prof) + 7(growth) + 4(bs) + 3(cf) + 2(mgmt) = 24
+        # Opraveno: Správný výpočet max_score na základě skutečného rozdělení bodování
+        max_score = 24  # 8(zisk) + 7(růst) + 4(rozvaha) + 3(cf) + 2(mgmt) = 24
 
-        # Calculate margin of safety
-        margin_of_safety = (
-            (intrinsic_value - market_cap) / market_cap if intrinsic_value and market_cap else None
-        )
+        # Výpočet bezpečnostní marže
+        margin_of_safety = None
+        if intrinsic_value is not None and market_cap is not None and market_cap > 0:
+            margin_of_safety = (intrinsic_value - market_cap) / market_cap
 
-        # Jhunjhunwala's decision rules (30% minimum margin of safety for conviction)
+        # Jhunjhunwala's rozhodovací pravidla (30% minimální bezpečnostní marže pro přesvědčení)
         if margin_of_safety is not None and margin_of_safety >= 0.30:
             signal = "bullish"
         elif margin_of_safety is not None and margin_of_safety <= -0.30:
             signal = "bearish"
         else:
-            # Use quality score as tie-breaker for neutral cases
+            # Použití skóre kvality jako rozhodčího pro neutrální případy
             quality_score = assess_quality_metrics(financial_line_items)
             if quality_score >= 0.7 and total_score >= max_score * 0.6:
-                signal = "bullish"  # High quality company at fair price
+                signal = "bullish"  # Vysoce kvalitní společnost za férovou cenu
             elif quality_score <= 0.4 or total_score <= max_score * 0.3:
-                signal = "bearish"  # Poor quality or fundamentals
+                signal = "bearish"  # Špatná kvalita nebo fundamenty
             else:
                 signal = "neutral"
 
-        # Confidence based on margin of safety and quality
+        # Jhunjhunwala's confidence scoring: kombinace margin of safety + quality metrics
         if margin_of_safety is not None:
-            confidence = min(max(abs(margin_of_safety) * 150, 20), 95)  # 20-95% range
-        else:
-            confidence = min(max((total_score / max_score) * 100, 10), 80)  # Based on score
+            # Base confidence from margin of safety (Jhunjhunwala's primary metric)
+            margin_confidence = min(max(abs(margin_of_safety) * 100, 15), 85)
 
-        # Create comprehensive analysis summary
+            # Quality adjustment based on fundamentals
+            quality_score = assess_quality_metrics(financial_line_items)
+            quality_multiplier = 0.8 + (quality_score * 0.4)  # 0.8 to 1.2 range
+
+            # Final confidence with quality adjustment
+            confidence = min(max(margin_confidence * quality_multiplier, 20), 95)
+        else:
+            # Fallback to pure quality-based confidence when valuation unclear
+            quality_score = assess_quality_metrics(financial_line_items)
+            score_ratio = total_score / max_score if max_score > 0 else 0
+            confidence = min(max((quality_score * 0.6 + score_ratio * 0.4) * 80, 25), 75)
+
+        # Vytvoření komplexního souhrnu analýzy
         intrinsic_value_analysis = analyze_rakesh_jhunjhunwala_style(
-            financial_line_items, 
-            intrinsic_value=intrinsic_value,
-            current_price=market_cap
+            financial_line_items, intrinsic_value=intrinsic_value, current_price=market_cap
         )
 
         analysis_data[ticker] = {
             "signal": signal,
+            "confidence": confidence,
             "score": total_score,
             "max_score": max_score,
             "margin_of_safety": margin_of_safety,
@@ -134,8 +156,8 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
             "market_cap": market_cap,
         }
 
-        # ─── LLM: craft Jhunjhunwala‑style narrative ──────────────────────────────
-        progress.update_status(agent_id, ticker, "Generating Jhunjhunwala analysis")
+        # ─── LLM: vytvoření Jhunjhunwala‑style narativu ──────────────────────────────
+        progress.update_status(agent_id, ticker, "Generování Jhunjhunwala analýzy")
         jhunjhunwala_output = generate_jhunjhunwala_output(
             ticker=ticker,
             analysis_data=analysis_data[ticker],
@@ -147,7 +169,7 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
 
         progress.update_status(agent_id, ticker, "Done", analysis=jhunjhunwala_output.reasoning)
 
-    # ─── Push message back to graph state ──────────────────────────────────────
+    # ─── Odeslání zprávy zpět do graph state ──────────────────────────────────────
     message = HumanMessage(content=json.dumps(jhunjhunwala_analysis), name=agent_id)
 
     if state["metadata"]["show_reasoning"]:
@@ -159,91 +181,109 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
     return {"messages": [message], "data": state["data"]}
 
 
-def analyze_profitability(financial_line_items: list) -> dict[str, any]:
+def analyze_profitability(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
-    Analyze profitability metrics like net income, EBIT, EPS, operating income.
-    Focus on strong, consistent earnings growth and operating efficiency.
+    Analyzuje metriky ziskovosti jako čistý zisk, EBIT, EPS, provozní zisk.
+    Zaměřuje se na silný, konzistentní růst zisků a provozní efektivitu.
     """
     if not financial_line_items:
-        return {"score": 0, "details": "No profitability data available"}
+        return {"score": 0, "details": "Žádná data ziskovosti nejsou k dispozici"}
 
     latest = financial_line_items[0]
     score = 0
     reasoning = []
 
-    # Calculate ROE (Return on Equity) - Jhunjhunwala's key metric
-    if (getattr(latest, 'net_income', None) and latest.net_income > 0 and
-        getattr(latest, 'total_assets', None) and getattr(latest, 'total_liabilities', None) and 
-        latest.total_assets and latest.total_liabilities):
-        
-        shareholders_equity = latest.total_assets - latest.total_liabilities
-        if shareholders_equity > 0:
-            roe = (latest.net_income / shareholders_equity) * 100
-            if roe > 20:  # Excellent ROE
-                score += 3
-                reasoning.append(f"Excellent ROE: {roe:.1f}%")
-            elif roe > 15:  # Good ROE
-                score += 2
-                reasoning.append(f"Good ROE: {roe:.1f}%")
-            elif roe > 10:  # Decent ROE
-                score += 1
-                reasoning.append(f"Decent ROE: {roe:.1f}%")
-            else:
-                reasoning.append(f"Low ROE: {roe:.1f}%")
-        else:
-            reasoning.append("Negative shareholders equity")
-    else:
-        reasoning.append("Unable to calculate ROE - missing data")
+    # Výpočet ROE (Return on Equity) - Jhunjhunwala's klíčová metrika
+    net_income = getattr(latest, "net_income", None)
+    total_assets = getattr(latest, "total_assets", None)
+    total_liabilities = getattr(latest, "total_liabilities", None)
 
-    # Operating Margin Analysis
-    if (getattr(latest, "operating_income", None) and latest.operating_income and 
-        getattr(latest, "revenue", None) and latest.revenue and latest.revenue > 0):
-        operating_margin = (latest.operating_income / latest.revenue) * 100
-        if operating_margin > 20:  # Excellent margin
+    if (
+        net_income is not None
+        and total_assets is not None
+        and total_liabilities is not None
+        and net_income > 0
+        and total_assets > 0
+        and total_liabilities >= 0
+    ):
+        shareholders_equity = total_assets - total_liabilities
+        if shareholders_equity is not None and shareholders_equity > 0:
+            roe = (net_income / shareholders_equity) * 100
+            if roe > 20:  # Výborný ROE
+                score += 3
+                reasoning.append(f"Výborný ROE: {roe:.1f}%")
+            elif roe > 15:  # Dobrý ROE
+                score += 2
+                reasoning.append(f"Dobrý ROE: {roe:.1f}%")
+            elif roe > 10:  # Slušný ROE
+                score += 1
+                reasoning.append(f"Slušný ROE: {roe:.1f}%")
+            else:
+                reasoning.append(f"Nízký ROE: {roe:.1f}%")
+        else:
+            reasoning.append("Negativní vlastní kapitál")
+    else:
+        reasoning.append("Nelze vypočítat ROE - chybí data")
+
+    # Analýza provozní marže
+    operating_income = getattr(latest, "operating_income", None)
+    revenue = getattr(latest, "revenue", None)
+
+    if operating_income is not None and revenue is not None and revenue > 0:
+        operating_margin = (operating_income / revenue) * 100
+        if operating_margin > 20:  # Výborná marže
             score += 2
-            reasoning.append(f"Excellent operating margin: {operating_margin:.1f}%")
-        elif operating_margin > 15:  # Good margin
+            reasoning.append(f"Výborná provozní marže: {operating_margin:.1f}%")
+        elif operating_margin > 15:  # Dobrá marže
             score += 1
-            reasoning.append(f"Good operating margin: {operating_margin:.1f}%")
+            reasoning.append(f"Dobrá provozní marže: {operating_margin:.1f}%")
         elif operating_margin > 0:
-            reasoning.append(f"Positive operating margin: {operating_margin:.1f}%")
+            reasoning.append(f"Pozitivní provozní marže: {operating_margin:.1f}%")
         else:
-            reasoning.append(f"Negative operating margin: {operating_margin:.1f}%")
+            reasoning.append(f"Negativní provozní marže: {operating_margin:.1f}%")
     else:
-        reasoning.append("Unable to calculate operating margin")
+        reasoning.append("Nelze vypočítat provozní marži")
 
-    # EPS Growth Consistency (3-year trend)
-    eps_values = [getattr(item, "earnings_per_share", None) for item in financial_line_items 
-                  if getattr(item, "earnings_per_share", None) is not None and getattr(item, "earnings_per_share", None) > 0]
-    
+    # Konzistence růstu EPS (3letý trend)
+    eps_values = [
+        getattr(item, "earnings_per_share", None)
+        for item in financial_line_items
+        if (
+            getattr(item, "earnings_per_share", None) is not None
+            and getattr(item, "earnings_per_share", None) is not None
+        )
+    ]
+    # Filter out None and non-positive values with type guard
+    eps_values = [eps for eps in eps_values if eps is not None and eps > 0]
+
     if len(eps_values) >= 3:
-        # Calculate CAGR for EPS
-        initial_eps = eps_values[-1]  # Oldest value
-        final_eps = eps_values[0]     # Latest value
+        # Výpočet CAGR pro EPS
+        initial_eps = eps_values[-1]  # Nejstarší hodnota
+        final_eps = eps_values[0]  # Nejnovější hodnota
         years = len(eps_values) - 1
-        
-        if initial_eps > 0:
-            eps_cagr = ((final_eps / initial_eps) ** (1/years) - 1) * 100
-            if eps_cagr > 20:  # High growth
+
+        if initial_eps is not None and initial_eps > 0 and final_eps is not None:
+            eps_cagr = ((final_eps / initial_eps) ** (1 / years) - 1) * 100
+            if eps_cagr > 20:  # Vysoký růst
                 score += 3
-                reasoning.append(f"High EPS CAGR: {eps_cagr:.1f}%")
-            elif eps_cagr > 15:  # Good growth
+                reasoning.append(f"Vysoký EPS CAGR: {eps_cagr:.1f}%")
+            elif eps_cagr > 15:  # Dobrý růst
                 score += 2
-                reasoning.append(f"Good EPS CAGR: {eps_cagr:.1f}%")
-            elif eps_cagr > 10:  # Moderate growth
+                reasoning.append(f"Dobrý EPS CAGR: {eps_cagr:.1f}%")
+            elif eps_cagr > 10:  # Mírný růst
                 score += 1
-                reasoning.append(f"Moderate EPS CAGR: {eps_cagr:.1f}%")
+                reasoning.append(f"Mírný EPS CAGR: {eps_cagr:.1f}%")
             else:
-                reasoning.append(f"Low EPS CAGR: {eps_cagr:.1f}%")
+                reasoning.append(f"Nízký EPS CAGR: {eps_cagr:.1f}%")
         else:
-            reasoning.append("Cannot calculate EPS growth from negative base")
+            reasoning.append("Nelze vypočítat růst EPS ze záporné základny")
     else:
-        reasoning.append("Insufficient EPS data for growth analysis")
+        reasoning.append("Nedostatečná EPS data pro analýzu růstu")
 
     return {"score": score, "details": "; ".join(reasoning)}
 
 
-def analyze_growth(financial_line_items: list) -> dict[str, any]:
+def analyze_growth(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
     Analyze revenue and net income growth trends using CAGR.
     Jhunjhunwala favored companies with strong, consistent compound growth.
@@ -255,17 +295,27 @@ def analyze_growth(financial_line_items: list) -> dict[str, any]:
     reasoning = []
 
     # Revenue CAGR Analysis
-    revenues = [getattr(item, "revenue", None) for item in financial_line_items 
-                if getattr(item, "revenue", None) is not None and getattr(item, "revenue", None) > 0]
-    
+    revenues = [
+        getattr(item, "revenue", None)
+        for item in financial_line_items
+        if getattr(item, "revenue", None) is not None
+    ]
+    # Filter out None and non-positive values with type guard
+    revenues = [rev for rev in revenues if rev is not None and rev > 0]
+
     if len(revenues) >= 3:
         initial_revenue = revenues[-1]  # Oldest
-        final_revenue = revenues[0]     # Latest
+        final_revenue = revenues[0]  # Latest
         years = len(revenues) - 1
-        
-        if initial_revenue > 0:  # Fixed: Add zero check
-            revenue_cagr = ((final_revenue / initial_revenue) ** (1/years) - 1) * 100
-            
+
+        if (
+            initial_revenue is not None
+            and final_revenue is not None
+            and initial_revenue > 0
+            and final_revenue > 0
+        ):
+            revenue_cagr = ((final_revenue / initial_revenue) ** (1 / years) - 1) * 100
+
             if revenue_cagr > 20:  # High growth
                 score += 3
                 reasoning.append(f"Excellent revenue CAGR: {revenue_cagr:.1f}%")
@@ -283,17 +333,28 @@ def analyze_growth(financial_line_items: list) -> dict[str, any]:
         reasoning.append("Insufficient revenue data for CAGR calculation")
 
     # Net Income CAGR Analysis
-    net_incomes = [getattr(item, "net_income", None) for item in financial_line_items 
-                   if getattr(item, "net_income", None) is not None and getattr(item, "net_income", None) > 0]
-    
+    net_incomes = [
+        getattr(item, "net_income", None)
+        for item in financial_line_items
+        if getattr(item, "net_income", None) is not None
+    ]
+    # Filter out None and non-positive values with type guard
+    net_incomes = [income for income in net_incomes if income is not None and income > 0]
+
     if len(net_incomes) >= 3:
         initial_income = net_incomes[-1]  # Oldest
-        final_income = net_incomes[0]     # Latest
+        final_income = net_incomes[0]  # Latest
         years = len(net_incomes) - 1
-        
-        if initial_income > 0:  # Fixed: Add zero check
-            income_cagr = ((final_income / initial_income) ** (1/years) - 1) * 100
-            
+
+        if (
+            initial_income is not None
+            and final_income is not None
+            and initial_income > 0
+            and final_income > 0
+            and years > 0
+        ):
+            income_cagr = ((final_income / initial_income) ** (1 / years) - 1) * 100
+
             if income_cagr > 25:  # Very high growth
                 score += 3
                 reasoning.append(f"Excellent income CAGR: {income_cagr:.1f}%")
@@ -312,9 +373,17 @@ def analyze_growth(financial_line_items: list) -> dict[str, any]:
 
     # Revenue Consistency Check (year-over-year)
     if len(revenues) >= 3:
-        declining_years = sum(1 for i in range(1, len(revenues)) if revenues[i-1] > revenues[i])
+        declining_years = sum(
+            1
+            for i in range(1, len(revenues))
+            if (
+                revenues[i - 1] is not None
+                and revenues[i] is not None
+                and revenues[i - 1] > revenues[i]
+            )
+        )
         consistency_ratio = 1 - (declining_years / (len(revenues) - 1))
-        
+
         if consistency_ratio >= 0.8:  # 80% or more years with growth
             score += 1
             reasoning.append(f"Consistent growth pattern ({consistency_ratio*100:.0f}% of years)")
@@ -324,7 +393,7 @@ def analyze_growth(financial_line_items: list) -> dict[str, any]:
     return {"score": score, "details": "; ".join(reasoning)}
 
 
-def analyze_balance_sheet(financial_line_items: list) -> dict[str, any]:
+def analyze_balance_sheet(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
     Check financial strength - healthy asset/liability structure, liquidity.
     Jhunjhunwala favored companies with clean balance sheets and manageable debt.
@@ -337,10 +406,11 @@ def analyze_balance_sheet(financial_line_items: list) -> dict[str, any]:
     reasoning = []
 
     # Debt to asset ratio
-    if (getattr(latest, "total_assets", None) and getattr(latest, "total_liabilities", None) 
-        and latest.total_assets and latest.total_liabilities 
-        and latest.total_assets > 0):
-        debt_ratio = latest.total_liabilities / latest.total_assets
+    total_assets = getattr(latest, "total_assets", None)
+    total_liabilities = getattr(latest, "total_liabilities", None)
+
+    if total_assets is not None and total_liabilities is not None and total_assets > 0 and total_liabilities >= 0:
+        debt_ratio = total_liabilities / total_assets
         if debt_ratio < 0.5:
             score += 2
             reasoning.append(f"Low debt ratio: {debt_ratio:.2f}")
@@ -353,14 +423,20 @@ def analyze_balance_sheet(financial_line_items: list) -> dict[str, any]:
         reasoning.append("Insufficient data to calculate debt ratio")
 
     # Current ratio (liquidity)
-    if (getattr(latest, "current_assets", None) and getattr(latest, "current_liabilities", None) 
-        and latest.current_assets and latest.current_liabilities 
-        and latest.current_liabilities > 0):
-        current_ratio = latest.current_assets / latest.current_liabilities
-        if current_ratio > 2.0:
+    current_assets = getattr(latest, "current_assets", None)
+    current_liabilities = getattr(latest, "current_liabilities", None)
+
+    if (
+        current_assets is not None
+        and current_liabilities is not None
+        and current_assets > 0
+        and current_liabilities > 0
+    ):
+        current_ratio = current_assets / current_liabilities
+        if current_ratio is not None and current_ratio > 2.0:
             score += 2
             reasoning.append(f"Excellent liquidity with current ratio: {current_ratio:.2f}")
-        elif current_ratio > 1.5:
+        elif current_ratio is not None and current_ratio > 1.5:
             score += 1
             reasoning.append(f"Good liquidity with current ratio: {current_ratio:.2f}")
         else:
@@ -371,7 +447,7 @@ def analyze_balance_sheet(financial_line_items: list) -> dict[str, any]:
     return {"score": score, "details": "; ".join(reasoning)}
 
 
-def analyze_cash_flow(financial_line_items: list) -> dict[str, any]:
+def analyze_cash_flow(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
     Evaluate free cash flow and dividend behavior.
     Jhunjhunwala appreciated companies generating strong free cash flow and rewarding shareholders.
@@ -384,18 +460,20 @@ def analyze_cash_flow(financial_line_items: list) -> dict[str, any]:
     reasoning = []
 
     # Free cash flow analysis
-    if getattr(latest, "free_cash_flow", None) and latest.free_cash_flow:
-        if latest.free_cash_flow > 0:
+    free_cash_flow = getattr(latest, "free_cash_flow", None)
+    if free_cash_flow is not None:
+        if free_cash_flow > 0:
             score += 2
-            reasoning.append(f"Positive free cash flow: {latest.free_cash_flow}")
+            reasoning.append(f"Positive free cash flow: {free_cash_flow}")
         else:
-            reasoning.append(f"Negative free cash flow: {latest.free_cash_flow}")
+            reasoning.append(f"Negative free cash flow: {free_cash_flow}")
     else:
         reasoning.append("Free cash flow data not available")
 
     # Dividend analysis
-    if getattr(latest, "dividends_and_other_cash_distributions", None) and latest.dividends_and_other_cash_distributions:
-        if latest.dividends_and_other_cash_distributions < 0:  # Negative indicates cash outflow for dividends
+    dividends = getattr(latest, "dividends_and_other_cash_distributions", None)
+    if dividends is not None:
+        if dividends < 0:  # Negative indicates cash outflow for dividends
             score += 1
             reasoning.append("Company pays dividends to shareholders")
         else:
@@ -406,7 +484,7 @@ def analyze_cash_flow(financial_line_items: list) -> dict[str, any]:
     return {"score": score, "details": "; ".join(reasoning)}
 
 
-def analyze_management_actions(financial_line_items: list) -> dict[str, any]:
+def analyze_management_actions(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
     Look at share issuance or buybacks to assess shareholder friendliness.
     Jhunjhunwala liked managements who buy back shares or avoid dilution.
@@ -434,24 +512,32 @@ def analyze_management_actions(financial_line_items: list) -> dict[str, any]:
     return {"score": score, "details": "; ".join(reasoning)}
 
 
-def assess_quality_metrics(financial_line_items: list) -> float:
+def assess_quality_metrics(financial_line_items: List[Any]) -> float:
     """
     Assess company quality based on Jhunjhunwala's criteria.
     Returns a score between 0 and 1.
     """
     if not financial_line_items:
         return 0.5  # Neutral score
-    
+
     latest = financial_line_items[0]
     quality_factors = []
-    
+
     # ROE consistency and level
-    if (getattr(latest, 'net_income', None) and getattr(latest, 'total_assets', None) and 
-        getattr(latest, 'total_liabilities', None) and latest.total_assets and latest.total_liabilities):
-        
-        shareholders_equity = latest.total_assets - latest.total_liabilities
-        if shareholders_equity > 0 and latest.net_income:
-            roe = latest.net_income / shareholders_equity
+    net_income = getattr(latest, "net_income", None)
+    total_assets = getattr(latest, "total_assets", None)
+    total_liabilities = getattr(latest, "total_liabilities", None)
+
+    if (
+        net_income is not None
+        and total_assets is not None
+        and total_liabilities is not None
+        and total_assets > 0
+        and total_liabilities >= 0
+    ):
+        shareholders_equity = total_assets - total_liabilities
+        if shareholders_equity is not None and net_income is not None and shareholders_equity > 0 and net_income > 0:
+            roe = net_income / shareholders_equity
             if roe > 0.20:  # ROE > 20%
                 quality_factors.append(1.0)
             elif roe > 0.15:  # ROE > 15%
@@ -464,11 +550,13 @@ def assess_quality_metrics(financial_line_items: list) -> float:
             quality_factors.append(0.0)
     else:
         quality_factors.append(0.5)
-    
+
     # Debt levels (lower is better)
-    if (getattr(latest, 'total_assets', None) and getattr(latest, 'total_liabilities', None) and 
-        latest.total_assets and latest.total_liabilities):
-        debt_ratio = latest.total_liabilities / latest.total_assets
+    total_assets = getattr(latest, "total_assets", None)
+    total_liabilities = getattr(latest, "total_liabilities", None)
+
+    if total_assets is not None and total_liabilities is not None and total_assets > 0 and total_liabilities >= 0:
+        debt_ratio = total_liabilities / total_assets
         if debt_ratio < 0.3:  # Low debt
             quality_factors.append(1.0)
         elif debt_ratio < 0.5:  # Moderate debt
@@ -479,58 +567,79 @@ def assess_quality_metrics(financial_line_items: list) -> float:
             quality_factors.append(0.1)
     else:
         quality_factors.append(0.5)
-    
+
     # Growth consistency
-    net_incomes = [getattr(item, "net_income", None) for item in financial_line_items[:4] 
-                   if getattr(item, "net_income", None) is not None and getattr(item, "net_income", None) > 0]
-    
+    net_incomes = [
+        getattr(item, "net_income", None)
+        for item in financial_line_items[:4]
+        if getattr(item, "net_income", None) is not None
+    ]
+    # Filter out None and non-positive values with type guard
+    net_incomes = [income for income in net_incomes if income is not None and income > 0]
+
     if len(net_incomes) >= 3:
-        declining_years = sum(1 for i in range(1, len(net_incomes)) if net_incomes[i-1] > net_incomes[i])
+        declining_years = sum(
+            1
+            for i in range(1, len(net_incomes))
+            if net_incomes[i - 1] is not None and net_incomes[i] is not None and net_incomes[i - 1] > net_incomes[i]
+        )
         consistency = 1 - (declining_years / (len(net_incomes) - 1))
         quality_factors.append(consistency)
     else:
         quality_factors.append(0.5)
-    
+
     # Return average quality score
     return sum(quality_factors) / len(quality_factors) if quality_factors else 0.5
 
 
-def calculate_intrinsic_value(financial_line_items: list, market_cap: float) -> float:
+def calculate_intrinsic_value(financial_line_items: List[Any], market_cap: Optional[float]) -> Optional[float]:
     """
     Calculate intrinsic value using Rakesh Jhunjhunwala's approach:
     - Focus on earnings power and growth
     - Conservative discount rates
     - Quality premium for consistent performers
     """
-    if not financial_line_items or not market_cap:
+    if not financial_line_items or market_cap is None or market_cap <= 0:
         return None
-    
+
     try:
         latest = financial_line_items[0]
-        
+
         # Need positive earnings as base
-        if not getattr(latest, 'net_income', None) or latest.net_income <= 0:
+        net_income = getattr(latest, "net_income", None)
+        if net_income is None or net_income <= 0:
             return None
-        
+
         # Get historical earnings for growth calculation
-        net_incomes = [getattr(item, "net_income", None) for item in financial_line_items[:5] 
-                       if getattr(item, "net_income", None) is not None and getattr(item, "net_income", None) > 0]
-        
+        net_incomes = [
+            getattr(item, "net_income", None)
+            for item in financial_line_items[:5]
+            if getattr(item, "net_income", None) is not None
+        ]
+        # Filter out None and non-positive values with type guard
+        net_incomes = [income for income in net_incomes if income is not None and income > 0]
+
         if len(net_incomes) < 2:
             # Use current earnings with conservative multiple for stable companies
-            return latest.net_income * 12  # Conservative P/E of 12
-        
+            return net_income * 12  # Conservative P/E of 12
+
         # Calculate sustainable growth rate using historical data
         initial_income = net_incomes[-1]  # Oldest
-        final_income = net_incomes[0]     # Latest
+        final_income = net_incomes[0]  # Latest
         years = len(net_incomes) - 1
-        
+
         # Calculate historical CAGR
-        if initial_income > 0:  # Fixed: Add zero check
-            historical_growth = ((final_income / initial_income) ** (1/years) - 1)
+        if (
+            initial_income is not None
+            and final_income is not None
+            and initial_income > 0
+            and final_income > 0
+            and years > 0
+        ):
+            historical_growth = (final_income / initial_income) ** (1 / years) - 1
         else:
             historical_growth = 0.05  # Default to 5%
-        
+
         # Conservative growth assumptions (Jhunjhunwala style)
         if historical_growth > 0.25:  # Cap at 25% for sustainability
             sustainable_growth = 0.20  # Conservative 20%
@@ -540,10 +649,10 @@ def calculate_intrinsic_value(financial_line_items: list, market_cap: float) -> 
             sustainable_growth = historical_growth * 0.9  # 90% of historical
         else:
             sustainable_growth = 0.05  # Minimum 5% for inflation
-        
+
         # Quality assessment affects discount rate
         quality_score = assess_quality_metrics(financial_line_items)
-        
+
         # Discount rate based on quality (Jhunjhunwala preferred quality)
         if quality_score >= 0.8:  # High quality
             discount_rate = 0.12  # 12% for high quality companies
@@ -554,39 +663,46 @@ def calculate_intrinsic_value(financial_line_items: list, market_cap: float) -> 
         else:  # Lower quality
             discount_rate = 0.18  # 18% for riskier companies
             terminal_multiple = 12
-        
+
         # Simple DCF with terminal value
-        current_earnings = latest.net_income
+        current_earnings = net_income
         terminal_value = 0
         dcf_value = 0
-        
+
         # Project 5 years of earnings
-        for year in range(1, 6):
-            projected_earnings = current_earnings * ((1 + sustainable_growth) ** year)
-            present_value = projected_earnings / ((1 + discount_rate) ** year)
-            dcf_value += present_value
-        
-        # Terminal value (year 5 earnings * terminal multiple)
-        year_5_earnings = current_earnings * ((1 + sustainable_growth) ** 5)
-        terminal_value = (year_5_earnings * terminal_multiple) / ((1 + discount_rate) ** 5)
-        
+        if current_earnings > 0:
+            for year in range(1, 6):
+                projected_earnings = current_earnings * ((1 + sustainable_growth) ** year)
+                present_value = projected_earnings / ((1 + discount_rate) ** year)
+                dcf_value += present_value
+
+            # Terminal value (year 5 earnings * terminal multiple)
+            year_5_earnings = current_earnings * ((1 + sustainable_growth) ** 5)
+            terminal_value = (year_5_earnings * terminal_multiple) / ((1 + discount_rate) ** 5)
+        else:
+            return None
+
         total_intrinsic_value = dcf_value + terminal_value
-        
+
         return total_intrinsic_value
-        
+
     except Exception:
         # Fallback to simple earnings multiple
-        if getattr(latest, 'net_income', None) and latest.net_income > 0:
-            return latest.net_income * 15
+        if not financial_line_items:
+            return None
+        latest = financial_line_items[0]
+        net_income = getattr(latest, "net_income", None)
+        if net_income is not None and net_income > 0:
+            return net_income * 15
         return None
 
 
 def analyze_rakesh_jhunjhunwala_style(
-    financial_line_items: list,
-    owner_earnings: float = None,
-    intrinsic_value: float = None,
-    current_price: float = None,
-) -> dict[str, any]:
+    financial_line_items: List[Any],
+    owner_earnings: Optional[float] = None,
+    intrinsic_value: Optional[float] = None,
+    current_price: Optional[float] = None,
+) -> Dict[str, Any]:
     """
     Comprehensive analysis in Rakesh Jhunjhunwala's investment style.
     """
@@ -598,11 +714,7 @@ def analyze_rakesh_jhunjhunwala_style(
     management = analyze_management_actions(financial_line_items)
 
     total_score = (
-        profitability["score"]
-        + growth["score"]
-        + balance_sheet["score"]
-        + cash_flow["score"]
-        + management["score"]
+        profitability["score"] + growth["score"] + balance_sheet["score"] + cash_flow["score"] + management["score"]
     )
 
     details = (
@@ -618,7 +730,7 @@ def analyze_rakesh_jhunjhunwala_style(
         intrinsic_value = calculate_intrinsic_value(financial_line_items, current_price)
 
     valuation_gap = None
-    if intrinsic_value and current_price:
+    if intrinsic_value is not None and current_price is not None:
         valuation_gap = intrinsic_value - current_price
 
     return {
@@ -643,7 +755,7 @@ def analyze_rakesh_jhunjhunwala_style(
 # ────────────────────────────────────────────────────────────────────────────────
 def generate_jhunjhunwala_output(
     ticker: str,
-    analysis_data: dict[str, any],
+    analysis_data: Dict[str, Any],
     state: AgentState,
     agent_id: str,
 ) -> RakeshJhunjhunwalaSignal:
@@ -652,40 +764,44 @@ def generate_jhunjhunwala_output(
         [
             (
                 "system",
-                """You are a Rakesh Jhunjhunwala AI agent. Decide on investment signals based on Rakesh Jhunjhunwala's principles:
-                - Circle of Competence: Only invest in businesses you understand
-                - Margin of Safety (> 30%): Buy at a significant discount to intrinsic value
-                - Economic Moat: Look for durable competitive advantages
-                - Quality Management: Seek conservative, shareholder-oriented teams
-                - Financial Strength: Favor low debt, strong returns on equity
-                - Long-term Horizon: Invest in businesses, not just stocks
-                - Growth Focus: Look for companies with consistent earnings and revenue growth
-                - Sell only if fundamentals deteriorate or valuation far exceeds intrinsic value
+                """Jste Rakesh Jhunjhunwala AI agent. Rozhodujte o investičních signálech na základě
+                Rakesh Jhunjhunwala's principů:
+                - Kruh kompetence: Investujte pouze do podniků, kterým rozumíte
+                - Bezpečnostní marže (> 30%): Kupujte se značnou slevou k vnitřní hodnotě
+                - Ekonomický příkop: Hledejte trvalé konkurenční výhody
+                - Kvalitní management: Hledejte konzervativní, na akcionáře orientované týmy
+                - Finanční síla: Upřednostňujte nízký dluh, silnou návratnost vlastního kapitálu
+                - Dlouhodobý horizont: Investujte do podniků, ne jen akcií
+                - Zaměření na růst: Hledejte společnosti s konzistentním růstem zisků a tržeb
+                - Prodávejte pouze pokud se fundamenty zhoršují nebo ocenění daleko převyšuje vnitřní hodnotu
 
-                When providing your reasoning, be thorough and specific by:
-                1. Explaining the key factors that influenced your decision the most (both positive and negative)
-                2. Highlighting how the company aligns with or violates specific Jhunjhunwala principles
-                3. Providing quantitative evidence where relevant (e.g., specific margins, ROE values, debt levels)
-                4. Concluding with a Jhunjhunwala-style assessment of the investment opportunity
-                5. Using Rakesh Jhunjhunwala's voice and conversational style in your explanation
+                Při poskytování svého zdůvodnění buďte důkladní a konkrétní:
+                1. Vysvětlete klíčové faktory, které nejvíce ovlivnily vaše rozhodnutí (pozitivní i negativní)
+                2. Zdůrazněte, jak společnost odpovídá nebo porušuje konkrétní Jhunjhunwala principy
+                3. Poskytněte kvantitativní důkazy tam, kde je to relevantní
+                   (např. konkrétní marže, ROE hodnoty, úrovně dluhů)
+                4. Zakončete Jhunjhunwala-style hodnocením investiční příležitosti
+                5. Používejte Rakesh Jhunjhunwala's hlas a konverzační styl ve svém vysvětlení
 
-                For example, if bullish: "I'm particularly impressed with the consistent growth and strong balance sheet, reminiscent of quality companies that create long-term wealth..."
-                For example, if bearish: "The deteriorating margins and high debt levels concern me - this doesn't fit the profile of companies that build lasting value..."
+                Například, pokud bullish: "Jsem obzvláště ohromen konzistentním růstem a silnou rozvahou,
+                připomíná mi to kvalitní společnosti, které vytvářejí dlouhodobé bohatství..."
+                Například, pokud bearish: "Zhoršující se marže a vysoké úrovně dluhů mě znepokojují -
+                to neodpovídá profilu společností, které budují trvalou hodnotu..."
 
-                Follow these guidelines strictly.
+                Dodržujte tyto pokyny přísně.
                 """,
             ),
             (
                 "human",
-                """Based on the following data, create the investment signal as Rakesh Jhunjhunwala would:
+                """Na základě následujících dat vytvořte investiční signál, jak by to udělal Rakesh Jhunjhunwala:
 
-                Analysis Data for {ticker}:
+                Data analýzy pro {ticker}:
                 {analysis_data}
 
-                Return the trading signal in the following JSON format exactly:
+                Vraťte obchodní signál přesně v následujícím JSON formátu:
                 {{
                   "signal": "bullish" | "bearish" | "neutral",
-                  "confidence": float between 0 and 100,
+                  "confidence": float mezi 0 a 100,
                   "reasoning": "string"
                 }}
                 """,
@@ -695,14 +811,15 @@ def generate_jhunjhunwala_output(
 
     prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
-    # Default fallback signal in case parsing fails
+    # Výchozí záložní signál v případě selhání parsování
     def create_default_rakesh_jhunjhunwala_signal():
-        return RakeshJhunjhunwalaSignal(signal="neutral", confidence=0.0, reasoning="Error in analysis, defaulting to neutral")
+        return RakeshJhunjhunwalaSignal(signal="neutral", confidence=0.0, reasoning="Chyba v analýze, výchozí neutral")
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=RakeshJhunjhunwalaSignal,
         state=state,
         agent_name=agent_id,
         default_factory=create_default_rakesh_jhunjhunwala_signal,
     )
+    return cast(RakeshJhunjhunwalaSignal, result)

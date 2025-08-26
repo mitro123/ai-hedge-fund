@@ -7,9 +7,9 @@ export function ProblemsTab({ className }: ProblemsTabProps) {
     <div className={className}>
       <div className="h-full bg-background/50 rounded-md p-3 text-sm overflow-auto">
         <div className="text-muted-foreground">
-          No problems detected
+          Nebyly zjištěny žádné problémy
         </div>
       </div>
     </div>
   );
-} 
+}

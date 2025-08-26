@@ -49,9 +49,9 @@ export function OutputTab({ className }: OutputTabProps) {
       {/* Empty State */}
       {!outputData && sortedAgents.length === 0 && !isBacktestRun && (
         <div className="text-center py-8 text-muted-foreground">
-          No output to display. Run an analysis to see progress and results.
+          Žádný výstup k zobrazení. Spusťte analýzu pro zobrazení průběhu a výsledků.
         </div>
       )}
     </div>
   );
-} 
+}

@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/utils/llm.py
+# hypothesis_version: 6.138.0
+
+[0.0, 200, 500, 'LLM_CALL_FAILED', 'LLM_OBJECT_ERROR', 'OpenRouter', '__args__', '__origin__', '```', '```json', 'agent_name', 'api_keys', 'content', 'invalid model', 'invoke', 'json_extraktor', 'json_mode', 'max_retries', 'metadata', 'model', 'model_name', 'model_provider', 'neznamy', 'not found', 'original_error', 'request', 'unknown model', 'Žádný obsah']

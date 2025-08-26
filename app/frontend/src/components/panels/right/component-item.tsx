@@ -56,11 +56,11 @@ export default function ComponentItem({
           size="icon"
           className="h-5 w-5 p-0 hover-bg hover:text-primary text-muted-foreground"
           onClick={handlePlusClick}
-          aria-label="Add"
+          aria-label="Přidat"
         >
           <Plus size={14} />
         </Button>
       </div>
     </div>
   );
-} 
+}

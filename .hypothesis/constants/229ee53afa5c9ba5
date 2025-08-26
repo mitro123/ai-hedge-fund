@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/main.py
+# hypothesis_version: 6.138.0
+
+[0.0, 100000.0, '%Y-%m-%d', ',', '-', '--end-date', '--initial-cash', '--margin-requirement', '--ollama', '--show-agent-graph', '--show-reasoning', '--start-date', '--tickers', 'End date', 'OpenAI', 'Show the agent graph', 'Start date', '_', '__main__', 'analyst_signals', 'answer', 'cash', 'checkbox-selected', 'data', 'decisions', 'end_date', 'fg:green', 'fg:green bold', 'fg:green noinherit', 'gpt-4.1', 'graph.png', 'highlighted', 'long', 'long_cost_basis', 'margin_requirement', 'margin_used', 'messages', 'metadata', 'model_name', 'model_provider', 'noinherit', 'pointer', 'portfolio', 'portfolio_manager', 'positions', 'realized_gains', 'selected', 'short', 'short_cost_basis', 'short_margin_used', 'show_reasoning', 'start_date', 'start_node', 'store_true', 'tickers']

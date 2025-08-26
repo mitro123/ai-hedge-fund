@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/repositories/api_key_repository.py
+# hypothesis_version: 6.138.0
+
+['description', 'is_active', 'key_value', 'provider']

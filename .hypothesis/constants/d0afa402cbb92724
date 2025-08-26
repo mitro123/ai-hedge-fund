@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/hedge_fund.py
+# hypothesis_version: 6.138.0
+
+[1.0, 200, 400, 500, '/agents', '/backtest', '/hedge-fund', '/run', 'Task was cancelled', 'agents', 'analyst_signals', 'backtest', 'backtest_result', 'current_prices', 'data', 'decisions', 'description', 'final_portfolio', 'http.disconnect', 'messages', 'model', 'performance_metrics', 'progress', 'results', 'system', 'text/event-stream', 'total_days', 'type', 'value']

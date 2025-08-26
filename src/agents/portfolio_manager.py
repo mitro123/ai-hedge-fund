@@ -1,15 +1,21 @@
+"""Portfolio Manager - Makes final trading decisions and generates orders for multiple tickers."""
+
 import json
+from typing import Any, cast, Dict
+
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
-
-from src.graph.state import AgentState, show_agent_reasoning
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
-from src.utils.progress import progress
+
+from src.graph.state import AgentState, show_agent_reasoning
 from src.utils.llm import call_llm
+from src.utils.progress import progress
 
 
 class PortfolioDecision(BaseModel):
+    """Rozhodnutí portfolio managera pro konkrétní ticker."""
+
     action: Literal["buy", "sell", "short", "cover", "hold"]
     quantity: int = Field(description="Number of shares to trade")
     confidence: float = Field(description="Confidence in the decision, between 0.0 and 100.0")
@@ -17,58 +23,63 @@ class PortfolioDecision(BaseModel):
 
 
 class PortfolioManagerOutput(BaseModel):
+    """Výstup portfolio managera s rozhodnutími pro všechny tickery."""
+
     decisions: dict[str, PortfolioDecision] = Field(description="Dictionary of ticker to trading decisions")
 
 
 ##### Portfolio Management Agent #####
-def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_manager"):
-    """Makes final trading decisions and generates orders for multiple tickers"""
+def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_manager") -> Dict[str, Any]:
+    """Činí finální obchodní rozhodnutí a generuje příkazy pro více tickerů"""
 
-    # Get the portfolio and analyst signals
+    # Získání portfolia a analytických signálů
     portfolio = state["data"]["portfolio"]
     analyst_signals = state["data"]["analyst_signals"]
     tickers = state["data"]["tickers"]
 
-    # Get position limits, current prices, and signals for every ticker
+    # Získání pozičních limitů, aktuálních cen a signálů pro každý ticker
     position_limits = {}
     current_prices = {}
     max_shares = {}
     signals_by_ticker = {}
     for ticker in tickers:
-        progress.update_status(agent_id, ticker, "Processing analyst signals")
+        progress.update_status(agent_id, ticker, "Zpracování analytických signálů")
 
-        # Get position limits and current prices for the ticker
-        # Find the corresponding risk manager for this portfolio manager
+        # Získání pozičních limitů a aktuálních cen pro ticker
+        # Nalezení odpovídajícího risk managera pro tohoto portfolio managera
         if agent_id.startswith("portfolio_manager_"):
-            suffix = agent_id.split('_')[-1]
+            suffix = agent_id.split("_")[-1]
             risk_manager_id = f"risk_management_agent_{suffix}"
         else:
-            risk_manager_id = "risk_management_agent"  # Fallback for legacy
-        
+            risk_manager_id = "risk_management_agent"  # Záložní pro starší verze
+
         risk_data = analyst_signals.get(risk_manager_id, {}).get(ticker, {})
         position_limits[ticker] = risk_data.get("remaining_position_limit", 0)
         current_prices[ticker] = risk_data.get("current_price", 0)
 
-        # Calculate maximum shares allowed based on position limit and price
+        # Výpočet maximálního počtu akcií povolených na základě pozičního limitu a ceny
         if current_prices[ticker] > 0:
             max_shares[ticker] = int(position_limits[ticker] / current_prices[ticker])
         else:
             max_shares[ticker] = 0
 
-        # Get signals for the ticker
+        # Získání signálů pro ticker
         ticker_signals = {}
         for agent, signals in analyst_signals.items():
-            # Skip all risk management agents (they have different signal structure)
+            # Přeskočení všech risk management agentů (mají jinou strukturu signálů)
             if not agent.startswith("risk_management_agent") and ticker in signals:
-                ticker_signals[agent] = {"signal": signals[ticker]["signal"], "confidence": signals[ticker]["confidence"]}
+                ticker_signals[agent] = {
+                    "signal": signals[ticker]["signal"],
+                    "confidence": signals[ticker]["confidence"],
+                }
         signals_by_ticker[ticker] = ticker_signals
 
-    # Add current_prices to the state data so it's available throughout the workflow
+    # Přidání current_prices do state dat, aby bylo dostupné v celém workflow
     state["data"]["current_prices"] = current_prices
 
-    progress.update_status(agent_id, None, "Generating trading decisions")
+    progress.update_status(agent_id, None, "Generování obchodních rozhodnutí")
 
-    # Generate the trading decision
+    # Generování obchodního rozhodnutí
     result = generate_trading_decision(
         tickers=tickers,
         signals_by_ticker=signals_by_ticker,
@@ -79,20 +90,22 @@ def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_man
         state=state,
     )
 
-    # Create the portfolio management message
+    # Vytvoření zprávy portfolio managementu
     message = HumanMessage(
         content=json.dumps({ticker: decision.model_dump() for ticker, decision in result.decisions.items()}),
         name=agent_id,
     )
 
-    # Print the decision if the flag is set
+    # Tisk rozhodnutí pokud je nastaven příznak
     if state["metadata"]["show_reasoning"]:
-        show_agent_reasoning({ticker: decision.model_dump() for ticker, decision in result.decisions.items()}, "Portfolio Manager")
+        show_agent_reasoning(
+            {ticker: decision.model_dump() for ticker, decision in result.decisions.items()}, "Portfolio Manager"
+        )
 
     progress.update_status(agent_id, None, "Done")
 
     return {
-        "messages": state["messages"] + [message],
+        "messages": list(state["messages"]) + [message],
         "data": state["data"],
     }
 
@@ -106,109 +119,109 @@ def generate_trading_decision(
     agent_id: str,
     state: AgentState,
 ) -> PortfolioManagerOutput:
-    """Attempts to get a decision from the LLM with retry logic"""
-    # Create the prompt template
+    """Pokouší se získat rozhodnutí z LLM s retry logikou"""
+    # Vytvoření prompt šablony
     template = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
-                """You are a portfolio manager making final trading decisions based on multiple tickers.
+                """Jste portfolio manager činící finální obchodní rozhodnutí na základě více tickerů.
 
-              IMPORTANT: You are managing an existing portfolio with current positions. The portfolio_positions shows:
-              - "long": number of shares currently held long
-              - "short": number of shares currently held short
-              - "long_cost_basis": average price paid for long shares
-              - "short_cost_basis": average price received for short shares
-              
-              Trading Rules:
-              - For long positions:
-                * Only buy if you have available cash
-                * Only sell if you currently hold long shares of that ticker
-                * Sell quantity must be ≤ current long position shares
-                * Buy quantity must be ≤ max_shares for that ticker
-              
-              - For short positions:
-                * Only short if you have available margin (position value × margin requirement)
-                * Only cover if you currently have short shares of that ticker
-                * Cover quantity must be ≤ current short position shares
-                * Short quantity must respect margin requirements
-              
-              - The max_shares values are pre-calculated to respect position limits
-              - Consider both long and short opportunities based on signals
-              - Maintain appropriate risk management with both long and short exposure
+DŮLEŽITÉ: Spravujete existující portfolio s aktuálními pozicemi. Portfolio_positions ukazuje:
+- "long": počet akcií aktuálně držených long
+- "short": počet akcií aktuálně držených short
+- "long_cost_basis": průměrná cena zaplacená za long akcie
+- "short_cost_basis": průměrná cena obdržená za short akcie
 
-              Available Actions:
-              - "buy": Open or add to long position
-              - "sell": Close or reduce long position (only if you currently hold long shares)
-              - "short": Open or add to short position
-              - "cover": Close or reduce short position (only if you currently hold short shares)
-              - "hold": Maintain current position without any changes (quantity should be 0 for hold)
+Obchodní pravidla:
+- Pro long pozice:
+  * Kupujte pouze pokud máte dostupnou hotovost
+  * Prodávejte pouze pokud aktuálně držíte long akcie daného tickeru
+  * Množství prodeje musí být ≤ aktuální long pozice akcií
+  * Množství nákupu musí být ≤ max_shares pro daný ticker
 
-              Inputs:
-              - signals_by_ticker: dictionary of ticker → signals
-              - max_shares: maximum shares allowed per ticker
-              - portfolio_cash: current cash in portfolio
-              - portfolio_positions: current positions (both long and short)
-              - current_prices: current prices for each ticker
-              - margin_requirement: current margin requirement for short positions (e.g., 0.5 means 50%)
-              - total_margin_used: total margin currently in use
-              """,
+- Pro short pozice:
+  * Shortujte pouze pokud máte dostupnou marži (hodnota pozice × požadavek na marži)
+  * Kryjte pouze pokud aktuálně máte short akcie daného tickeru
+  * Množství krytí musí být ≤ aktuální short pozice akcií
+  * Množství shortu musí respektovat požadavky na marži
+
+- Hodnoty max_shares jsou předpočítané pro respektování pozičních limitů
+- Zvažte jak long tak short příležitosti na základě signálů
+- Udržujte vhodné řízení rizik s long i short expozicí
+
+Dostupné akce:
+- "buy": Otevřít nebo přidat k long pozici
+- "sell": Zavřít nebo snížit long pozici (pouze pokud aktuálně držíte long akcie)
+- "short": Otevřít nebo přidat k short pozici
+- "cover": Zavřít nebo snížit short pozici (pouze pokud aktuálně držíte short akcie)
+- "hold": Udržet aktuální pozici bez změn (množství by mělo být 0 pro hold)
+
+Vstupy:
+- signals_by_ticker: slovník ticker → signály
+- max_shares: maximální akcie povolené na ticker
+- portfolio_cash: aktuální hotovost v portfoliu
+- portfolio_positions: aktuální pozice (long i short)
+- current_prices: aktuální ceny pro každý ticker
+- margin_requirement: aktuální požadavek na marži pro short pozice (např. 0.5 znamená 50%)
+- total_margin_used: celková marže aktuálně používaná
+""",
             ),
             (
                 "human",
-                """Based on the team's analysis, make your trading decisions for each ticker.
+                """Na základě analýzy týmu udělejte svá obchodní rozhodnutí pro každý ticker.
 
-              Here are the signals by ticker:
-              {signals_by_ticker}
+Zde jsou signály podle tickerů:
+{signals_by_ticker}
 
-              Current Prices:
-              {current_prices}
+Aktuální ceny:
+{current_prices}
 
-              Maximum Shares Allowed For Purchases:
-              {max_shares}
+Maximální akcie povolené pro nákupy:
+{max_shares}
 
-              Portfolio Cash: {portfolio_cash}
-              Current Positions: {portfolio_positions}
-              Current Margin Requirement: {margin_requirement}
-              Total Margin Used: {total_margin_used}
+Hotovost portfolia: {portfolio_cash}
+Aktuální pozice: {portfolio_positions}
+Aktuální požadavek na marži: {margin_requirement}
+Celková použitá marže: {total_margin_used}
 
-              IMPORTANT DECISION RULES:
-              - If you currently hold LONG shares of a ticker (long > 0), you can:
-                * HOLD: Keep your current position (quantity = 0)
-                * SELL: Reduce/close your long position (quantity = shares to sell)
-                * BUY: Add to your long position (quantity = additional shares to buy)
-                
-              - If you currently hold SHORT shares of a ticker (short > 0), you can:
-                * HOLD: Keep your current position (quantity = 0)
-                * COVER: Reduce/close your short position (quantity = shares to cover)
-                * SHORT: Add to your short position (quantity = additional shares to short)
-                
-              - If you currently hold NO shares of a ticker (long = 0, short = 0), you can:
-                * HOLD: Stay out of the position (quantity = 0)
-                * BUY: Open a new long position (quantity = shares to buy)
-                * SHORT: Open a new short position (quantity = shares to short)
+DŮLEŽITÁ PRAVIDLA ROZHODOVÁNÍ:
+- Pokud aktuálně držíte LONG akcie tickeru (long > 0), můžete:
+  * HOLD: Udržet svou aktuální pozici (množství = 0)
+  * SELL: Snížit/zavřít svou long pozici (množství = akcie k prodeji)
+  * BUY: Přidat k své long pozici (množství = další akcie k nákupu)
+  
+- Pokud aktuálně držíte SHORT akcie tickeru (short > 0), můžete:
+  * HOLD: Udržet svou aktuální pozici (množství = 0)
+  * COVER: Snížit/zavřít svou short pozici (množství = akcie k krytí)
+  * SHORT: Přidat k své short pozici (množství = další akcie k shortu)
+  
+- Pokud aktuálně NEDržíte žádné akcie tickeru (long = 0, short = 0), můžete:
+  * HOLD: Zůstat mimo pozici (množství = 0)
+  * BUY: Otevřít novou long pozici (množství = akcie k nákupu)
+  * SHORT: Otevřít novou short pozici (množství = akcie k shortu)
 
-              Output strictly in JSON with the following structure:
-              {{
-                "decisions": {{
-                  "TICKER1": {{
-                    "action": "buy/sell/short/cover/hold",
-                    "quantity": integer,
-                    "confidence": float between 0 and 100,
-                    "reasoning": "string explaining your decision considering current position"
-                  }},
-                  "TICKER2": {{
-                    ...
-                  }},
-                  ...
-                }}
-              }}
-              """,
+Výstup striktně v JSON s následující strukturou:
+{{
+  "decisions": {{
+    "TICKER1": {{
+      "action": "buy/sell/short/cover/hold",
+      "quantity": integer,
+      "confidence": float mezi 0 a 100,
+      "reasoning": "string vysvětlující vaše rozhodnutí s ohledem na aktuální pozici"
+    }},
+    "TICKER2": {{
+      ...
+    }},
+    ...
+  }}
+}}
+""",
             ),
         ]
     )
 
-    # Generate the prompt
+    # Generování promptu
     prompt_data = {
         "signals_by_ticker": json.dumps(signals_by_ticker, indent=2),
         "current_prices": json.dumps(current_prices, indent=2),
@@ -218,17 +231,25 @@ def generate_trading_decision(
         "margin_requirement": f"{portfolio.get('margin_requirement', 0):.2f}",
         "total_margin_used": f"{portfolio.get('margin_used', 0):.2f}",
     }
-    
+
     prompt = template.invoke(prompt_data)
 
-    # Create default factory for PortfolioManagerOutput
+    # Vytvoření výchozí factory pro PortfolioManagerOutput
     def create_default_portfolio_output():
-        return PortfolioManagerOutput(decisions={ticker: PortfolioDecision(action="hold", quantity=0, confidence=0.0, reasoning="Error in portfolio management, defaulting to hold") for ticker in tickers})
+        return PortfolioManagerOutput(
+            decisions={
+                ticker: PortfolioDecision(
+                    action="hold", quantity=0, confidence=0.0, reasoning="Chyba v portfolio managementu, výchozí hold"
+                )
+                for ticker in tickers
+            }
+        )
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=PortfolioManagerOutput,
         agent_name=agent_id,
         state=state,
         default_factory=create_default_portfolio_output,
     )
+    return cast(PortfolioManagerOutput, result)

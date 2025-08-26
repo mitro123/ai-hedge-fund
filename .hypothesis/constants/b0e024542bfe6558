@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/data/models.py
+# hypothesis_version: 6.138.0
+
+[0.0, 'allow', 'extra']

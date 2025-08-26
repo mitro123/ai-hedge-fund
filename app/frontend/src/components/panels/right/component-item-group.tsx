@@ -2,6 +2,7 @@ import ComponentItem from '@/components/panels/right/component-item';
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useFlowContext } from '@/contexts/flow-context';
 import { ComponentGroup } from '@/data/sidebar-components';
+import { isMultiNodeComponent } from '@/data/multi-node-mappings';
 
 interface ComponentItemGroupProps {
   group: ComponentGroup;
@@ -22,6 +23,15 @@ export function ComponentItemGroup({
       console.error('Failed to add component to flow:', error);
     }
   };
+
+  const handleMultiNodeClick = async (componentName: string) => {
+    // For multi-node components, always add the entire group
+    try {
+      await addComponentToFlow(componentName);
+    } catch (error) {
+      console.error('Failed to add multi-node component to flow:', error);
+    }
+  };
   
   return (
     <AccordionItem key={name} value={name} className="border-none">
@@ -33,17 +43,20 @@ export function ComponentItemGroup({
       </AccordionTrigger>
       <AccordionContent className="px-4">
         <div className="space-y-1">
-          {items.map((item) => (
-            <ComponentItem 
-              key={item.name}
-              icon={item.icon} 
-              label={item.name} 
-              isActive={activeItem === item.name}
-              onClick={() => handleItemClick(item.name)}
-            />
-          ))}
+          {items.map((item) => {
+            const isMultiNode = isMultiNodeComponent(item.name);
+            return (
+              <ComponentItem 
+                key={item.name}
+                icon={item.icon} 
+                label={item.name} 
+                isActive={activeItem === item.name}
+                onClick={isMultiNode ? () => handleMultiNodeClick(item.name) : () => handleItemClick(item.name)}
+              />
+            );
+          })}
         </div>
       </AccordionContent>
     </AccordionItem>
   );
-} 
+}

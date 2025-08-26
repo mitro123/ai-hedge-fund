@@ -1,37 +1,150 @@
-# AI Hedge Fund - Frontend [WIP] 🚧
-This project is currently a work in progress.  To track progress, please get updates [here](https://x.com/virattt).
+# AI Hedge Fund - Frontend 🎨
 
-This is the frontend application for the AI Hedge Fund project. It provides a web interface to interact with the AI Hedge Fund system, allowing you to visualize and control the hedge fund operations.
+**Verze:** v1.5 Production-ready Beta  
+**Status:** Plně funkční React Flow aplikace s drag & drop editorem
 
-## Overview
+Moderní React aplikace s pokročilým drag & drop workflow editorem pro vytváření a správu AI investičních strategií s 17 specializovanými investičními agenty.
 
-This frontend project is built with React and Vite, serving as the client-side component of the AI Hedge Fund system. It connects to the backend API to provide a user-friendly interface for managing the hedge fund trading system and backtester.
+## 🎯 Aktuální stav (v1.5)
 
-## Installation
+### ✅ Dokončené komponenty:
+- **React Flow Frontend** - Plně funkční drag & drop workflow editor
+- **17 AI Agentů** - Všichni dostupní v UI s drag & drop funkcionalitou
+- **Multi-LLM UI** - Rozhraní pro 6 LLM providerů
+- **Real-time Integration** - Živé propojení s FastAPI backendem
+- **Responsive Design** - Optimalizováno pro desktop i mobile
+- **Type Safety** - Kompletní TypeScript implementace
 
-The project contains the minimum dependencies to get up and running, and includes eslint with additional rules to help write clean React code:
+### 🔄 V procesu:
+- UI/UX improvements
+- Performance optimizations
+- Additional workflow features
 
-```bash
-npm install # or `pnpm install` or `yarn install`
+## 🚀 Přehled
+
+Frontend aplikace poskytuje intuitivní webové rozhraní pro:
+- **Drag & Drop Workflow Editor** - Vizuální vytváření investičních pipeline s React Flow
+- **Multi-Agent Management** - Správa všech 17 investičních agentů
+- **Real-time Backtesting** - Okamžité testování strategií s live výsledky
+- **Portfolio Visualization** - Grafické zobrazení výsledků a metrik
+- **API Keys Management** - Bezpečná správa přístupových klíčů pro LLM
+- **Multi-LLM Support** - UI pro všech 6 podporovaných LLM providerů
+
+## 🛠️ Technologie
+
+### Core Framework
+- **React 18** - Moderní UI framework s concurrent features
+- **TypeScript** - Type-safe development pro robustní kód
+- **Vite** - Rychlý build tool a dev server s HMR
+
+### UI & Styling
+- **React Flow** - Pokročilý drag & drop workflow editor
+- **Tailwind CSS** - Utility-first CSS framework
+- **Shadcn/ui** - Moderní komponenty UI knihovna
+- **Lucide React** - Ikony pro konzistentní design
+
+### State Management
+- **Zustand** - Lightweight state management
+- **React Query** - Server state management a caching
+- **Context API** - Local component state management
+
+### Development Tools
+- **ESLint** - Code linting pro kvalitní kód
+- **Prettier** - Code formatting
+- **PostCSS** - CSS processing
+
+## 📁 Struktura projektu
+
+```
+app/frontend/
+├── public/                   # Statické soubory
+├── src/
+│   ├── components/           # React komponenty
+│   │   ├── custom-controls.tsx
+│   │   ├── Flow.tsx         # Hlavní React Flow komponenta
+│   │   ├── Layout.tsx       # Layout wrapper
+│   │   ├── layout/          # Layout komponenty
+│   │   ├── panels/          # Side panely (left/right)
+│   │   ├── settings/        # Settings komponenty
+│   │   ├── tabs/            # Tab management
+│   │   └── ui/              # Shadcn/ui komponenty
+│   ├── contexts/            # React contexts
+│   │   ├── flow-context.tsx
+│   │   ├── layout-context.tsx
+│   │   ├── node-context.tsx
+│   │   └── tabs-context.tsx
+│   ├── data/                # Data definice
+│   │   ├── agents.ts        # 17 AI agentů definice
+│   │   ├── models.ts        # LLM modely
+│   │   ├── node-mappings.ts # Node mappings
+│   │   └── sidebar-components.ts
+│   ├── edges/               # React Flow edges
+│   ├── hooks/               # Custom React hooks
+│   ├── nodes/               # React Flow nodes
+│   ├── services/            # API služby
+│   ├── types/               # TypeScript typy
+│   └── utils/               # Utility funkce
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
+└── vite.config.ts
 ```
 
-## Running the Application
+## 🚀 Instalace a spuštění
 
-Start the application with:
-
+### Rychlá instalace
 ```bash
+# Instalace závislostí
+npm install # nebo `pnpm install` nebo `yarn install`
+
+# Spuštění dev serveru
 npm run dev
 ```
 
-While the application is running, changes made to the code will be automatically reflected in the browser!
+### Dostupné skripty
+```bash
+npm run dev          # Spustí development server
+npm run build        # Vytvoří production build
+npm run preview      # Preview production buildu
+npm run lint         # Spustí ESLint
+npm run lint:fix     # Opraví ESLint chyby
+```
 
-## Disclaimer
+### Development server
+Po spuštění `npm run dev` bude aplikace dostupná na:
+- **Frontend:** http://localhost:5173
+- **Hot Module Replacement:** Automatické obnovení při změnách
 
-This project is for **educational and research purposes only**.
+## 🎨 Klíčové funkce
 
-- Not intended for real trading or investment
-- No warranties or guarantees provided
-- Creator assumes no liability for financial losses
-- Consult a financial advisor for investment decisions
+### Drag & Drop Workflow Editor
+- Vizuální editor pro vytváření investičních pipeline
+- 17 různých AI agent nodů
+- Propojování agentů pomocí edges
+- Real-time validace workflow
 
-By using this software, you agree to use it solely for learning purposes.
+### Multi-Agent Interface
+- UI pro všech 17 investičních agentů
+- Konfigurace parametrů pro každého agenta
+- Live status monitoring
+
+### LLM Provider Management
+- UI pro 6 LLM providerů (OpenAI, Anthropic, Groq, DeepSeek, Google, Ollama)
+- API key management
+- Model selection interface
+
+### Responsive Design
+- Optimalizováno pro desktop i tablet
+- Mobile-friendly layout
+- Adaptive UI komponenty
+
+## Prohlášení o vyloučení odpovědnosti
+
+Tento projekt je určen **pouze pro vzdělávací a výzkumné účely**.
+
+- Není určen pro skutečné obchodování nebo investování
+- Neposkytuje žádné záruky nebo garance
+- Tvůrce nepřebírá odpovědnost za finanční ztráty
+- Pro investiční rozhodnutí se poraďte s finančním poradcem
+
+Používáním tohoto softwaru souhlasíte s jeho použitím pouze pro vzdělávací účely.

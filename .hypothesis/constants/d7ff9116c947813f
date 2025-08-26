@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/language_models.py
+# hypothesis_version: 6.138.0
+
+[200, 500, '/', '/language-models', '/providers', 'description', 'display_name', 'model', 'model_name', 'models', 'name', 'provider', 'providers']

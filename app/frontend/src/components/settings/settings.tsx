@@ -22,21 +22,21 @@ export function Settings({ className }: SettingsProps) {
   const navigationItems: SettingsNavItem[] = [
     {
       id: 'api',
-      label: 'API Keys',
+      label: 'API Klíče',
       icon: Key,
-      description: 'API endpoints and authentication',
+      description: 'API endpointy a autentifikace',
     },
     {
       id: 'models',
-      label: 'Models',
+      label: 'Modely',
       icon: CubeIcon,
-      description: 'Local and cloud AI models',
+      description: 'Lokální a cloudové AI modely',
     },
     {
       id: 'theme',
-      label: 'Theme',
+      label: 'Téma',
       icon: Palette,
-      description: 'Theme and display preferences',
+      description: 'Téma a předvolby zobrazení',
     },
   ];
 
@@ -59,7 +59,7 @@ export function Settings({ className }: SettingsProps) {
         {/* Left Navigation Pane */}
         <div className="w-60 bg-panel flex-shrink-0">
           <div className="p-4 border-b">
-            <h1 className="text-lg font-semibold text-primary">Settings</h1>
+            <h1 className="text-lg font-semibold text-primary">Nastavení</h1>
           </div>
           <nav className="p-2">
             {navigationItems.map((item) => {
@@ -93,4 +93,4 @@ export function Settings({ className }: SettingsProps) {
       </div>
     </div>
   );
-} 
+}

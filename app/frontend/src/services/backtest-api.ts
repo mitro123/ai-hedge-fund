@@ -2,9 +2,16 @@ import { NodeStatus, useNodeContext } from '@/contexts/node-context';
 import { extractBaseAgentKey } from '@/data/node-mappings';
 import { flowConnectionManager } from '@/hooks/use-flow-connection';
 import {
+  BacktestAdvancedMetrics,
+  BacktestChartsData,
+  BacktestCreateRequest,
   BacktestDayResult,
+  BacktestListItem,
   BacktestPerformanceMetrics,
-  BacktestRequest
+  BacktestRequest,
+  BacktestResults,
+  BacktestStatus,
+  TradeHistoryItem
 } from '@/services/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -27,7 +34,7 @@ export const backtestApi = {
     const { signal } = controller;
 
     // Make a POST request to the backtest endpoint
-    fetch(`${API_BASE_URL}/hedge-fund/backtest`, {
+    fetch(`${API_BASE_URL}/backtest/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -285,6 +292,286 @@ export const backtestApi = {
       }
     };
   },
+
+  /**
+   * Creates a new backtest and starts it in the background
+   * @param request The backtest creation request
+   * @returns Promise with backtest ID and status
+   */
+  createBacktest: async (request: BacktestCreateRequest): Promise<{ backtest_id: string; status: string }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/backtest/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating backtest:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gets a list of all backtests
+   * @param limit Maximum number of results (default: 50)
+   * @param offset Offset for pagination (default: 0)
+   * @returns Promise with list of backtests
+   */
+  listBacktests: async (limit: number = 50, offset: number = 0): Promise<BacktestListItem[]> => {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
+
+      const response = await fetch(`${API_BASE_URL}/backtest/?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error listing backtests:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gets complete backtest results including all data for frontend components
+   * @param backtestId The ID of the backtest
+   * @returns Promise with complete backtest results
+   */
+  getBacktestResults: async (backtestId: string): Promise<BacktestResults> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/backtest/${backtestId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting backtest results:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gets the current status of a backtest
+   * @param backtestId The ID of the backtest
+   * @returns Promise with backtest status
+   */
+  getBacktestStatus: async (backtestId: string): Promise<BacktestStatus> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/backtest/${backtestId}/status`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting backtest status:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gets advanced performance metrics for a backtest
+   * @param backtestId The ID of the backtest
+   * @returns Promise with advanced metrics
+   */
+  getBacktestMetrics: async (backtestId: string): Promise<BacktestAdvancedMetrics> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/backtest/${backtestId}/metrics`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting backtest metrics:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gets trade history for a backtest with optional filtering
+   * @param backtestId The ID of the backtest
+   * @param options Optional filtering and pagination options
+   * @returns Promise with trade history
+   */
+  getBacktestTrades: async (
+    backtestId: string,
+    options: {
+      ticker?: string;
+      action?: 'buy' | 'sell' | 'short' | 'cover';
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<TradeHistoryItem[]> => {
+    try {
+      const params = new URLSearchParams();
+      
+      if (options.ticker) params.append('ticker', options.ticker);
+      if (options.action) params.append('action', options.action);
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.offset) params.append('offset', options.offset.toString());
+
+      const response = await fetch(`${API_BASE_URL}/backtest/${backtestId}/trades?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting backtest trades:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Gets chart data for interactive charts
+   * @param backtestId The ID of the backtest
+   * @returns Promise with chart data
+   */
+  getBacktestCharts: async (backtestId: string): Promise<BacktestChartsData> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/backtest/${backtestId}/charts`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting backtest charts:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Deletes a backtest
+   * @param backtestId The ID of the backtest to delete
+   * @returns Promise with success message
+   */
+  deleteBacktest: async (backtestId: string): Promise<{ message: string }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/backtest/${backtestId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error deleting backtest:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Polls backtest status until completion or error
+   * @param backtestId The ID of the backtest
+   * @param onProgress Optional callback for progress updates
+   * @param pollInterval Polling interval in milliseconds (default: 2000)
+   * @returns Promise that resolves when backtest is complete
+   */
+  pollBacktestStatus: async (
+    backtestId: string,
+    onProgress?: (status: BacktestStatus) => void,
+    pollInterval: number = 2000
+  ): Promise<BacktestStatus> => {
+    return new Promise((resolve, reject) => {
+      const poll = async () => {
+        try {
+          const status = await backtestApi.getBacktestStatus(backtestId);
+          
+          if (onProgress) {
+            onProgress(status);
+          }
+
+          if (status.status === 'COMPLETE') {
+            resolve(status);
+          } else if (status.status === 'ERROR') {
+            reject(new Error(status.error || 'Backtest failed'));
+          } else {
+            // Continue polling
+            setTimeout(poll, pollInterval);
+          }
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      poll();
+    });
+  },
 };
 
-export type { BacktestDayResult, BacktestPerformanceMetrics, BacktestRequest };
+export type { 
+  BacktestAdvancedMetrics,
+  BacktestChartsData,
+  BacktestCreateRequest,
+  BacktestDayResult, 
+  BacktestListItem,
+  BacktestPerformanceMetrics, 
+  BacktestRequest,
+  BacktestResults,
+  BacktestStatus,
+  TradeHistoryItem
+};

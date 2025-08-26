@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/valuation.py
+# hypothesis_version: 6.138.0
+
+[-0.15, 0.0, 0.02, 0.03, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.8, 100, 'Hotovo', 'Komodita přeskočena', 'Přeskakuji komoditu', 'analyst_signals', 'bearish', 'bullish', 'capital_expenditure', 'confidence', 'data', 'dcf', 'details', 'end_date', 'ev_ebitda', 'free_cash_flow', 'gap', 'message', 'messages', 'metadata', 'net_income', 'neutral', 'owner_earnings', 'reasoning', 'residual_income', 'show_reasoning', 'signal', 'tickers', 'ttm', 'value', 'weight', 'working_capital']

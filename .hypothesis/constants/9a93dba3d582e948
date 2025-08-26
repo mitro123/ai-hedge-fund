@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/utils/progress.py
+# hypothesis_version: 6.138.0
+
+[100, '_', '_agent', 'analysis', 'cyan', 'display_name', 'done', 'error', 'green', 'portfolio_management', 'red', 'risk_management', 'status', 'ticker', 'timestamp', 'yellow', '⋯', '✓', '✗']

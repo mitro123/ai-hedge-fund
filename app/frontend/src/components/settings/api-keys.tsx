@@ -17,9 +17,120 @@ const FINANCIAL_API_KEYS: ApiKey[] = [
   {
     key: 'FINANCIAL_DATASETS_API_KEY',
     label: 'Financial Datasets API',
-    description: 'For getting financial data to power the hedge fund',
+    description: 'Pro získání finančních dat pro hedge fund',
     url: 'https://financialdatasets.ai/',
     placeholder: 'your-financial-datasets-api-key'
+  }
+];
+
+const OPENBB_API_KEYS: ApiKey[] = [
+  {
+    key: 'FMP_API_KEY',
+    label: 'Financial Modeling Prep API',
+    description: 'Pro finanční výkazy, fundamentální data a company profily',
+    url: 'https://financialmodelingprep.com/developer/docs',
+    placeholder: 'your-fmp-api-key'
+  },
+  {
+    key: 'ALPHA_VANTAGE_API_KEY',
+    label: 'Alpha Vantage API',
+    description: 'Pro historická data akcií, forex a komodit',
+    url: 'https://www.alphavantage.co/support/#api-key',
+    placeholder: 'your-alpha-vantage-api-key'
+  },
+  {
+    key: 'POLYGON_API_KEY',
+    label: 'Polygon.io API',
+    description: 'Pro real-time a historická tržní data',
+    url: 'https://polygon.io/',
+    placeholder: 'your-polygon-api-key'
+  },
+  {
+    key: 'TIINGO_API_KEY',
+    label: 'Tiingo API',
+    description: 'Pro akcie, ETF, forex a krypto data',
+    url: 'https://api.tiingo.com/',
+    placeholder: 'your-tiingo-api-key'
+  },
+  {
+    key: 'INTRINIO_API_KEY',
+    label: 'Intrinio API',
+    description: 'Pro finanční data a fundamentální analýzu',
+    url: 'https://intrinio.com/',
+    placeholder: 'your-intrinio-api-key'
+  },
+  {
+    key: 'BENZINGA_API_KEY',
+    label: 'Benzinga API',
+    description: 'Pro zprávy, earnings a market sentiment',
+    url: 'https://www.benzinga.com/apis/',
+    placeholder: 'your-benzinga-api-key'
+  },
+  {
+    key: 'FRED_API_KEY',
+    label: 'FRED API (Federal Reserve)',
+    description: 'Pro ekonomická data a makroekonomické indikátory',
+    url: 'https://fred.stlouisfed.org/docs/api/api_key.html',
+    placeholder: 'your-fred-api-key'
+  },
+  {
+    key: 'QUANDL_API_KEY',
+    label: 'Quandl API',
+    description: 'Pro alternativní finanční a ekonomická data',
+    url: 'https://www.quandl.com/tools/api',
+    placeholder: 'your-quandl-api-key'
+  },
+  {
+    key: 'EOD_API_KEY',
+    label: 'EOD Historical Data API',
+    description: 'Pro end-of-day data akcií, ETF a fondů',
+    url: 'https://eodhistoricaldata.com/',
+    placeholder: 'your-eod-api-key'
+  },
+  {
+    key: 'TRADIER_API_KEY',
+    label: 'Tradier API',
+    description: 'Pro options data a deriváty',
+    url: 'https://developer.tradier.com/',
+    placeholder: 'your-tradier-api-key'
+  },
+  {
+    key: 'CBOE_API_KEY',
+    label: 'CBOE API',
+    description: 'Pro volatilitu a options market data',
+    url: 'https://www.cboe.com/market_data/',
+    placeholder: 'your-cboe-api-key'
+  },
+  {
+    key: 'NASDAQ_API_KEY',
+    label: 'Nasdaq Data Link API',
+    description: 'Pro Nasdaq tržní data a indexy',
+    url: 'https://data.nasdaq.com/',
+    placeholder: 'your-nasdaq-api-key'
+  }
+];
+
+const MT5_CONFIG_KEYS: ApiKey[] = [
+  {
+    key: 'MT5_LOGIN',
+    label: 'MT5 Login',
+    description: 'Číslo účtu MetaTrader 5 pro live trading',
+    url: 'https://www.metatrader5.com/',
+    placeholder: '12345678'
+  },
+  {
+    key: 'MT5_PASSWORD',
+    label: 'MT5 Password',
+    description: 'Heslo k MetaTrader 5 účtu',
+    url: 'https://www.metatrader5.com/',
+    placeholder: 'your-mt5-password'
+  },
+  {
+    key: 'MT5_SERVER',
+    label: 'MT5 Server',
+    description: 'Server adresa vašeho MT5 brokera',
+    url: 'https://www.metatrader5.com/',
+    placeholder: 'YourBroker-Demo'
   }
 ];
 
@@ -27,42 +138,42 @@ const LLM_API_KEYS: ApiKey[] = [
   {
     key: 'ANTHROPIC_API_KEY',
     label: 'Anthropic API',
-    description: 'For Claude models (claude-3-5-sonnet, claude-3-opus, claude-3-5-haiku)',
+    description: 'Pro Claude modely (claude-3-5-sonnet, claude-3-opus, claude-3-5-haiku)',
     url: 'https://anthropic.com/',
     placeholder: 'your-anthropic-api-key'
   },
   {
     key: 'DEEPSEEK_API_KEY',
     label: 'DeepSeek API',
-    description: 'For DeepSeek models (deepseek-chat, deepseek-reasoner, etc.)',
+    description: 'Pro DeepSeek modely (deepseek-chat, deepseek-reasoner, atd.)',
     url: 'https://deepseek.com/',
     placeholder: 'your-deepseek-api-key'
   },
   {
     key: 'GROQ_API_KEY',
     label: 'Groq API',
-    description: 'For Groq-hosted models (deepseek, llama3, etc.)',
+    description: 'Pro Groq-hostované modely (deepseek, llama3, atd.)',
     url: 'https://groq.com/',
     placeholder: 'your-groq-api-key'
   },
   {
     key: 'GOOGLE_API_KEY',
     label: 'Google API',
-    description: 'For Gemini models (gemini-2.5-flash, gemini-2.5-pro)',
+    description: 'Pro Gemini modely (gemini-2.5-flash, gemini-2.5-pro)',
     url: 'https://ai.dev/',
     placeholder: 'your-google-api-key'
   },
   {
     key: 'OPENAI_API_KEY',
     label: 'OpenAI API',
-    description: 'For OpenAI models (gpt-4o, gpt-4o-mini, etc.)',
+    description: 'Pro OpenAI modely (gpt-4o, gpt-4o-mini, atd.)',
     url: 'https://platform.openai.com/',
     placeholder: 'your-openai-api-key'
   },
   {
     key: 'OPENROUTER_API_KEY',
     label: 'OpenRouter API',
-    description: 'For OpenRouter models (gpt-4o, gpt-4o-mini, etc.)',
+    description: 'Pro OpenRouter modely (gpt-4o, gpt-4o-mini, atd.)',
     url: 'https://openrouter.ai/',
     placeholder: 'your-openrouter-api-key'
   }
@@ -99,7 +210,7 @@ export function ApiKeysSettings() {
       setApiKeys(keysData);
     } catch (err) {
       console.error('Failed to load API keys:', err);
-      setError('Failed to load API keys. Please try again.');
+      setError('Nepodařilo se načíst API klíče. Zkuste to znovu.');
     } finally {
       setLoading(false);
     }
@@ -131,7 +242,7 @@ export function ApiKeysSettings() {
       }
     } catch (err) {
       console.error(`Failed to save API key ${key}:`, err);
-      setError(`Failed to save ${key}. Please try again.`);
+      setError(`Nepodařilo se uložit ${key}. Zkuste to znovu.`);
     }
   };
 
@@ -152,7 +263,7 @@ export function ApiKeysSettings() {
       });
     } catch (err) {
       console.error(`Failed to delete API key ${key}:`, err);
-      setError(`Failed to delete ${key}. Please try again.`);
+      setError(`Nepodařilo se smazat ${key}. Zkuste to znovu.`);
     }
   };
 
@@ -217,15 +328,15 @@ export function ApiKeysSettings() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold text-primary mb-2">API Keys</h2>
+          <h2 className="text-xl font-semibold text-primary mb-2">API Klíče</h2>
           <p className="text-sm text-muted-foreground">
-            Loading API keys...
+            Načítání API klíčů...
           </p>
         </div>
         <Card className="bg-panel border-gray-700 dark:border-gray-700">
           <CardContent className="p-6">
             <div className="text-sm text-muted-foreground">
-              Please wait while we load your API keys...
+              Počkejte prosím, než načteme vaše API klíče...
             </div>
           </CardContent>
         </Card>
@@ -236,10 +347,10 @@ export function ApiKeysSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-primary mb-2">API Keys</h2>
+        <h2 className="text-xl font-semibold text-primary mb-2">API Klíče</h2>
         <p className="text-sm text-muted-foreground">
-          Configure API endpoints and authentication credentials for financial data and language models.
-          Changes are automatically saved.
+          Nakonfigurujte API endpointy a autentifikační údaje pro finanční data a jazykové modely.
+          Změny se automaticky ukládají.
         </p>
       </div>
 
@@ -250,7 +361,7 @@ export function ApiKeysSettings() {
             <div className="flex items-start gap-3">
               <Key className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
               <div className="space-y-1">
-                <h4 className="text-sm font-medium text-red-500">Error</h4>
+                <h4 className="text-sm font-medium text-red-500">Chyba</h4>
                 <p className="text-xs text-muted-foreground">{error}</p>
                 <Button
                   variant="ghost"
@@ -261,7 +372,7 @@ export function ApiKeysSettings() {
                   }}
                   className="text-xs mt-2 p-0 h-auto text-red-500 hover:text-red-400"
                 >
-                  Try again
+                  Zkusit znovu
                 </Button>
               </div>
             </div>
@@ -271,16 +382,32 @@ export function ApiKeysSettings() {
 
       {/* Financial Data API Keys */}
       {renderApiKeySection(
-        'Financial Data',
-        'API keys for accessing financial market data and datasets.',
+        'Finanční data',
+        'API klíče pro přístup k finančním tržním datům a datovým sadám.',
         FINANCIAL_API_KEYS,
+        <Key className="h-4 w-4" />
+      )}
+
+      {/* OpenBB API Keys */}
+      {renderApiKeySection(
+        'OpenBB Platform',
+        'API klíče pro OpenBB Platform - poskytují přístup k akcím, komoditám, forex, krypto a ekonomickým datům.',
+        OPENBB_API_KEYS,
+        <Key className="h-4 w-4" />
+      )}
+
+      {/* MT5 Configuration */}
+      {renderApiKeySection(
+        'MetaTrader 5',
+        'Konfigurace pro MetaTrader 5 live trading - připojení k vašemu MT5 účtu pro automatické obchodování.',
+        MT5_CONFIG_KEYS,
         <Key className="h-4 w-4" />
       )}
 
       {/* LLM API Keys */}
       {renderApiKeySection(
-        'Language Models',
-        'API keys for accessing various large language model providers.',
+        'Jazykové modely',
+        'API klíče pro přístup k různým poskytovatelům velkých jazykových modelů.',
         LLM_API_KEYS,
         <Key className="h-4 w-4" />
       )}
@@ -291,10 +418,10 @@ export function ApiKeysSettings() {
           <div className="flex items-start gap-3">
             <Key className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
             <div className="space-y-1">
-              <h4 className="text-sm font-medium text-amber-500">Security Note</h4>
+              <h4 className="text-sm font-medium text-amber-500">Bezpečnostní poznámka</h4>
               <p className="text-xs text-muted-foreground">
-                API keys are stored securely on your local system and changes are automatically saved. 
-                Keep your API keys secure and don't share them with others.
+                API klíče jsou bezpečně uloženy ve vašem lokálním systému a změny se automaticky ukládají. 
+                Udržujte své API klíče v bezpečí a nesdílejte je s ostatními.
               </p>
             </div>
           </div>
@@ -302,4 +429,4 @@ export function ApiKeysSettings() {
       </Card>
     </div>
   );
-} 
+}

@@ -111,17 +111,17 @@ export function InvestmentReportDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Investment Report</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Investiční zpráva</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-8 my-4">
           {/* Summary Section */}
           <section>
-            <h2 className="text-lg font-semibold mb-4">Summary</h2>
+            <h2 className="text-lg font-semibold mb-4">Shrnutí</h2>
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>
-                  Recommended trading actions based on analyst signals
+                  Doporučené obchodní akce na základě signálů analytiků
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -129,10 +129,10 @@ export function InvestmentReportDialog({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Ticker</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Confidence</TableHead>
+                      <TableHead>Cena</TableHead>
+                      <TableHead>Akce</TableHead>
+                      <TableHead>Množství</TableHead>
+                      <TableHead>Jistota</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -161,7 +161,7 @@ export function InvestmentReportDialog({
           </section>
           {/* Analyst Signals Section */}
           <section>
-            <h2 className="text-lg font-semibold mb-4">Analyst Signals</h2>
+            <h2 className="text-lg font-semibold mb-4">Signály analytiků</h2>
             <Accordion type="multiple" className="w-full">
               {tickers.map(ticker => (
                 <AccordionItem key={ticker} value={ticker}>
@@ -171,7 +171,7 @@ export function InvestmentReportDialog({
                       <div className="flex items-center gap-1">
                         {getActionIcon(outputNodeData.decisions[ticker].action as ActionType)}
                         <span className="text-sm font-normal text-muted-foreground">
-                          {outputNodeData.decisions[ticker].action} {outputNodeData.decisions[ticker].quantity} shares
+                          {outputNodeData.decisions[ticker].action} {outputNodeData.decisions[ticker].quantity} akcií
                         </span>
                       </div>
                     </div>

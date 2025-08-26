@@ -1,14 +1,22 @@
+"""
+Ben Graham Agent - Implementuje investiční principy Benjamina Grahama.
+"""
+
+import json
+import math
+from typing import Any, cast
+
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
+from typing_extensions import Literal
+
+from src.exceptions import APIKeyError
 from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
-import json
-from typing_extensions import Literal
-from src.utils.progress import progress
-from src.utils.llm import call_llm
-import math
 from src.utils.api_key import get_api_key_from_state
+from src.utils.llm import call_llm
+from src.utils.progress import progress
 
 
 class BenGrahamSignal(BaseModel):
@@ -29,16 +37,39 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
     end_date = data["end_date"]
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
-    
+
     analysis_data = {}
     graham_analysis = {}
 
     for ticker in tickers:
+        if not api_key:
+            error_msg = "Missing FINANCIAL_DATASETS_API_KEY"
+            progress.update_status(agent_id, ticker, f"Error: {error_msg}")
+            raise APIKeyError(error_msg)
+
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=10, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Gathering financial line items")
-        financial_line_items = search_line_items(ticker, ["earnings_per_share", "revenue", "net_income", "book_value_per_share", "total_assets", "total_liabilities", "current_assets", "current_liabilities", "dividends_and_other_cash_distributions", "outstanding_shares"], end_date, period="annual", limit=10, api_key=api_key)
+        financial_line_items = search_line_items(
+            ticker,
+            [
+                "earnings_per_share",
+                "revenue",
+                "net_income",
+                "book_value_per_share",
+                "total_assets",
+                "total_liabilities",
+                "current_assets",
+                "current_liabilities",
+                "dividends_and_other_cash_distributions",
+                "outstanding_shares",
+            ],
+            end_date,
+            period="annual",
+            limit=10,
+            api_key=api_key,
+        )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
@@ -51,7 +82,10 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
         strength_analysis = analyze_financial_strength(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing Graham valuation")
-        valuation_analysis = analyze_valuation_graham(financial_line_items, market_cap)
+        if market_cap is not None:
+            valuation_analysis = analyze_valuation_graham(financial_line_items, market_cap)
+        else:
+            valuation_analysis = {"score": 0, "details": "Market cap data not available"}
 
         # Aggregate scoring
         total_score = earnings_analysis["score"] + strength_analysis["score"] + valuation_analysis["score"]
@@ -65,7 +99,14 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
         else:
             signal = "neutral"
 
-        analysis_data[ticker] = {"signal": signal, "score": total_score, "max_score": max_possible_score, "earnings_analysis": earnings_analysis, "strength_analysis": strength_analysis, "valuation_analysis": valuation_analysis}
+        analysis_data[ticker] = {
+            "signal": signal,
+            "score": total_score,
+            "max_score": max_possible_score,
+            "earnings_analysis": earnings_analysis,
+            "strength_analysis": strength_analysis,
+            "valuation_analysis": valuation_analysis,
+        }
 
         progress.update_status(agent_id, ticker, "Generating Ben Graham analysis")
         graham_output = generate_graham_output(
@@ -75,7 +116,11 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
             agent_id=agent_id,
         )
 
-        graham_analysis[ticker] = {"signal": graham_output.signal, "confidence": graham_output.confidence, "reasoning": graham_output.reasoning}
+        graham_analysis[ticker] = {
+            "signal": graham_output.signal,
+            "confidence": graham_output.confidence,
+            "reasoning": graham_output.reasoning,
+        }
 
         progress.update_status(agent_id, ticker, "Done", analysis=graham_output.reasoning)
 
@@ -184,7 +229,11 @@ def analyze_financial_strength(financial_line_items: list) -> dict:
         details.append("Cannot compute debt ratio (missing total_assets).")
 
     # 3. Dividend track record
-    div_periods = [item.dividends_and_other_cash_distributions for item in financial_line_items if item.dividends_and_other_cash_distributions is not None]
+    div_periods = [
+        item.dividends_and_other_cash_distributions
+        for item in financial_line_items
+        if item.dividends_and_other_cash_distributions is not None
+    ]
     if div_periods:
         # In many data feeds, dividend outflow is shown as a negative number
         # (money going out to shareholders). We'll consider any negative as 'paid a dividend'.
@@ -281,7 +330,7 @@ def analyze_valuation_graham(financial_line_items: list, market_cap: float) -> d
 
 def generate_graham_output(
     ticker: str,
-    analysis_data: dict[str, any],
+    analysis_data: dict[str, Any],
     state: AgentState,
     agent_id: str,
 ) -> BenGrahamSignal:
@@ -295,39 +344,39 @@ def generate_graham_output(
         [
             (
                 "system",
-                """You are a Benjamin Graham AI agent, making investment decisions using his principles:
-            1. Insist on a margin of safety by buying below intrinsic value (e.g., using Graham Number, net-net).
-            2. Emphasize the company's financial strength (low leverage, ample current assets).
-            3. Prefer stable earnings over multiple years.
-            4. Consider dividend record for extra safety.
-            5. Avoid speculative or high-growth assumptions; focus on proven metrics.
+                """Jste AI agent Benjamin Graham, který činí investiční rozhodnutí podle jeho principů:
+            1. Trvejte na bezpečnostní rezervě nákupem pod vnitřní hodnotou (např. pomocí Graham Number, net-net).
+            2. Zdůrazňujte finanční sílu společnosti (nízká páka, dostatek oběžných aktiv).
+            3. Preferujte stabilní výnosy po několik let.
+            4. Zvažujte historii dividend pro dodatečnou bezpečnost.
+            5. Vyhýbejte se spekulativním nebo vysokorostovým předpokladům; zaměřte se na ověřené metriky.
             
-            When providing your reasoning, be thorough and specific by:
-            1. Explaining the key valuation metrics that influenced your decision the most (Graham Number, NCAV, P/E, etc.)
-            2. Highlighting the specific financial strength indicators (current ratio, debt levels, etc.)
-            3. Referencing the stability or instability of earnings over time
-            4. Providing quantitative evidence with precise numbers
-            5. Comparing current metrics to Graham's specific thresholds (e.g., "Current ratio of 2.5 exceeds Graham's minimum of 2.0")
-            6. Using Benjamin Graham's conservative, analytical voice and style in your explanation
+            Při poskytování zdůvodnění buďte důkladní a konkrétní:
+            1. Vysvětlete klíčové oceňovací metriky, které nejvíce ovlivnily vaše rozhodnutí (Graham Number, NCAV, P/E, atd.)
+            2. Zdůrazněte konkrétní ukazatele finanční síly (běžný poměr, úroveň dluhů, atd.)
+            3. Odkazujte na stabilitu nebo nestabilitu výnosů v čase
+            4. Poskytněte kvantitativní důkazy s přesnými čísly
+            5. Porovnejte současné metriky s Grahamovými konkrétními prahovými hodnotami (např. "Běžný poměr 2,5 překračuje Grahamovo minimum 2,0")
+            6. Používejte konzervativní, analytický hlas a styl Benjamina Grahama ve vašem vysvětlení
             
-            For example, if bullish: "The stock trades at a 35% discount to net current asset value, providing an ample margin of safety. The current ratio of 2.5 and debt-to-equity of 0.3 indicate strong financial position..."
-            For example, if bearish: "Despite consistent earnings, the current price of $50 exceeds our calculated Graham Number of $35, offering no margin of safety. Additionally, the current ratio of only 1.2 falls below Graham's preferred 2.0 threshold..."
+            Například, pokud bullish: "Akcie se obchoduje s 35% slevou na čistou hodnotu oběžných aktiv, což poskytuje dostatečnou bezpečnostní rezervu. Běžný poměr 2,5 a poměr dluh/vlastní kapitál 0,3 ukazují na silnou finanční pozici..."
+            Například, pokud bearish: "Navzdory konzistentním výnosům současná cena 50 $ překračuje naši vypočítanou Graham Number 35 $, což nenabízí žádnou bezpečnostní rezervu. Navíc běžný poměr pouze 1,2 je pod Grahamovou preferovanou hranicí 2,0..."
                         
-            Return a rational recommendation: bullish, bearish, or neutral, with a confidence level (0-100) and thorough reasoning.
+            Vraťte racionální doporučení: bullish, bearish, nebo neutral, s úrovní důvěry (0-100) a důkladným zdůvodněním.
             """,
             ),
             (
                 "human",
-                """Based on the following analysis, create a Graham-style investment signal:
+                """Na základě následující analýzy vytvořte investiční signál ve stylu Grahama:
 
-            Analysis Data for {ticker}:
+            Analytická data pro {ticker}:
             {analysis_data}
 
-            Return JSON exactly in this format:
+            Vraťte JSON přesně v tomto formátu:
             {{
-              "signal": "bullish" or "bearish" or "neutral",
+              "signal": "bullish" nebo "bearish" nebo "neutral",
               "confidence": float (0-100),
-              "reasoning": "string"
+              "reasoning": "řetězec"
             }}
             """,
             ),
@@ -337,12 +386,17 @@ def generate_graham_output(
     prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
     def create_default_ben_graham_signal():
-        return BenGrahamSignal(signal="neutral", confidence=0.0, reasoning="Error in generating analysis; defaulting to neutral.")
+        return BenGrahamSignal(
+            signal="neutral", confidence=0.0, reasoning="Error in generating analysis; defaulting to neutral."
+        )
 
-    return call_llm(
-        prompt=prompt,
-        pydantic_model=BenGrahamSignal,
-        agent_name=agent_id,
-        state=state,
-        default_factory=create_default_ben_graham_signal,
+    return cast(
+        BenGrahamSignal,
+        call_llm(
+            prompt=prompt,
+            pydantic_model=BenGrahamSignal,
+            agent_name=agent_id,
+            state=state,
+            default_factory=create_default_ben_graham_signal,
+        ),
     )

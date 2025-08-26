@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/risk_manager.py
+# hypothesis_version: 6.138.0
+
+[0.0, 0.2, 'Done', 'analyst_signals', 'available_cash', 'cash', 'close', 'current_price', 'data', 'end_date', 'error', 'long', 'messages', 'metadata', 'portfolio', 'portfolio_value', 'position_limit', 'positions', 'reasoning', 'remaining_limit', 'short', 'show_reasoning', 'start_date', 'tickers']

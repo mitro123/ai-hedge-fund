@@ -1,290 +1,328 @@
 # AI Hedge Fund
 
-This is a proof of concept for an AI-powered hedge fund.  The goal of this project is to explore the use of AI to make trading decisions.  This project is for **educational** purposes only and is not intended for real trading or investment.
+**Verze:** v1.5 Production-ready Beta  
+**Status:** Plně funkční AI-řízený hedge fund s 17 investičními agenty
 
-This system employs several agents working together:
+Toto je pokročilý AI-řízený hedge fund systém využívající 17 specializovaných investičních agentů pro komplexní analýzu a obchodní rozhodnutí. Projekt kombinuje moderní AI technologie s proven investičními strategiemi legendárních investorů. Tento projekt je určen **pouze pro vzdělávací** účely a není určen pro skutečné obchodování nebo investování.
 
-1. Aswath Damodaran Agent - The Dean of Valuation, focuses on story, numbers, and disciplined valuation
-2. Ben Graham Agent - The godfather of value investing, only buys hidden gems with a margin of safety
-3. Bill Ackman Agent - An activist investor, takes bold positions and pushes for change
-4. Cathie Wood Agent - The queen of growth investing, believes in the power of innovation and disruption
-5. Charlie Munger Agent - Warren Buffett's partner, only buys wonderful businesses at fair prices
-6. Michael Burry Agent - The Big Short contrarian who hunts for deep value
-7. Peter Lynch Agent - Practical investor who seeks "ten-baggers" in everyday businesses
-8. Phil Fisher Agent - Meticulous growth investor who uses deep "scuttlebutt" research 
-9. Rakesh Jhunjhunwala Agent - The Big Bull of India
-10. Stanley Druckenmiller Agent - Macro legend who hunts for asymmetric opportunities with growth potential
-11. Warren Buffett Agent - The oracle of Omaha, seeks wonderful companies at a fair price
-12. Valuation Agent - Calculates the intrinsic value of a stock and generates trading signals
-13. Sentiment Agent - Analyzes market sentiment and generates trading signals
-14. Fundamentals Agent - Analyzes fundamental data and generates trading signals
-15. Technicals Agent - Analyzes technical indicators and generates trading signals
-16. Risk Manager - Calculates risk metrics and sets position limits
-17. Portfolio Manager - Makes final trading decisions and generates orders
+## 📚 Kompletní dokumentace
+
+**➡️ [Přejít na kompletní dokumentaci](docs/README.md)** - Detailní přehled všech funkcí, architektury a nasazení
+
+### Rychlé odkazy:
+- **[🏗️ Architektura systému](docs/ARCHITECTURE.md)** - Detailní technická architektura
+- **[📋 API Reference](docs/API.md)** - Kompletní API dokumentace (36 endpointů)
+- **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Docker nasazení a production setup
+- **[💻 Development Guide](docs/DEVELOPMENT.md)** - Vývojové prostředí a standardy
+- **[🤖 AI Agenti](docs/AGENT_FIX_SUMMARY.md)** - Status všech 17 AI agentů
+
+## 🚀 Rychlý start s Launcherem (Doporučeno)
+
+Pro nejjednodušší způsob, jak spustit celý projekt, použijte interaktivní Python launcher. Tento skript vás provede instalací závislostí a umožní vám spustit webovou aplikaci nebo jednotlivé agenty z přehledného menu.
+
+1.  **Ujistěte se, že máte nainstalovaný Python 3.11+ a Poetry.**
+2.  Spusťte launcher:
+
+```bash
+python3 launcher.py
+```
+
+Launcher se postará o vše ostatní – od kontroly prostředí po spuštění serverů.
+
+## 🎯 Aktuální stav (v1.5)
+
+### ✅ Dokončené komponenty:
+- **17 AI Agentů** - Všichni plně funkční a implementovaní
+- **FastAPI Backend** - Production-ready s 36 API endpointy
+- **React Flow Frontend** - Plně funkční drag & drop workflow editor
+- **Multi-LLM Podpora** - 6 providerů (OpenAI, Anthropic, Groq, DeepSeek, Google, Ollama)
+- **Docker Deployment** - Kompletní containerizace pro production
+
+### 🔄 V procesu:
+- Security fixes (13 identifikovaných issues)
+- Test coverage improvement (aktuálně 2.9%)
+- Code quality improvements (1,397 identifikovaných issues)
+
+Tento systém využívá několik agentů pracujících společně:
+
+1. Agent Aswath Damodaran - Děkan oceňování, zaměřuje se na příběh, čísla a disciplinované oceňování
+2. Agent Ben Graham - Kmotr hodnotového investování, kupuje pouze skryté klenoty s bezpečnostní rezervou
+3. Agent Bill Ackman - Aktivistický investor, zaujímá odvážné pozice a prosazuje změny
+4. Agent Cathie Wood - Královna růstového investování, věří v sílu inovací a disrupcí
+5. Agent Charlie Munger - Partner Warrena Buffetta, kupuje pouze skvělé podniky za férové ceny
+6. Agent Michael Burry - Kontrariánský investor z Big Short, který loví hlubokou hodnotu
+7. Agent Peter Lynch - Praktický investor, který hledá "desetinásobky" v každodenních podnicích
+8. Agent Phil Fisher - Pečlivý růstový investor, který používá hluboký "scuttlebutt" výzkum
+9. Agent Rakesh Jhunjhunwala - Velký býk Indie
+10. Agent Stanley Druckenmiller - Makro legenda, která loví asymetrické příležitosti s růstovým potenciálem
+11. Agent Warren Buffett - Věštec z Omahy, hledá skvělé společnosti za férovou cenu
+12. Agent oceňování - Vypočítává vnitřní hodnotu akcie a generuje obchodní signály
+13. Agent sentimentu - Analyzuje tržní sentiment a generuje obchodní signály
+14. Agent fundamentů - Analyzuje fundamentální data a generuje obchodní signály
+15. Agent technické analýzy - Analyzuje technické indikátory a generuje obchodní signály
+16. Manažer rizik - Vypočítává rizikové metriky a stanovuje pozice
+17. Manažer portfolia - Činí konečná obchodní rozhodnutí a generuje příkazy
 
 <img width="1042" alt="Screenshot 2025-03-22 at 6 19 07 PM" src="https://github.com/user-attachments/assets/cbae3dcf-b571-490d-b0ad-3f0f035ac0d4" />
 
-Note: the system does not actually make any trades.
+Poznámka: systém ve skutečnosti neprovádí žádné obchody.
 
 [![Twitter Follow](https://img.shields.io/twitter/follow/virattt?style=social)](https://twitter.com/virattt)
 
-## Disclaimer
+## Prohlášení o vyloučení odpovědnosti
 
-This project is for **educational and research purposes only**.
+Tento projekt je určen **pouze pro vzdělávací a výzkumné účely**.
 
-- Not intended for real trading or investment
-- No investment advice or guarantees provided
-- Creator assumes no liability for financial losses
-- Consult a financial advisor for investment decisions
-- Past performance does not indicate future results
+- Není určen pro skutečné obchodování nebo investování
+- Neposkytuje investiční poradenství ani záruky
+- Tvůrce nepřebírá odpovědnost za finanční ztráty
+- Pro investiční rozhodnutí se poraďte s finančním poradcem
+- Minulá výkonnost nezaručuje budoucí výsledky
 
-By using this software, you agree to use it solely for learning purposes.
+Používáním tohoto softwaru souhlasíte s jeho použitím pouze pro vzdělávací účely.
 
-## Table of Contents
-- [How to Install](#how-to-install)
-- [How to Run](#how-to-run)
-  - [⌨️ Command Line Interface](#️-command-line-interface)
-  - [🖥️ Web Application (NEW!)](#️-web-application)
-- [Contributing](#contributing)
-- [Feature Requests](#feature-requests)
-- [License](#license)
+## Obsah
+- [Jak nainstalovat](#jak-nainstalovat)
+- [Jak spustit](#jak-spustit)
+  - [⌨️ Rozhraní příkazové řádky](#️-rozhraní-příkazové-řádky)
+  - [🖥️ Webová aplikace (NOVÉ!)](#️-webová-aplikace)
+- [Přispívání](#přispívání)
+- [Požadavky na funkce](#požadavky-na-funkce)
+- [Licence](#licence)
 
-## How to Install
+## Jak nainstalovat
 
-Before you can run the AI Hedge Fund, you'll need to install it and set up your API keys. These steps are common to both the full-stack web application and command line interface.
+Před spuštěním AI Hedge Fund je třeba jej nainstalovat a nastavit API klíče. Tyto kroky jsou společné pro webovou aplikaci i rozhraní příkazové řádky.
 
-### 1. Clone the Repository
+### 1. Klonování repozitáře
 
 ```bash
 git clone https://github.com/virattt/ai-hedge-fund.git
 cd ai-hedge-fund
 ```
 
-### 2. Set Up Your API Keys
+### 2. Nastavení API klíčů
 
-Create a `.env` file for your API keys:
+Vytvořte soubor `.env` pro vaše API klíče:
 ```bash
-# Create .env file for your API keys (in the root directory)
+# Vytvořte .env soubor pro vaše API klíče (v kořenovém adresáři)
 cp .env.example .env
 ```
 
-Open and edit the `.env` file to add your API keys:
+Otevřete a upravte soubor `.env` pro přidání vašich API klíčů:
 ```bash
-# For running LLMs hosted by openai (gpt-4o, gpt-4o-mini, etc.)
-OPENAI_API_KEY=your-openai-api-key
+# Pro spuštění LLM hostovaných OpenAI (gpt-4o, gpt-4o-mini, atd.)
+OPENAI_API_KEY=váš-openai-api-klíč
 
-# For running LLMs hosted by groq (deepseek, llama3, etc.)
-GROQ_API_KEY=your-groq-api-key
+# Pro spuštění LLM hostovaných Groq (deepseek, llama3, atd.)
+GROQ_API_KEY=váš-groq-api-klíč
 
-# For getting financial data to power the hedge fund
-FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
+# Pro získání finančních dat pro hedge fund
+FINANCIAL_DATASETS_API_KEY=váš-financial-datasets-api-klíč
 ```
 
-**Important**: You must set at least one LLM API key (`OPENAI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, or `DEEPSEEK_API_KEY`) for the hedge fund to work. 
+**Důležité**: Musíte nastavit alespoň jeden LLM API klíč (`OPENAI_API_KEY`, `GROQ_API_KEY`, `ANTHROPIC_API_KEY`, nebo `DEEPSEEK_API_KEY`) pro fungování hedge fondu.
 
-**Financial Data**: Data for AAPL, GOOGL, MSFT, NVDA, and TSLA is free and does not require an API key. For any other ticker, you will need to set the `FINANCIAL_DATASETS_API_KEY` in the .env file.
+**Finanční data**: Data pro AAPL, GOOGL, MSFT, NVDA a TSLA jsou zdarma a nevyžadují API klíč. Pro jakýkoli jiný ticker budete muset nastavit `FINANCIAL_DATASETS_API_KEY` v .env souboru.
 
-## How to Run
+## Jak spustit
 
-### ⌨️ Command Line Interface
+### ⌨️ Rozhraní příkazové řádky
 
-For users who prefer working with command line tools, you can run the AI Hedge Fund directly via terminal. This approach offers more granular control and is useful for automation, scripting, and integration purposes.
+Pro uživatele, kteří preferují práci s nástroji příkazové řádky, můžete spustit AI Hedge Fund přímo přes terminál. Tento přístup nabízí větší kontrolu a je užitečný pro automatizaci, skriptování a integrační účely.
 
 <img width="992" alt="Screenshot 2025-01-06 at 5 50 17 PM" src="https://github.com/user-attachments/assets/e8ca04bf-9989-4a7d-a8b4-34e04666663b" />
 
-Choose one of the following installation methods:
+Vyberte jednu z následujících metod instalace:
 
-#### Using Poetry
+#### Použití Poetry
 
-1. Install Poetry (if not already installed):
+1. Nainstalujte Poetry (pokud ještě není nainstalováno):
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-2. Install dependencies:
+2. Nainstalujte závislosti:
 ```bash
 poetry install
 ```
 
-#### Using Docker
+#### Použití Docker
 
-1. Make sure you have Docker installed on your system. If not, you can download it from [Docker's official website](https://www.docker.com/get-started).
+1. Ujistěte se, že máte Docker nainstalovaný ve vašem systému. Pokud ne, můžete si jej stáhnout z [oficiálních stránek Docker](https://www.docker.com/get-started).
 
-2. Navigate to the docker directory:
+2. Přejděte do adresáře docker:
 ```bash
 cd docker
 ```
 
-3. Build the Docker image:
+3. Sestavte Docker obraz:
 ```bash
-# On Linux/Mac:
+# Na Linux/Mac:
 ./run.sh build
 
-# On Windows:
+# Na Windows:
 run.bat build
 ```
 
-#### Running the AI Hedge Fund (with Poetry)
+#### Spuštění AI Hedge Fund (s Poetry)
 ```bash
 poetry run python src/main.py --ticker AAPL,MSFT,NVDA
 ```
 
-#### Running the AI Hedge Fund (with Docker)
+#### Spuštění AI Hedge Fund (s Docker)
 ```bash
-# Navigate to the docker directory first
+# Nejprve přejděte do adresáře docker
 cd docker
 
-# On Linux/Mac:
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA main
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA main
 ```
 
-You can also specify a `--ollama` flag to run the AI hedge fund using local LLMs.
+Můžete také specifikovat příznak `--ollama` pro spuštění AI hedge fondu s lokálními LLM.
 
 ```bash
-# With Poetry:
+# S Poetry:
 poetry run python src/main.py --ticker AAPL,MSFT,NVDA --ollama
 
-# With Docker (from docker/ directory):
-# On Linux/Mac:
+# S Docker (z adresáře docker/):
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA --ollama main
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA --ollama main
 ```
 
-You can also specify a `--show-reasoning` flag to print the reasoning of each agent to the console.
+Můžete také specifikovat příznak `--show-reasoning` pro výpis uvažování každého agenta do konzole.
 
 ```bash
-# With Poetry:
+# S Poetry:
 poetry run python src/main.py --ticker AAPL,MSFT,NVDA --show-reasoning
 
-# With Docker (from docker/ directory):
-# On Linux/Mac:
+# S Docker (z adresáře docker/):
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA --show-reasoning main
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA --show-reasoning main
 ```
 
-You can optionally specify the start and end dates to make decisions for a specific time period.
+Volitelně můžete specifikovat počáteční a koncové datum pro rozhodování v konkrétním časovém období.
 
 ```bash
-# With Poetry:
+# S Poetry:
 poetry run python src/main.py --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01 
 
-# With Docker (from docker/ directory):
-# On Linux/Mac:
+# S Docker (z adresáře docker/):
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01 main
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01 main
 ```
 
-#### Running the Backtester (with Poetry)
+#### Spuštění Backtesteru (s Poetry)
 ```bash
 poetry run python src/backtester.py --ticker AAPL,MSFT,NVDA
 ```
 
-#### Running the Backtester (with Docker)
+#### Spuštění Backtesteru (s Docker)
 ```bash
-# Navigate to the docker directory first
+# Nejprve přejděte do adresáře docker
 cd docker
 
-# On Linux/Mac:
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA backtest
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA backtest
 ```
 
-**Example Output:**
+**Příklad výstupu:**
 <img width="941" alt="Screenshot 2025-01-06 at 5 47 52 PM" src="https://github.com/user-attachments/assets/00e794ea-8628-44e6-9a84-8f8a31ad3b47" />
 
-
-You can optionally specify the start and end dates to backtest over a specific time period.
+Volitelně můžete specifikovat počáteční a koncové datum pro backtesting v konkrétním časovém období.
 
 ```bash
-# With Poetry:
+# S Poetry:
 poetry run python src/backtester.py --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01
 
-# With Docker (from docker/ directory):
-# On Linux/Mac:
+# S Docker (z adresáře docker/):
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01 backtest
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA --start-date 2024-01-01 --end-date 2024-03-01 backtest
 ```
 
-You can also specify a `--ollama` flag to run the backtester using local LLMs.
+Můžete také specifikovat příznak `--ollama` pro spuštění backtesteru s lokálními LLM.
 ```bash
-# With Poetry:
+# S Poetry:
 poetry run python src/backtester.py --ticker AAPL,MSFT,NVDA --ollama
 
-# With Docker (from docker/ directory):
-# On Linux/Mac:
+# S Docker (z adresáře docker/):
+# Na Linux/Mac:
 ./run.sh --ticker AAPL,MSFT,NVDA --ollama backtest
 
-# On Windows:
+# Na Windows:
 run.bat --ticker AAPL,MSFT,NVDA --ollama backtest
 ```
 
-### 🖥️ Web Application
+### 🖥️ Webová aplikace
 
-The new way to run the AI Hedge Fund is through our web application that provides a user-friendly interface. **This is recommended for most users, especially those who prefer visual interfaces over command line tools.**
+Nový způsob spuštění AI Hedge Fund je prostřednictvím naší webové aplikace, která poskytuje uživatelsky přívětivé rozhraní. **Toto je doporučeno pro většinu uživatelů, zejména těch, kteří preferují vizuální rozhraní před nástroji příkazové řádky.**
 
-<img width="1721" alt="Screenshot 2025-06-28 at 6 41 03 PM" src="https://github.com/user-attachments/assets/b95ab696-c9f4-416c-9ad1-51feb1f5374b" />
+<img width="1721" alt="Screenshot 2025-06-28 at 6 41 03 PM" src="https://github.com/user-attachments/assets/b95ab696-c9f4-416c-9ad1-51feb1f5374b" />
 
-#### For Mac/Linux:
+#### Pro Mac/Linux:
 ```bash
 cd app && ./run.sh
 ```
 
-If you get a "permission denied" error, run this first:
+Pokud dostanete chybu "permission denied", nejprve spusťte:
 ```bash
 cd app && chmod +x run.sh && ./run.sh
 ```
 
-#### For Windows:
+#### Pro Windows:
 ```bash
-# Go to /app directory
+# Přejděte do adresáře /app
 cd app
 
-# Run the app
+# Spusťte aplikaci
 \.run.bat
 ```
 
-**That's it!** These scripts will:
-1. Check for required dependencies (Node.js, Python, Poetry)
-2. Install all dependencies automatically  
-3. Start both frontend and backend services
-4. **Automatically open your web browser** to the application
+**To je vše!** Tyto skripty:
+1. Zkontrolují požadované závislosti (Node.js, Python, Poetry)
+2. Automaticky nainstalují všechny závislosti
+3. Spustí frontend i backend služby
+4. **Automaticky otevřou váš webový prohlížeč** s aplikací
 
+#### Podrobné pokyny k nastavení
 
-#### Detailed Setup Instructions
+Pro podrobné pokyny k nastavení, řešení problémů a pokročilé možnosti konfigurace viz:
+- [Dokumentace Full-Stack aplikace](./app/README.md)
+- [Dokumentace Frontend](./app/frontend/README.md)  
+- [Dokumentace Backend](./app/backend/README.md)
 
-For detailed setup instructions, troubleshooting, and advanced configuration options, see:
-- [Full-Stack App Documentation](./app/README.md)
-- [Frontend Documentation](./app/frontend/README.md)  
-- [Backend Documentation](./app/backend/README.md)
+## Přispívání
 
+1. Forkněte repozitář
+2. Vytvořte větev pro funkci
+3. Commitněte vaše změny
+4. Pushněte do větve
+5. Vytvořte Pull Request
 
-## Contributing
+**Důležité**: Prosím udržujte vaše pull requesty malé a zaměřené. To usnadní jejich kontrolu a sloučení.
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+## Požadavky na funkce
 
-**Important**: Please keep your pull requests small and focused.  This will make it easier to review and merge.
+Pokud máte požadavek na funkci, prosím otevřete [issue](https://github.com/virattt/ai-hedge-fund/issues) a ujistěte se, že je označen jako `enhancement`.
 
-## Feature Requests
+## Licence
 
-If you have a feature request, please open an [issue](https://github.com/virattt/ai-hedge-fund/issues) and make sure it is tagged with `enhancement`.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+Tento projekt je licencován pod MIT licencí - viz soubor LICENSE pro podrobnosti.

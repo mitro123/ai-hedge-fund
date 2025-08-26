@@ -30,7 +30,7 @@ import { type StockAnalyzerNode } from '../types';
 import { NodeShell } from './node-shell';
 
 const runModes = [
-  { value: 'single', label: 'Single Run' },
+  { value: 'single', label: 'Jednorázová analýza' },
   { value: 'backtest', label: 'Backtest' },
 ];
 
@@ -46,7 +46,7 @@ export function StockAnalyzerNode({
   threeMonthsAgo.setMonth(today.getMonth() - 3);
   
   // Use persistent state hooks
-  const [tickers, setTickers] = useNodeState(id, 'tickers', 'AAPL,NVDA,TSLA');
+  const [tickers, setTickers] = useNodeState(id, 'tickers', 'AAPL,NVDA,TSLA,CL=F');
   const [runMode, setRunMode] = useNodeState(id, 'runMode', 'single');
   const [initialCash, setInitialCash] = useNodeState(id, 'initialCash', '100000');
   const [startDate, setStartDate] = useNodeState(id, 'startDate', threeMonthsAgo.toISOString().split('T')[0]);
@@ -243,7 +243,7 @@ export function StockAnalyzerNode({
         selected={selected}
         isConnectable={isConnectable}
         icon={<ChartLine className="h-5 w-5" />}
-        name={data.name || "Stock Analyzer"}
+        name={data.name || "Analyzátor akcií"}
         description={data.description}
         hasLeftHandle={false}
       >
@@ -257,19 +257,19 @@ export function StockAnalyzerNode({
                       <span>Tickers</span>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      You can add multiple tickers using commas (AAPL,NVDA,TSLA)
+                      Můžete přidat více tickerů pomocí čárek (AAPL,NVDA,TSLA,CL=F)
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <Input
-                  placeholder="Enter tickers"
+                  placeholder="Zadejte tickery"
                   value={tickers}
                   onChange={handleTickersChange}
                 />
               </div>
               <div className="flex flex-col gap-2">
                 <div className="text-subtitle text-primary flex items-center gap-1">
-                  Run
+                  Spuštění
                 </div>
                 <div className="flex gap-2">
                   <Popover open={open} onOpenChange={setOpen}>
@@ -281,7 +281,7 @@ export function StockAnalyzerNode({
                         className="flex-1 justify-between h-10 px-3 py-2 bg-node border border-border hover:bg-accent"
                       >
                         <span className="text-subtitle">
-                          {runModes.find((mode) => mode.value === runMode)?.label || 'Single Run'}
+                          {runModes.find((mode) => mode.value === runMode)?.label || 'Jednorázová analýza'}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -289,7 +289,7 @@ export function StockAnalyzerNode({
                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-node border border-border shadow-lg">
                       <Command className="bg-node">
                         <CommandList className="bg-node">
-                          <CommandEmpty>No run mode found.</CommandEmpty>
+                          <CommandEmpty>Žádný režim spuštění nenalezen.</CommandEmpty>
                           <CommandGroup>
                             {runModes.map((mode) => (
                               <CommandItem
@@ -316,7 +316,7 @@ export function StockAnalyzerNode({
                     size="icon" 
                     variant="secondary"
                     className="flex-shrink-0 transition-all duration-200 hover:bg-primary hover:text-primary-foreground active:scale-95"
-                    title={showAsProcessing ? "Stop" : `Run (${formatKeyboardShortcut('↵')})`}
+                    title={showAsProcessing ? "Zastavit" : `Spustit (${formatKeyboardShortcut('↵')})`}
                     onClick={showAsProcessing ? handleStop : handlePlay}
                     disabled={!canRunHedgeFund && !showAsProcessing}
                   >
@@ -332,13 +332,13 @@ export function StockAnalyzerNode({
                 <Accordion type="single" collapsible>
                   <AccordionItem value="advanced" className="border-none">
                     <AccordionTrigger className="!text-subtitle text-primary">
-                      Advanced
+                      Pokročilé
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
                           <div className="text-subtitle text-primary flex items-center gap-1">
-                            Available Cash
+                            Dostupná hotovost
                           </div>
                           <div className="relative flex-1">
                             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
@@ -355,7 +355,7 @@ export function StockAnalyzerNode({
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="text-subtitle text-primary flex items-center gap-1">
-                            Start Date
+                            Počáteční datum
                           </div>
                           <Input
                             type="date"
@@ -365,7 +365,7 @@ export function StockAnalyzerNode({
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="text-subtitle text-primary flex items-center gap-1">
-                            End Date
+                            Koncové datum
                           </div>
                           <Input
                             type="date"
@@ -382,13 +382,13 @@ export function StockAnalyzerNode({
                 <Accordion type="single" collapsible>
                   <AccordionItem value="advanced" className="border-none">
                     <AccordionTrigger className="!text-subtitle text-primary">
-                      Advanced
+                      Pokročilé
                     </AccordionTrigger>
                     <AccordionContent className="pt-2">
                       <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
                           <div className="text-subtitle text-primary flex items-center gap-1">
-                            End Date
+                            Koncové datum
                           </div>
                           <Input
                             type="date"
@@ -398,7 +398,7 @@ export function StockAnalyzerNode({
                         </div>
                         <div className="flex flex-col gap-2">
                           <div className="text-subtitle text-primary flex items-center gap-1">
-                            Start Date
+                            Počáteční datum
                           </div>
                           <Input
                             type="date"

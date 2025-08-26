@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/bill_ackman.py
+# hypothesis_version: 6.138.0
+
+[0.0, 0.06, 0.1, 0.15, 0.3, 0.5, 0.7, 1.0, '; ', 'Bill Ackman Agent', 'Done', 'Getting market cap', 'activism_analysis', 'analysis_data', 'analyst_signals', 'annual', 'bearish', 'bill_ackman_agent', 'bullish', 'confidence', 'data', 'debt_to_equity', 'details', 'end_date', 'free_cash_flow', 'human', 'intrinsic_value', 'margin_of_safety', 'market_cap', 'max_score', 'messages', 'metadata', 'neutral', 'operating_margin', 'outstanding_shares', 'quality_analysis', 'reasoning', 'revenue', 'score', 'show_reasoning', 'signal', 'system', 'ticker', 'tickers', 'total_assets', 'total_liabilities', 'valuation_analysis']

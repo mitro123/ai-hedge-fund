@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/utils/ollama.py
+# hypothesis_version: 6.138.0
+
+[100, 200, '%', '(\\d+(\\.\\d+)?)%', '--check-model', '-c', '34b', '70b', '8x7b', 'OLLAMA_BASE_URL', 'Ollama model manager', '^([a-zA-Z\\s]+):', '__main__', 'bash', 'darwin', 'download', 'extract', 'http://ollama:', 'http://ollama:11434', 'linux', 'models', 'name', 'ollama', 'pull', 'pulling', 'replace', 'rm', 'serve', 'utf-8', 'where', 'which', 'windows', '█', '░']

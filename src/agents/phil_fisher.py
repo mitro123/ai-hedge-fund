@@ -1,19 +1,22 @@
-from src.graph.state import AgentState, show_agent_reasoning
-from src.tools.api import (
-    get_market_cap,
-    search_line_items,
-    get_insider_trades,
-    get_company_news,
-)
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
+"""Phil Fisher Agent - Dlouhodobý růstový investor zaměřený na kvalitu managementu a R&D."""
+
 import json
-from typing_extensions import Literal
-from src.utils.progress import progress
-from src.utils.llm import call_llm
 import statistics
+from typing import Any, cast, Dict, List, Optional
+
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
+from typing_extensions import Literal
+
+from src.exceptions import APIKeyError
+from src.graph.state import AgentState, show_agent_reasoning
+from src.tools.api import get_company_news, get_insider_trades, get_market_cap, search_line_items
 from src.utils.api_key import get_api_key_from_state
+from src.utils.constants import COMMODITY_SYMBOLS
+from src.utils.llm import call_llm
+from src.utils.progress import progress
+
 
 class PhilFisherSignal(BaseModel):
     signal: Literal["bullish", "bearish", "neutral"]
@@ -21,32 +24,44 @@ class PhilFisherSignal(BaseModel):
     reasoning: str
 
 
-def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
+def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent") -> Dict[str, Any]:
     """
-    Analyzes stocks using Phil Fisher's investing principles:
-      - Seek companies with long-term above-average growth potential
-      - Emphasize quality of management and R&D
-      - Look for strong margins, consistent growth, and manageable leverage
-      - Combine fundamental 'scuttlebutt' style checks with basic sentiment and insider data
-      - Willing to pay up for quality, but still mindful of valuation
-      - Generally focuses on long-term compounding
+    Analyzuje akcie pomocí Phil Fisher's investičních principů:
+      - Hledá společnosti s dlouhodobým nadprůměrným růstovým potenciálem
+      - Zdůrazňuje kvalitu managementu a R&D
+      - Hledá silné marže, konzistentní růst a zvládnutelnou páku
+      - Kombinuje fundamentální 'scuttlebutt' kontroly se základním sentimentem a insider daty
+      - Ochoten zaplatit za kvalitu, ale stále pozorný na ocenění
+      - Obecně se zaměřuje na dlouhodobé skládání
 
-    Returns a bullish/bearish/neutral signal with confidence and reasoning.
+    Vrací bullish/bearish/neutral signál se spolehlivostí a zdůvodněním.
     """
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     fisher_analysis = {}
 
     for ticker in tickers:
-        progress.update_status(agent_id, ticker, "Gathering financial line items")
-        # Include relevant line items for Phil Fisher's approach:
-        #   - Growth & Quality: revenue, net_income, earnings_per_share, R&D expense
-        #   - Margins & Stability: operating_income, operating_margin, gross_margin
-        #   - Management Efficiency & Leverage: total_debt, shareholders_equity, free_cash_flow
-        #   - Valuation: net_income, free_cash_flow (for P/E, P/FCF), ebit, ebitda
+        # Skip commodity symbols as Phil Fisher analysis is designed for stocks
+        if ticker in COMMODITY_SYMBOLS:
+            progress.update_status(agent_id, ticker, "Přeskakuji komoditu")
+            fisher_analysis[ticker] = {
+                "signal": "neutral",
+                "confidence": 0.0,
+                "reasoning": f"Phil Fisher analýza není vhodná pro komodity ({ticker}). Komodity jsou analyzovány specializovaným komoditním agentem.",
+            }
+            progress.update_status(agent_id, ticker, "Přeskočeno - komodita", analysis="Komodita přeskočena")
+            continue
+        progress.update_status(agent_id, ticker, "Shromažďování finančních položek")
+        # Zahrnuje relevantní položky pro Phil Fisher's přístup:
+        #   - Růst a kvalita: tržby, čistý zisk, zisk na akcii, R&D výdaje
+        #   - Marže a stabilita: provozní zisk, provozní marže, hrubá marže
+        #   - Efektivita managementu a páka: celkový dluh, vlastní kapitál, volný peněžní tok
+        #   - Ocenění: čistý zisk, volný peněžní tok (pro P/E, P/FCF), ebit, ebitda
         financial_line_items = search_line_items(
             ticker,
             [
@@ -70,39 +85,39 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
             api_key=api_key,
         )
 
-        progress.update_status(agent_id, ticker, "Getting market cap")
+        progress.update_status(agent_id, ticker, "Získávání tržní kapitalizace")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching insider trades")
+        progress.update_status(agent_id, ticker, "Načítání insider obchodů")
         insider_trades = get_insider_trades(ticker, end_date, limit=50, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching company news")
+        progress.update_status(agent_id, ticker, "Načítání firemních zpráv")
         company_news = get_company_news(ticker, end_date, limit=50, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Analyzing growth & quality")
+        progress.update_status(agent_id, ticker, "Analýza růstu a kvality")
         growth_quality = analyze_fisher_growth_quality(financial_line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing margins & stability")
+        progress.update_status(agent_id, ticker, "Analýza marží a stability")
         margins_stability = analyze_margins_stability(financial_line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing management efficiency & leverage")
+        progress.update_status(agent_id, ticker, "Analýza efektivity managementu a páky")
         mgmt_efficiency = analyze_management_efficiency_leverage(financial_line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing valuation (Fisher style)")
+        progress.update_status(agent_id, ticker, "Analýza ocenění (Fisher styl)")
         fisher_valuation = analyze_fisher_valuation(financial_line_items, market_cap)
 
-        progress.update_status(agent_id, ticker, "Analyzing insider activity")
+        progress.update_status(agent_id, ticker, "Analýza insider aktivity")
         insider_activity = analyze_insider_activity(insider_trades)
 
-        progress.update_status(agent_id, ticker, "Analyzing sentiment")
+        progress.update_status(agent_id, ticker, "Analýza sentimentu")
         sentiment_analysis = analyze_sentiment(company_news)
 
-        # Combine partial scores with weights typical for Fisher:
-        #   30% Growth & Quality
-        #   25% Margins & Stability
-        #   20% Management Efficiency
-        #   15% Valuation
-        #   5% Insider Activity
+        # Kombinace dílčích skóre s váhami typickými pro Fisher:
+        #   30% Růst a kvalita
+        #   25% Marže a stabilita
+        #   20% Efektivita managementu
+        #   15% Ocenění
+        #   5% Insider aktivita
         #   5% Sentiment
         total_score = (
             growth_quality["score"] * 0.30
@@ -115,7 +130,7 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
 
         max_possible_score = 10
 
-        # Simple bullish/neutral/bearish signal
+        # Jednoduchý bullish/neutral/bearish signál
         if total_score >= 7.5:
             signal = "bullish"
         elif total_score <= 4.5:
@@ -135,7 +150,7 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
             "sentiment_analysis": sentiment_analysis,
         }
 
-        progress.update_status(agent_id, ticker, "Generating Phil Fisher-style analysis")
+        progress.update_status(agent_id, ticker, "Generování Phil Fisher-style analýzy")
         fisher_output = generate_fisher_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -151,60 +166,62 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
 
         progress.update_status(agent_id, ticker, "Done", analysis=fisher_output.reasoning)
 
-    # Wrap results in a single message
+    # Zabalení výsledků do jedné zprávy
     message = HumanMessage(content=json.dumps(fisher_analysis), name=agent_id)
 
     if state["metadata"].get("show_reasoning"):
         show_agent_reasoning(fisher_analysis, "Phil Fisher Agent")
 
+    if "analyst_signals" not in state["data"]:
+        state["data"]["analyst_signals"] = {}
     state["data"]["analyst_signals"][agent_id] = fisher_analysis
 
     progress.update_status(agent_id, None, "Done")
-    
+
     return {"messages": [message], "data": state["data"]}
 
 
-def analyze_fisher_growth_quality(financial_line_items: list) -> dict:
+def analyze_fisher_growth_quality(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
-    Evaluate growth & quality:
-      - Consistent Revenue Growth
-      - Consistent EPS Growth
-      - R&D as a % of Revenue (if relevant, indicative of future-oriented spending)
+    Vyhodnocení růstu a kvality:
+      - Konzistentní růst tržeb
+      - Konzistentní růst EPS
+      - R&D jako % z tržeb (pokud je relevantní, indikuje budoucně orientované výdaje)
     """
     if not financial_line_items or len(financial_line_items) < 2:
         return {
             "score": 0,
-            "details": "Insufficient financial data for growth/quality analysis",
+            "details": "Nedostatečná finanční data pro analýzu růstu/kvality",
         }
 
     details = []
-    raw_score = 0  # up to 9 raw points => scale to 0–10
+    raw_score = 0  # až 9 surových bodů => škálování na 0–10
 
-    # 1. Revenue Growth (YoY)
+    # 1. Růst tržeb (YoY)
     revenues = [fi.revenue for fi in financial_line_items if fi.revenue is not None]
     if len(revenues) >= 2:
-        # We'll look at the earliest vs. latest to gauge multi-year growth if possible
+        # Podíváme se na nejstarší vs. nejnovější pro odhad víceletého růstu pokud je možný
         latest_rev = revenues[0]
         oldest_rev = revenues[-1]
         if oldest_rev > 0:
             rev_growth = (latest_rev - oldest_rev) / abs(oldest_rev)
             if rev_growth > 0.80:
                 raw_score += 3
-                details.append(f"Very strong multi-period revenue growth: {rev_growth:.1%}")
+                details.append(f"Velmi silný víceletý růst tržeb: {rev_growth:.1%}")
             elif rev_growth > 0.40:
                 raw_score += 2
-                details.append(f"Moderate multi-period revenue growth: {rev_growth:.1%}")
+                details.append(f"Mírný víceletý růst tržeb: {rev_growth:.1%}")
             elif rev_growth > 0.10:
                 raw_score += 1
-                details.append(f"Slight multi-period revenue growth: {rev_growth:.1%}")
+                details.append(f"Mírný víceletý růst tržeb: {rev_growth:.1%}")
             else:
-                details.append(f"Minimal or negative multi-period revenue growth: {rev_growth:.1%}")
+                details.append(f"Minimální nebo negativní víceletý růst tržeb: {rev_growth:.1%}")
         else:
-            details.append("Oldest revenue is zero/negative; cannot compute growth.")
+            details.append("Nejstarší tržby jsou nulové/negativní; nelze vypočítat růst.")
     else:
-        details.append("Not enough revenue data points for growth calculation.")
+        details.append("Nedostatek datových bodů tržeb pro výpočet růstu.")
 
-    # 2. EPS Growth (YoY)
+    # 2. Růst EPS (YoY)
     eps_values = [fi.earnings_per_share for fi in financial_line_items if fi.earnings_per_share is not None]
     if len(eps_values) >= 2:
         latest_eps = eps_values[0]
@@ -213,131 +230,133 @@ def analyze_fisher_growth_quality(financial_line_items: list) -> dict:
             eps_growth = (latest_eps - oldest_eps) / abs(oldest_eps)
             if eps_growth > 0.80:
                 raw_score += 3
-                details.append(f"Very strong multi-period EPS growth: {eps_growth:.1%}")
+                details.append(f"Velmi silný víceletý růst EPS: {eps_growth:.1%}")
             elif eps_growth > 0.40:
                 raw_score += 2
-                details.append(f"Moderate multi-period EPS growth: {eps_growth:.1%}")
+                details.append(f"Mírný víceletý růst EPS: {eps_growth:.1%}")
             elif eps_growth > 0.10:
                 raw_score += 1
-                details.append(f"Slight multi-period EPS growth: {eps_growth:.1%}")
+                details.append(f"Mírný víceletý růst EPS: {eps_growth:.1%}")
             else:
-                details.append(f"Minimal or negative multi-period EPS growth: {eps_growth:.1%}")
+                details.append(f"Minimální nebo negativní víceletý růst EPS: {eps_growth:.1%}")
         else:
-            details.append("Oldest EPS near zero; skipping EPS growth calculation.")
+            details.append("Nejstarší EPS blízko nuly; přeskakuji výpočet růstu EPS.")
     else:
-        details.append("Not enough EPS data points for growth calculation.")
+        details.append("Nedostatek datových bodů EPS pro výpočet růstu.")
 
-    # 3. R&D as % of Revenue (if we have R&D data)
+    # 3. R&D jako % z tržeb (pokud máme R&D data)
     rnd_values = [fi.research_and_development for fi in financial_line_items if fi.research_and_development is not None]
     if rnd_values and revenues and len(rnd_values) == len(revenues):
-        # We'll just look at the most recent for a simple measure
+        # Podíváme se jen na nejnovější pro jednoduché měření
         recent_rnd = rnd_values[0]
         recent_rev = revenues[0] if revenues[0] else 1e-9
         rnd_ratio = recent_rnd / recent_rev
-        # Generally, Fisher admired companies that invest aggressively in R&D,
-        # but it must be appropriate. We'll assume "3%-15%" is healthy, just as an example.
+        # Obecně Fisher obdivoval společnosti, které agresivně investují do R&D,
+        # ale musí to být vhodné. Předpokládáme, že "3%-15%" je zdravé, jen jako příklad.
         if 0.03 <= rnd_ratio <= 0.15:
             raw_score += 3
-            details.append(f"R&D ratio {rnd_ratio:.1%} indicates significant investment in future growth")
+            details.append(f"R&D poměr {rnd_ratio:.1%} indikuje významnou investici do budoucího růstu")
         elif rnd_ratio > 0.15:
             raw_score += 2
-            details.append(f"R&D ratio {rnd_ratio:.1%} is very high (could be good if well-managed)")
+            details.append(f"R&D poměr {rnd_ratio:.1%} je velmi vysoký (může být dobré pokud je dobře řízené)")
         elif rnd_ratio > 0.0:
             raw_score += 1
-            details.append(f"R&D ratio {rnd_ratio:.1%} is somewhat low but still positive")
+            details.append(f"R&D poměr {rnd_ratio:.1%} je poněkud nízký ale stále pozitivní")
         else:
-            details.append("No meaningful R&D expense ratio")
+            details.append("Žádný významný poměr R&D výdajů")
     else:
-        details.append("Insufficient R&D data to evaluate")
+        details.append("Nedostatečná R&D data k vyhodnocení")
 
-    # scale raw_score (max 9) to 0–10
+    # škálování raw_score (max 9) na 0–10
     final_score = min(10, (raw_score / 9) * 10)
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_margins_stability(financial_line_items: list) -> dict:
+def analyze_margins_stability(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
-    Looks at margin consistency (gross/operating margin) and general stability over time.
+    Zkoumá konzistenci marží (hrubá/provozní marže) a obecnou stabilitu v čase.
     """
     if not financial_line_items or len(financial_line_items) < 2:
         return {
             "score": 0,
-            "details": "Insufficient data for margin stability analysis",
+            "details": "Nedostatečná data pro analýzu stability marží",
         }
 
     details = []
-    raw_score = 0  # up to 6 => scale to 0-10
+    raw_score = 0  # až 6 => škálování na 0-10
 
-    # 1. Operating Margin Consistency
+    # 1. Konzistence provozní marže
     op_margins = [fi.operating_margin for fi in financial_line_items if fi.operating_margin is not None]
     if len(op_margins) >= 2:
-        # Check if margins are stable or improving (comparing oldest to newest)
+        # Kontrola zda jsou marže stabilní nebo se zlepšují (porovnání nejstarší s nejnovější)
         oldest_op_margin = op_margins[-1]
         newest_op_margin = op_margins[0]
         if newest_op_margin >= oldest_op_margin > 0:
             raw_score += 2
-            details.append(f"Operating margin stable or improving ({oldest_op_margin:.1%} -> {newest_op_margin:.1%})")
+            details.append(
+                f"Provozní marže stabilní nebo se zlepšuje ({oldest_op_margin:.1%} -> {newest_op_margin:.1%})"
+            )
         elif newest_op_margin > 0:
             raw_score += 1
-            details.append(f"Operating margin positive but slightly declined")
+            details.append("Provozní marže pozitivní ale mírně poklesla")
         else:
-            details.append(f"Operating margin may be negative or uncertain")
+            details.append("Provozní marže může být negativní nebo nejistá")
     else:
-        details.append("Not enough operating margin data points")
+        details.append("Nedostatek datových bodů provozní marže")
 
-    # 2. Gross Margin Level
+    # 2. Úroveň hrubé marže
     gm_values = [fi.gross_margin for fi in financial_line_items if fi.gross_margin is not None]
     if gm_values:
-        # We'll just take the most recent
+        # Vezmeme jen nejnovější
         recent_gm = gm_values[0]
         if recent_gm > 0.5:
             raw_score += 2
-            details.append(f"Strong gross margin: {recent_gm:.1%}")
+            details.append(f"Silná hrubá marže: {recent_gm:.1%}")
         elif recent_gm > 0.3:
             raw_score += 1
-            details.append(f"Moderate gross margin: {recent_gm:.1%}")
+            details.append(f"Mírná hrubá marže: {recent_gm:.1%}")
         else:
-            details.append(f"Low gross margin: {recent_gm:.1%}")
+            details.append(f"Nízká hrubá marže: {recent_gm:.1%}")
     else:
-        details.append("No gross margin data available")
+        details.append("Žádná data hrubé marže nejsou k dispozici")
 
-    # 3. Multi-year Margin Stability
-    #   e.g. if we have at least 3 data points, see if standard deviation is low.
+    # 3. Víceletá stabilita marže
+    #   např. pokud máme alespoň 3 datové body, zjistíme zda je směrodatná odchylka nízká.
     if len(op_margins) >= 3:
         stdev = statistics.pstdev(op_margins)
         if stdev < 0.02:
             raw_score += 2
-            details.append("Operating margin extremely stable over multiple years")
+            details.append("Provozní marže extrémně stabilní po několik let")
         elif stdev < 0.05:
             raw_score += 1
-            details.append("Operating margin reasonably stable")
+            details.append("Provozní marže rozumně stabilní")
         else:
-            details.append("Operating margin volatility is high")
+            details.append("Volatilita provozní marže je vysoká")
     else:
-        details.append("Not enough margin data points for volatility check")
+        details.append("Nedostatek datových bodů marže pro kontrolu volatility")
 
-    # scale raw_score (max 6) to 0-10
+    # škálování raw_score (max 6) na 0-10
     final_score = min(10, (raw_score / 6) * 10)
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_management_efficiency_leverage(financial_line_items: list) -> dict:
+def analyze_management_efficiency_leverage(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
-    Evaluate management efficiency & leverage:
-      - Return on Equity (ROE)
-      - Debt-to-Equity ratio
-      - Possibly check if free cash flow is consistently positive
+    Vyhodnocení efektivity managementu a páky:
+      - Návratnost vlastního kapitálu (ROE)
+      - Poměr dluh k vlastnímu kapitálu
+      - Možná kontrola zda je volný peněžní tok konzistentně pozitivní
     """
     if not financial_line_items:
         return {
             "score": 0,
-            "details": "No financial data for management efficiency analysis",
+            "details": "Žádná finanční data pro analýzu efektivity managementu",
         }
 
     details = []
-    raw_score = 0  # up to 6 => scale to 0–10
+    raw_score = 0  # až 6 => škálování na 0–10
 
-    # 1. Return on Equity (ROE)
+    # 1. Návratnost vlastního kapitálu (ROE)
     ni_values = [fi.net_income for fi in financial_line_items if fi.net_income is not None]
     eq_values = [fi.shareholders_equity for fi in financial_line_items if fi.shareholders_equity is not None]
     if ni_values and eq_values and len(ni_values) == len(eq_values):
@@ -347,21 +366,21 @@ def analyze_management_efficiency_leverage(financial_line_items: list) -> dict:
             roe = recent_ni / recent_eq
             if roe > 0.2:
                 raw_score += 3
-                details.append(f"High ROE: {roe:.1%}")
+                details.append(f"Vysoký ROE: {roe:.1%}")
             elif roe > 0.1:
                 raw_score += 2
-                details.append(f"Moderate ROE: {roe:.1%}")
+                details.append(f"Mírný ROE: {roe:.1%}")
             elif roe > 0:
                 raw_score += 1
-                details.append(f"Positive but low ROE: {roe:.1%}")
+                details.append(f"Pozitivní ale nízký ROE: {roe:.1%}")
             else:
-                details.append(f"ROE is near zero or negative: {roe:.1%}")
+                details.append(f"ROE je blízko nuly nebo negativní: {roe:.1%}")
         else:
-            details.append("Recent net income is zero or negative, hurting ROE")
+            details.append("Nedávný čistý zisk je nulový nebo negativní, škodí ROE")
     else:
-        details.append("Insufficient data for ROE calculation")
+        details.append("Nedostatečná data pro výpočet ROE")
 
-    # 2. Debt-to-Equity
+    # 2. Dluh k vlastnímu kapitálu
     debt_values = [fi.total_debt for fi in financial_line_items if fi.total_debt is not None]
     if debt_values and eq_values and len(debt_values) == len(eq_values):
         recent_debt = debt_values[0]
@@ -369,49 +388,49 @@ def analyze_management_efficiency_leverage(financial_line_items: list) -> dict:
         dte = recent_debt / recent_equity
         if dte < 0.3:
             raw_score += 2
-            details.append(f"Low debt-to-equity: {dte:.2f}")
+            details.append(f"Nízký dluh k vlastnímu kapitálu: {dte:.2f}")
         elif dte < 1.0:
             raw_score += 1
-            details.append(f"Manageable debt-to-equity: {dte:.2f}")
+            details.append(f"Zvládnutelný dluh k vlastnímu kapitálu: {dte:.2f}")
         else:
-            details.append(f"High debt-to-equity: {dte:.2f}")
+            details.append(f"Vysoký dluh k vlastnímu kapitálu: {dte:.2f}")
     else:
-        details.append("Insufficient data for debt/equity analysis")
+        details.append("Nedostatečná data pro analýzu dluh/vlastní kapitál")
 
-    # 3. FCF Consistency
+    # 3. Konzistence FCF
     fcf_values = [fi.free_cash_flow for fi in financial_line_items if fi.free_cash_flow is not None]
     if fcf_values and len(fcf_values) >= 2:
-        # Check if FCF is positive in recent years
+        # Kontrola zda je FCF pozitivní v posledních letech
         positive_fcf_count = sum(1 for x in fcf_values if x and x > 0)
-        # We'll be simplistic: if most are positive, reward
+        # Budeme jednoduší: pokud je většina pozitivní, odměníme
         ratio = positive_fcf_count / len(fcf_values)
         if ratio > 0.8:
             raw_score += 1
-            details.append(f"Majority of periods have positive FCF ({positive_fcf_count}/{len(fcf_values)})")
+            details.append(f"Většina období má pozitivní FCF ({positive_fcf_count}/{len(fcf_values)})")
         else:
-            details.append(f"Free cash flow is inconsistent or often negative")
+            details.append("Volný peněžní tok je nekonzistentní nebo často negativní")
     else:
-        details.append("Insufficient or no FCF data to check consistency")
+        details.append("Nedostatečná nebo žádná FCF data pro kontrolu konzistence")
 
     final_score = min(10, (raw_score / 6) * 10)
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_fisher_valuation(financial_line_items: list, market_cap: float | None) -> dict:
+def analyze_fisher_valuation(financial_line_items: List[Any], market_cap: Optional[float]) -> Dict[str, Any]:
     """
-    Phil Fisher is willing to pay for quality and growth, but still checks:
+    Phil Fisher je ochoten zaplatit za kvalitu a růst, ale stále kontroluje:
       - P/E
       - P/FCF
-      - (Optionally) Enterprise Value metrics, but simpler approach is typical
-    We will grant up to 2 points for each of two metrics => max 4 raw => scale to 0–10.
+      - (Volitelně) Enterprise Value metriky, ale jednodušší přístup je typický
+    Udělíme až 2 body pro každou ze dvou metrik => max 4 surové => škálování na 0–10.
     """
     if not financial_line_items or market_cap is None:
-        return {"score": 0, "details": "Insufficient data to perform valuation"}
+        return {"score": 0, "details": "Nedostatečná data pro provedení ocenění"}
 
     details = []
     raw_score = 0
 
-    # Gather needed data
+    # Shromáždění potřebných dat
     net_incomes = [fi.net_income for fi in financial_line_items if fi.net_income is not None]
     fcf_values = [fi.free_cash_flow for fi in financial_line_items if fi.free_cash_flow is not None]
 
@@ -422,15 +441,15 @@ def analyze_fisher_valuation(financial_line_items: list, market_cap: float | Non
         pe_points = 0
         if pe < 20:
             pe_points = 2
-            details.append(f"Reasonably attractive P/E: {pe:.2f}")
+            details.append(f"Rozumně atraktivní P/E: {pe:.2f}")
         elif pe < 30:
             pe_points = 1
-            details.append(f"Somewhat high but possibly justifiable P/E: {pe:.2f}")
+            details.append(f"Poněkud vysoký ale možná ospravedlnitelný P/E: {pe:.2f}")
         else:
-            details.append(f"Very high P/E: {pe:.2f}")
+            details.append(f"Velmi vysoký P/E: {pe:.2f}")
         raw_score += pe_points
     else:
-        details.append("No positive net income for P/E calculation")
+        details.append("Žádný pozitivní čistý zisk pro výpočet P/E")
 
     # 2) P/FCF
     recent_fcf = fcf_values[0] if fcf_values else None
@@ -439,34 +458,34 @@ def analyze_fisher_valuation(financial_line_items: list, market_cap: float | Non
         pfcf_points = 0
         if pfcf < 20:
             pfcf_points = 2
-            details.append(f"Reasonable P/FCF: {pfcf:.2f}")
+            details.append(f"Rozumný P/FCF: {pfcf:.2f}")
         elif pfcf < 30:
             pfcf_points = 1
-            details.append(f"Somewhat high P/FCF: {pfcf:.2f}")
+            details.append(f"Poněkud vysoký P/FCF: {pfcf:.2f}")
         else:
-            details.append(f"Excessively high P/FCF: {pfcf:.2f}")
+            details.append(f"Nadměrně vysoký P/FCF: {pfcf:.2f}")
         raw_score += pfcf_points
     else:
-        details.append("No positive free cash flow for P/FCF calculation")
+        details.append("Žádný pozitivní volný peněžní tok pro výpočet P/FCF")
 
-    # scale raw_score (max 4) to 0–10
+    # škálování raw_score (max 4) na 0–10
     final_score = min(10, (raw_score / 4) * 10)
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_insider_activity(insider_trades: list) -> dict:
+def analyze_insider_activity(insider_trades: List[Any]) -> Dict[str, Any]:
     """
-    Simple insider-trade analysis:
-      - If there's heavy insider buying, we nudge the score up.
-      - If there's mostly selling, we reduce it.
-      - Otherwise, neutral.
+    Jednoduchá analýza insider obchodů:
+      - Pokud jsou těžké insider nákupy, posuneme skóre nahoru.
+      - Pokud je většinou prodej, snížíme ho.
+      - Jinak neutrální.
     """
-    # Default is neutral (5/10).
+    # Výchozí je neutrální (5/10).
     score = 5
     details = []
 
     if not insider_trades:
-        details.append("No insider trades data; defaulting to neutral")
+        details.append("Žádná data insider obchodů; výchozí neutrální")
         return {"score": score, "details": "; ".join(details)}
 
     buys, sells = 0, 0
@@ -479,29 +498,29 @@ def analyze_insider_activity(insider_trades: list) -> dict:
 
     total = buys + sells
     if total == 0:
-        details.append("No buy/sell transactions found; neutral")
+        details.append("Nenalezeny žádné nákup/prodej transakce; neutrální")
         return {"score": score, "details": "; ".join(details)}
 
     buy_ratio = buys / total
     if buy_ratio > 0.7:
         score = 8
-        details.append(f"Heavy insider buying: {buys} buys vs. {sells} sells")
+        details.append(f"Těžké insider nákupy: {buys} nákupů vs. {sells} prodejů")
     elif buy_ratio > 0.4:
         score = 6
-        details.append(f"Moderate insider buying: {buys} buys vs. {sells} sells")
+        details.append(f"Mírné insider nákupy: {buys} nákupů vs. {sells} prodejů")
     else:
         score = 4
-        details.append(f"Mostly insider selling: {buys} buys vs. {sells} sells")
+        details.append(f"Většinou insider prodeje: {buys} nákupů vs. {sells} prodejů")
 
     return {"score": score, "details": "; ".join(details)}
 
 
-def analyze_sentiment(news_items: list) -> dict:
+def analyze_sentiment(news_items: List[Any]) -> Dict[str, Any]:
     """
-    Basic news sentiment: negative keyword check vs. overall volume.
+    Základní sentiment zpráv: kontrola negativních klíčových slov vs. celkový objem.
     """
     if not news_items:
-        return {"score": 5, "details": "No news data; defaulting to neutral sentiment"}
+        return {"score": 5, "details": "Žádná data zpráv; výchozí neutrální sentiment"}
 
     negative_keywords = ["lawsuit", "fraud", "negative", "downturn", "decline", "investigation", "recall"]
     negative_count = 0
@@ -513,64 +532,70 @@ def analyze_sentiment(news_items: list) -> dict:
     details = []
     if negative_count > len(news_items) * 0.3:
         score = 3
-        details.append(f"High proportion of negative headlines: {negative_count}/{len(news_items)}")
+        details.append(f"Vysoký podíl negativních titulků: {negative_count}/{len(news_items)}")
     elif negative_count > 0:
         score = 6
-        details.append(f"Some negative headlines: {negative_count}/{len(news_items)}")
+        details.append(f"Některé negativní titulky: {negative_count}/{len(news_items)}")
     else:
         score = 8
-        details.append("Mostly positive/neutral headlines")
+        details.append("Většinou pozitivní/neutrální titulky")
 
     return {"score": score, "details": "; ".join(details)}
 
 
 def generate_fisher_output(
     ticker: str,
-    analysis_data: dict[str, any],
+    analysis_data: Dict[str, Any],
     state: AgentState,
     agent_id: str,
 ) -> PhilFisherSignal:
     """
-    Generates a JSON signal in the style of Phil Fisher.
+    Generuje JSON signál ve stylu Phil Fisher.
     """
     template = ChatPromptTemplate.from_messages(
         [
             (
-              "system",
-              """You are a Phil Fisher AI agent, making investment decisions using his principles:
-  
-              1. Emphasize long-term growth potential and quality of management.
-              2. Focus on companies investing in R&D for future products/services.
-              3. Look for strong profitability and consistent margins.
-              4. Willing to pay more for exceptional companies but still mindful of valuation.
-              5. Rely on thorough research (scuttlebutt) and thorough fundamental checks.
-              
-              When providing your reasoning, be thorough and specific by:
-              1. Discussing the company's growth prospects in detail with specific metrics and trends
-              2. Evaluating management quality and their capital allocation decisions
-              3. Highlighting R&D investments and product pipeline that could drive future growth
-              4. Assessing consistency of margins and profitability metrics with precise numbers
-              5. Explaining competitive advantages that could sustain growth over 3-5+ years
-              6. Using Phil Fisher's methodical, growth-focused, and long-term oriented voice
-              
-              For example, if bullish: "This company exhibits the sustained growth characteristics we seek, with revenue increasing at 18% annually over five years. Management has demonstrated exceptional foresight by allocating 15% of revenue to R&D, which has produced three promising new product lines. The consistent operating margins of 22-24% indicate pricing power and operational efficiency that should continue to..."
-              
-              For example, if bearish: "Despite operating in a growing industry, management has failed to translate R&D investments (only 5% of revenue) into meaningful new products. Margins have fluctuated between 10-15%, showing inconsistent operational execution. The company faces increasing competition from three larger competitors with superior distribution networks. Given these concerns about long-term growth sustainability..."
-              
-              You must output a JSON object with:
-                - "signal": "bullish" or "bearish" or "neutral"
-                - "confidence": a float between 0 and 100
-                - "reasoning": a detailed explanation
+                "system",
+                """Jste Phil Fisher AI agent, činíte investiční rozhodnutí pomocí jeho principů:
+
+              1. Zdůrazňujte dlouhodobý růstový potenciál a kvalitu managementu.
+              2. Zaměřte se na společnosti investující do R&D pro budoucí produkty/služby.
+              3. Hledejte silnou ziskovost a konzistentní marže.
+              4. Ochotni zaplatit více za výjimečné společnosti, ale stále pozorní na ocenění.
+              5. Spoléhejte na důkladný výzkum (scuttlebutt) a důkladné fundamentální kontroly.
+
+              Při poskytování svého zdůvodnění buďte důkladní a konkrétní:
+              1. Diskutujte růstové vyhlídky společnosti detailně s konkrétními metrikami a trendy
+              2. Vyhodnoťte kvalitu managementu a jejich rozhodnutí o alokaci kapitálu
+              3. Zdůrazněte R&D investice a produktovou pipeline, která by mohla řídit budoucí růst
+              4. Posouďte konzistenci marží a ziskových metrik s přesnými čísly
+              5. Vysvětlete konkurenční výhody, které by mohly udržet růst po 3-5+ let
+              6. Používejte Phil Fisher's metodický, na růst zaměřený a dlouhodobě orientovaný hlas
+
+              Například, pokud bullish: "Tata společnost vykazuje charakteristiky trvalého růstu, které hledáme,
+              s tržbami rostoucími o 18% ročně po pět let. Management prokázal výjimečnou prozíravost alokací
+              15% tržeb do R&D, což vyprodukovalo tři slibné nové produktové linie. Konzistentní provozní marže
+              22-24% indikují cenovou sílu a provozní efektivitu, která by měla pokračovat..."
+
+              Například, pokud bearish: "Navzdory působení v rostoucím odvětví se managementu nepodařilo přeložit
+              R&D investice (pouze 5% tržeb) do smysluplných nových produktů. Marže kolísaly mezi 10-15%, ukazující
+              nekonzistentní provozní realizaci. Společnost čelí rostoucí konkurenci od tří větších konkurentů
+              s lepšími distribučními sítěmi. Vzhledem k těmto obavám o dlouhodobou udržitelnost růstu..."
+
+              Musíte vyprodukovat JSON objekt s:
+                - "signal": "bullish" nebo "bearish" nebo "neutral"
+                - "confidence": float mezi 0 a 100
+                - "reasoning": detailní vysvětlení
               """,
             ),
             (
-              "human",
-              """Based on the following analysis, create a Phil Fisher-style investment signal.
+                "human",
+                """Na základě následující analýzy vytvořte Phil Fisher-style investiční signál.
 
-              Analysis Data for {ticker}:
+              Data analýzy pro {ticker}:
               {analysis_data}
 
-              Return the trading signal in this JSON format:
+              Vraťte obchodní signál v tomto JSON formátu:
               {{
                 "signal": "bullish/bearish/neutral",
                 "confidence": float (0-100),
@@ -584,16 +609,13 @@ def generate_fisher_output(
     prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
     def create_default_signal():
-        return PhilFisherSignal(
-            signal="neutral",
-            confidence=0.0,
-            reasoning="Error in analysis, defaulting to neutral"
-        )
+        return PhilFisherSignal(signal="neutral", confidence=0.0, reasoning="Chyba v analýze, výchozí neutral")
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=PhilFisherSignal,
         state=state,
         agent_name=agent_id,
         default_factory=create_default_signal,
     )
+    return cast(PhilFisherSignal, result)

@@ -41,38 +41,38 @@ export const extractBaseAgentKey = (uniqueId: string): string => {
 
 // Define base node creation functions (non-agent nodes)
 const baseNodeTypeDefinitions: Record<string, NodeTypeDefinition> = {
-  "Portfolio Input": {
+  "Vstup portfolia": {
     createNode: (position: { x: number, y: number }): AppNode => ({
       id: `portfolio-start-node_${generateUniqueIdSuffix()}`,
       type: "portfolio-start-node",
       position,
       data: {
-        name: "Portfolio Input",
-        description: "Enter your portfolio including tickers, shares, and prices. Connect this node to Analysts to generate insights.",
+        name: "Vstup portfolia",
+        description: "Zadejte své portfolio včetně tickerů, počtu akcií a cen. Připojte tento uzel k analytikům pro generování poznatků.",
         status: "Idle",
       },
     }),
   },
-  "Portfolio Manager": {
+  "Správce portfolia": {
     createNode: (position: { x: number, y: number }): AppNode => ({
       id: `portfolio_manager_${generateUniqueIdSuffix()}`,
       type: "portfolio-manager-node",
       position,
       data: {
-        name: "Portfolio Manager",
-        description: "Generates investment decisions based on input from Analysts.",
+        name: "Správce portfolia",
+        description: "Generuje investiční rozhodnutí na základě vstupů od analytiků.",
         status: "Idle",
       },
     }),
   },
-  "Stock Input": {
+  "Vstup akcií": {
     createNode: (position: { x: number, y: number }): AppNode => ({
       id: `stock-analyzer-node_${generateUniqueIdSuffix()}`,
       type: "stock-analyzer-node",
       position,
       data: {
-        name: "Stock Input",
-        description: "Enter individual stocks and connect this node to Analysts to generate insights.",
+        name: "Vstup akcií",
+        description: "Zadejte jednotlivé akcie a připojte tento uzel k analytikům pro generování poznatků.",
         status: "Idle",
       },
     }),
@@ -137,4 +137,4 @@ export async function getNodeIdForComponent(componentName: string): Promise<stri
  */
 export const clearNodeTypeDefinitionsCache = () => {
   nodeTypeDefinitionsCache = null;
-}; 
+};

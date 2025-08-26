@@ -1,54 +1,59 @@
-from src.graph.state import AgentState, show_agent_reasoning
-from src.tools.api import (
-    get_market_cap,
-    search_line_items,
-    get_insider_trades,
-    get_company_news,
-)
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
+"""Peter Lynch Agent - Růst za rozumnou cenu (GARP) s důrazem na PEG poměr a srozumitelné podniky."""
+
 import json
+from typing import Any, cast, Dict, List, Optional
+
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
 from typing_extensions import Literal
-from src.utils.progress import progress
-from src.utils.llm import call_llm
+
+from src.exceptions import APIKeyError
+from src.graph.state import AgentState, show_agent_reasoning
+from src.tools.api import get_company_news, get_insider_trades, get_market_cap, search_line_items
 from src.utils.api_key import get_api_key_from_state
+from src.utils.llm import call_llm
+from src.utils.progress import progress
 
 
 class PeterLynchSignal(BaseModel):
     """
     Container for the Peter Lynch-style output signal.
     """
+
     signal: Literal["bullish", "bearish", "neutral"]
     confidence: float
     reasoning: str
 
 
-def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
+def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent") -> Dict[str, Any]:
     """
-    Analyzes stocks using Peter Lynch's investing principles:
-      - Invest in what you know (clear, understandable businesses).
-      - Growth at a Reasonable Price (GARP), emphasizing the PEG ratio.
-      - Look for consistent revenue & EPS increases and manageable debt.
-      - Be alert for potential "ten-baggers" (high-growth opportunities).
-      - Avoid overly complex or highly leveraged businesses.
-      - Use news sentiment and insider trades for secondary inputs.
-      - If fundamentals strongly align with GARP, be more aggressive.
+    Analyzuje akcie pomocí Peter Lynch's investičních principů:
+      - Investujte do toho, co znáte (jasné, srozumitelné podniky).
+      - Růst za rozumnou cenu (GARP), zdůrazňující PEG poměr.
+      - Hledejte konzistentní růst tržeb a EPS a zvládnutelný dluh.
+      - Buďte pozorní na potenciální "ten-baggery" (vysokorostoucí příležitosti).
+      - Vyhýbejte se příliš složitým nebo vysoce pákovým podnikům.
+      - Používejte sentiment zpráv a insider obchody jako sekundární vstupy.
+      - Pokud fundamenty silně odpovídají GARP, buďte agresivnější.
 
-    The result is a bullish/bearish/neutral signal, along with a
-    confidence (0–100) and a textual reasoning explanation.
+    Výsledkem je bullish/bearish/neutral signál spolu s
+    spolehlivostí (0–100) a textovým vysvětlením zdůvodnění.
     """
 
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
+
     analysis_data = {}
     lynch_analysis = {}
 
     for ticker in tickers:
-        progress.update_status(agent_id, ticker, "Gathering financial line items")
-        # Relevant line items for Peter Lynch's approach
+        progress.update_status(agent_id, ticker, "Shromažďování finančních položek")
+        # Relevantní položky pro Peter Lynch's přístup
         financial_line_items = search_line_items(
             ticker,
             [
@@ -71,34 +76,34 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
             api_key=api_key,
         )
 
-        progress.update_status(agent_id, ticker, "Getting market cap")
+        progress.update_status(agent_id, ticker, "Získávání tržní kapitalizace")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching insider trades")
+        progress.update_status(agent_id, ticker, "Načítání insider obchodů")
         insider_trades = get_insider_trades(ticker, end_date, limit=50, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching company news")
+        progress.update_status(agent_id, ticker, "Načítání firemních zpráv")
         company_news = get_company_news(ticker, end_date, limit=50, api_key=api_key)
 
-        # Perform sub-analyses:
-        progress.update_status(agent_id, ticker, "Analyzing growth")
+        # Provedení dílčích analýz:
+        progress.update_status(agent_id, ticker, "Analýza růstu")
         growth_analysis = analyze_lynch_growth(financial_line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing fundamentals")
+        progress.update_status(agent_id, ticker, "Analýza fundamentů")
         fundamentals_analysis = analyze_lynch_fundamentals(financial_line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing valuation (focus on PEG)")
+        progress.update_status(agent_id, ticker, "Analýza ocenění (zaměření na PEG)")
         valuation_analysis = analyze_lynch_valuation(financial_line_items, market_cap)
 
-        progress.update_status(agent_id, ticker, "Analyzing sentiment")
+        progress.update_status(agent_id, ticker, "Analýza sentimentu")
         sentiment_analysis = analyze_sentiment(company_news)
 
-        progress.update_status(agent_id, ticker, "Analyzing insider activity")
+        progress.update_status(agent_id, ticker, "Analýza insider aktivity")
         insider_activity = analyze_insider_activity(insider_trades)
 
-        # Combine partial scores with weights typical for Peter Lynch:
-        #   30% Growth, 25% Valuation, 20% Fundamentals,
-        #   15% Sentiment, 10% Insider Activity = 100%
+        # Kombinace dílčích skóre s váhami typickými pro Peter Lynch:
+        #   30% Růst, 25% Ocenění, 20% Fundamenty,
+        #   15% Sentiment, 10% Insider aktivita = 100%
         total_score = (
             growth_analysis["score"] * 0.30
             + valuation_analysis["score"] * 0.25
@@ -109,7 +114,7 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
 
         max_possible_score = 10.0
 
-        # Map final score to signal
+        # Mapování finálního skóre na signál
         if total_score >= 7.5:
             signal = "bullish"
         elif total_score <= 4.5:
@@ -128,7 +133,7 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
             "insider_activity": insider_activity,
         }
 
-        progress.update_status(agent_id, ticker, "Generating Peter Lynch analysis")
+        progress.update_status(agent_id, ticker, "Generování Peter Lynch analýzy")
         lynch_output = generate_lynch_output(
             ticker=ticker,
             analysis_data=analysis_data[ticker],
@@ -144,13 +149,13 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
 
         progress.update_status(agent_id, ticker, "Done", analysis=lynch_output.reasoning)
 
-    # Wrap up results
+    # Zabalení výsledků
     message = HumanMessage(content=json.dumps(lynch_analysis), name=agent_id)
 
     if state["metadata"].get("show_reasoning"):
         show_agent_reasoning(lynch_analysis, "Peter Lynch Agent")
 
-    # Save signals to state
+    # Uložení signálů do stavu
     state["data"]["analyst_signals"][agent_id] = lynch_analysis
 
     progress.update_status(agent_id, None, "Done")
@@ -158,21 +163,21 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
     return {"messages": [message], "data": state["data"]}
 
 
-def analyze_lynch_growth(financial_line_items: list) -> dict:
+def analyze_lynch_growth(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
-    Evaluate growth based on revenue and EPS trends:
-      - Consistent revenue growth
-      - Consistent EPS growth
-    Peter Lynch liked companies with steady, understandable growth,
-    often searching for potential 'ten-baggers' with a long runway.
+    Vyhodnocení růstu na základě trendů tržeb a EPS:
+      - Konzistentní růst tržeb
+      - Konzistentní růst EPS
+    Peter Lynch měl rád společnosti se stabilním, srozumitelným růstem,
+    často hledal potenciální 'ten-baggery' s dlouhou dráhou.
     """
     if not financial_line_items or len(financial_line_items) < 2:
         return {"score": 0, "details": "Insufficient financial data for growth analysis"}
 
     details = []
-    raw_score = 0  # We'll sum up points, then scale to 0–10 eventually
+    raw_score = 0  # Sečteme body, pak škálujeme na 0–10
 
-    # 1) Revenue Growth
+    # 1) Růst tržeb
     revenues = [fi.revenue for fi in financial_line_items if fi.revenue is not None]
     if len(revenues) >= 2:
         latest_rev = revenues[0]
@@ -195,7 +200,7 @@ def analyze_lynch_growth(financial_line_items: list) -> dict:
     else:
         details.append("Not enough revenue data to assess growth.")
 
-    # 2) EPS Growth
+    # 2) Růst EPS
     eps_values = [fi.earnings_per_share for fi in financial_line_items if fi.earnings_per_share is not None]
     if len(eps_values) >= 2:
         latest_eps = eps_values[0]
@@ -218,26 +223,26 @@ def analyze_lynch_growth(financial_line_items: list) -> dict:
     else:
         details.append("Not enough EPS data for growth calculation.")
 
-    # raw_score can be up to 6 => scale to 0–10
+    # raw_score může být až 6 => škálování na 0–10
     final_score = min(10, (raw_score / 6) * 10)
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_lynch_fundamentals(financial_line_items: list) -> dict:
+def analyze_lynch_fundamentals(financial_line_items: List[Any]) -> Dict[str, Any]:
     """
-    Evaluate basic fundamentals:
-      - Debt/Equity
-      - Operating margin (or gross margin)
-      - Positive Free Cash Flow
-    Lynch avoided heavily indebted or complicated businesses.
+    Vyhodnocení základních fundamentů:
+      - Dluh/Vlastní kapitál
+      - Provozní marže (nebo hrubá marže)
+      - Pozitivní Free Cash Flow
+    Lynch se vyhýbal silně zadluženým nebo složitým podnikům.
     """
     if not financial_line_items:
         return {"score": 0, "details": "Insufficient fundamentals data"}
 
     details = []
-    raw_score = 0  # We'll accumulate up to 6 points, then scale to 0–10
+    raw_score = 0  # Nahromadíme až 6 bodů, pak škálujeme na 0–10
 
-    # 1) Debt-to-Equity
+    # 1) Dluh k vlastnímu kapitálu
     debt_values = [fi.total_debt for fi in financial_line_items if fi.total_debt is not None]
     eq_values = [fi.shareholders_equity for fi in financial_line_items if fi.shareholders_equity is not None]
     if debt_values and eq_values and len(debt_values) == len(eq_values) and len(debt_values) > 0:
@@ -255,7 +260,7 @@ def analyze_lynch_fundamentals(financial_line_items: list) -> dict:
     else:
         details.append("No consistent debt/equity data available.")
 
-    # 2) Operating Margin
+    # 2) Provozní marže
     om_values = [fi.operating_margin for fi in financial_line_items if fi.operating_margin is not None]
     if om_values:
         om_recent = om_values[0]
@@ -270,7 +275,7 @@ def analyze_lynch_fundamentals(financial_line_items: list) -> dict:
     else:
         details.append("No operating margin data available.")
 
-    # 3) Positive Free Cash Flow
+    # 3) Pozitivní Free Cash Flow
     fcf_values = [fi.free_cash_flow for fi in financial_line_items if fi.free_cash_flow is not None]
     if fcf_values and fcf_values[0] is not None:
         if fcf_values[0] > 0:
@@ -281,17 +286,17 @@ def analyze_lynch_fundamentals(financial_line_items: list) -> dict:
     else:
         details.append("No free cash flow data available.")
 
-    # raw_score up to 6 => scale to 0–10
+    # raw_score až 6 => škálování na 0–10
     final_score = min(10, (raw_score / 6) * 10)
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_lynch_valuation(financial_line_items: list, market_cap: float | None) -> dict:
+def analyze_lynch_valuation(financial_line_items: List[Any], market_cap: Optional[float]) -> Dict[str, Any]:
     """
-    Peter Lynch's approach to 'Growth at a Reasonable Price' (GARP):
-      - Emphasize the PEG ratio: (P/E) / Growth Rate
-      - Also consider a basic P/E if PEG is unavailable
-    A PEG < 1 is very attractive; 1-2 is fair; >2 is expensive.
+    Peter Lynch's přístup k 'Růstu za rozumnou cenu' (GARP):
+      - Zdůrazňuje PEG poměr: (P/E) / Míra růstu
+      - Také zvažuje základní P/E pokud PEG není dostupný
+    PEG < 1 je velmi atraktivní; 1-2 je férové; >2 je drahé.
     """
     if not financial_line_items or market_cap is None:
         return {"score": 0, "details": "Insufficient data for valuation"}
@@ -299,11 +304,11 @@ def analyze_lynch_valuation(financial_line_items: list, market_cap: float | None
     details = []
     raw_score = 0
 
-    # Gather data for P/E
+    # Shromáždění dat pro P/E
     net_incomes = [fi.net_income for fi in financial_line_items if fi.net_income is not None]
     eps_values = [fi.earnings_per_share for fi in financial_line_items if fi.earnings_per_share is not None]
 
-    # Approximate P/E via (market cap / net income) if net income is positive
+    # Aproximace P/E přes (tržní kap / čistý zisk) pokud je čistý zisk pozitivní
     pe_ratio = None
     if net_incomes and net_incomes[0] and net_incomes[0] > 0:
         pe_ratio = market_cap / net_incomes[0]
@@ -311,7 +316,7 @@ def analyze_lynch_valuation(financial_line_items: list, market_cap: float | None
     else:
         details.append("No positive net income => can't compute approximate P/E")
 
-    # If we have at least 2 EPS data points, let's estimate growth
+    # Pokud máme alespoň 2 datové body EPS, odhadneme růst
     eps_growth_rate = None
     if len(eps_values) >= 2:
         latest_eps = eps_values[0]
@@ -324,7 +329,7 @@ def analyze_lynch_valuation(financial_line_items: list, market_cap: float | None
     else:
         details.append("Not enough EPS data to compute growth rate")
 
-    # Compute PEG if possible
+    # Výpočet PEG pokud je možný
     peg_ratio = None
     if pe_ratio and eps_growth_rate and eps_growth_rate > 0:
         # Peg ratio typically uses a percentage growth rate
@@ -334,7 +339,7 @@ def analyze_lynch_valuation(financial_line_items: list, market_cap: float | None
         peg_ratio = pe_ratio / (eps_growth_rate * 100)
         details.append(f"PEG ratio: {peg_ratio:.2f}")
 
-    # Scoring logic:
+    # Logika bodování:
     #   - P/E < 15 => +2, < 25 => +1
     #   - PEG < 1 => +3, < 2 => +2, < 3 => +1
     if pe_ratio is not None:
@@ -355,9 +360,9 @@ def analyze_lynch_valuation(financial_line_items: list, market_cap: float | None
     return {"score": final_score, "details": "; ".join(details)}
 
 
-def analyze_sentiment(news_items: list) -> dict:
+def analyze_sentiment(news_items: List[Any]) -> Dict[str, Any]:
     """
-    Basic news sentiment check. Negative headlines weigh on the final score.
+    Základní kontrola sentimentu zpráv. Negativní titulky zatěžují finální skóre.
     """
     if not news_items:
         return {"score": 5, "details": "No news data; default to neutral sentiment"}
@@ -386,14 +391,14 @@ def analyze_sentiment(news_items: list) -> dict:
     return {"score": score, "details": "; ".join(details)}
 
 
-def analyze_insider_activity(insider_trades: list) -> dict:
+def analyze_insider_activity(insider_trades: List[Any]) -> Dict[str, Any]:
     """
-    Simple insider-trade analysis:
-      - If there's heavy insider buying, it's a positive sign.
-      - If there's mostly selling, it's a negative sign.
-      - Otherwise, neutral.
+    Jednoduchá analýza insider obchodů:
+      - Pokud jsou těžké insider nákupy, je to pozitivní znamení.
+      - Pokud je většinou prodej, je to negativní znamení.
+      - Jinak neutrální.
     """
-    # Default 5 (neutral)
+    # Výchozí 5 (neutrální)
     score = 5
     details = []
 
@@ -433,7 +438,7 @@ def analyze_insider_activity(insider_trades: list) -> dict:
 
 def generate_lynch_output(
     ticker: str,
-    analysis_data: dict[str, any],
+    analysis_data: Dict[str, Any],
     state: AgentState,
     agent_id: str,
 ) -> PeterLynchSignal:
@@ -444,39 +449,39 @@ def generate_lynch_output(
         [
             (
                 "system",
-                """You are a Peter Lynch AI agent. You make investment decisions based on Peter Lynch's well-known principles:
+                """Jste Peter Lynch AI agent. Činíte investiční rozhodnutí na základě Peter Lynch's známých principů:
                 
-                1. Invest in What You Know: Emphasize understandable businesses, possibly discovered in everyday life.
-                2. Growth at a Reasonable Price (GARP): Rely on the PEG ratio as a prime metric.
-                3. Look for 'Ten-Baggers': Companies capable of growing earnings and share price substantially.
-                4. Steady Growth: Prefer consistent revenue/earnings expansion, less concern about short-term noise.
-                5. Avoid High Debt: Watch for dangerous leverage.
-                6. Management & Story: A good 'story' behind the stock, but not overhyped or too complex.
+                1. Investujte do toho, co znáte: Zdůrazňujte srozumitelné podniky, možná objevené v každodenním životě.
+                2. Růst za rozumnou cenu (GARP): Spoléhejte na PEG poměr jako hlavní metriku.
+                3. Hledejte 'Ten-Baggery': Společnosti schopné podstatně zvýšit zisky a cenu akcií.
+                4. Stabilní růst: Upřednostňujte konzistentní expanzi tržeb/zisků, méně se starejte o krátkodobý šum.
+                5. Vyhýbejte se vysokému dluhu: Pozor na nebezpečnou páku.
+                6. Management a příběh: Dobrý 'příběh' za akcií, ale ne přehnaně propagovaný nebo příliš složitý.
                 
-                When you provide your reasoning, do it in Peter Lynch's voice:
-                - Cite the PEG ratio
-                - Mention 'ten-bagger' potential if applicable
-                - Refer to personal or anecdotal observations (e.g., "If my kids love the product...")
-                - Use practical, folksy language
-                - Provide key positives and negatives
-                - Conclude with a clear stance (bullish, bearish, or neutral)
+                Když poskytujete své zdůvodnění, dělejte to Peter Lynch's hlasem:
+                - Citujte PEG poměr
+                - Zmíňte 'ten-bagger' potenciál pokud je aplikovatelný
+                - Odkazujte na osobní nebo anekdotická pozorování (např. "Pokud moje děti milují produkt...")
+                - Používejte praktický, lidový jazyk
+                - Poskytněte klíčová pozitiva a negativa
+                - Zakončete jasným postojem (bullish, bearish nebo neutral)
                 
-                Return your final output strictly in JSON with the fields:
+                Vraťte svůj finální výstup striktně v JSON s poli:
                 {{
                   "signal": "bullish" | "bearish" | "neutral",
-                  "confidence": 0 to 100,
+                  "confidence": 0 až 100,
                   "reasoning": "string"
                 }}
                 """,
             ),
             (
                 "human",
-                """Based on the following analysis data for {ticker}, produce your Peter Lynch–style investment signal.
+                """Na základě následujících dat analýzy pro {ticker}, vytvořte svůj Peter Lynch–style investiční signál.
 
-                Analysis Data:
+                Data analýzy:
                 {analysis_data}
 
-                Return only valid JSON with "signal", "confidence", and "reasoning".
+                Vraťte pouze platný JSON s "signal", "confidence" a "reasoning".
                 """,
             ),
         ]
@@ -485,16 +490,13 @@ def generate_lynch_output(
     prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
     def create_default_signal():
-        return PeterLynchSignal(
-            signal="neutral",
-            confidence=0.0,
-            reasoning="Error in analysis; defaulting to neutral"
-        )
+        return PeterLynchSignal(signal="neutral", confidence=0.0, reasoning="Chyba v analýze; výchozí neutral")
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=PeterLynchSignal,
         agent_name=agent_id,
         state=state,
         default_factory=create_default_signal,
     )
+    return cast(PeterLynchSignal, result)

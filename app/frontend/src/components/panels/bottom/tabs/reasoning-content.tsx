@@ -27,10 +27,10 @@ export function ReasoningContent({ content }: { content: any }) {
       <button 
         onClick={copyToClipboard}
         className="absolute top-1 right-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 text-xs p-1 rounded hover:bg-accent bg-background text-muted-foreground border border-border"
-        title="Copy to clipboard"
+        title="Kopírovat do schránky"
       >
         <Copy className="h-3 w-3" />
-        <span className="text-xs">{copySuccess ? 'Copied!' : 'Copy'}</span>
+        <span className="text-xs">{copySuccess ? 'Zkopírováno!' : 'Kopírovat'}</span>
       </button>
       
       {isJson ? (
@@ -48,4 +48,4 @@ export function ReasoningContent({ content }: { content: any }) {
       )}
     </div>
   );
-} 
+}

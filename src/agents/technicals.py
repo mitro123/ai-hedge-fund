@@ -1,27 +1,36 @@
-import math
+"""
+Modul agenta technické analýzy
 
+Tento modul poskytuje sofistikované možnosti technické analýzy pro systém AI hedge fondu.
+Kombinuje více obchodních strategií včetně sledování trendu, návratu k průměru, momentu,
+analýzy volatility a statistické arbitráže pro generování komplexních obchodních signálů.
+"""
+
+import json
+import math
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 from langchain_core.messages import HumanMessage
 
+from src.exceptions import APIKeyError
 from src.graph.state import AgentState, show_agent_reasoning
-from src.utils.api_key import get_api_key_from_state
-import json
-import pandas as pd
-import numpy as np
-
 from src.tools.api import get_prices, prices_to_df
+from src.utils.api_key import get_api_key_from_state
 from src.utils.progress import progress
 
 
-def safe_float(value, default=0.0):
+def safe_float(value: Any, default: float = 0.0) -> float:
     """
-    Safely convert a value to float, handling NaN cases
-    
+    Bezpečně převede hodnotu na float, zpracovává NaN případy
+
     Args:
-        value: The value to convert (can be pandas scalar, numpy value, etc.)
-        default: Default value to return if the input is NaN or invalid
-    
+        value: Hodnota k převedení (může být pandas skalár, numpy hodnota, atd.)
+        default: Výchozí hodnota k vrácení pokud je vstup NaN nebo neplatný
+
     Returns:
-        float: The converted value or default if NaN/invalid
+        float: Převedená hodnota nebo výchozí pokud NaN/neplatná
     """
     try:
         if pd.isna(value) or np.isnan(value):
@@ -31,28 +40,31 @@ def safe_float(value, default=0.0):
         return default
 
 
-##### Technical Analyst #####
-def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analyst_agent"):
+##### Technický analytik #####
+def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analyst_agent") -> Dict[str, Any]:
     """
-    Sophisticated technical analysis system that combines multiple trading strategies for multiple tickers:
-    1. Trend Following
-    2. Mean Reversion
+    Sofistikovaný systém technické analýzy, který kombinuje více obchodních strategií pro více tickerů:
+    1. Sledování trendu
+    2. Návrat k průměru
     3. Momentum
-    4. Volatility Analysis
-    5. Statistical Arbitrage Signals
+    4. Analýza volatility
+    5. Statistické arbitrážní signály
     """
     data = state["data"]
     start_date = data["start_date"]
     end_date = data["end_date"]
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
-    # Initialize analysis for each ticker
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
+
+    # Inicializace analýzy pro každý ticker
     technical_analysis = {}
 
     for ticker in tickers:
-        progress.update_status(agent_id, ticker, "Analyzing price data")
+        progress.update_status(agent_id, ticker, "Analýza cenových dat")
 
-        # Get the historical price data
+        # Získání historických cenových dat
         prices = get_prices(
             ticker=ticker,
             start_date=start_date,
@@ -61,28 +73,28 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
         )
 
         if not prices:
-            progress.update_status(agent_id, ticker, "Failed: No price data found")
+            progress.update_status(agent_id, ticker, "Selhalo: Nenalezena cenová data")
             continue
 
-        # Convert prices to a DataFrame
+        # Převod cen na DataFrame
         prices_df = prices_to_df(prices)
 
-        progress.update_status(agent_id, ticker, "Calculating trend signals")
+        progress.update_status(agent_id, ticker, "Výpočet trendových signálů")
         trend_signals = calculate_trend_signals(prices_df)
 
-        progress.update_status(agent_id, ticker, "Calculating mean reversion")
+        progress.update_status(agent_id, ticker, "Výpočet návratu k průměru")
         mean_reversion_signals = calculate_mean_reversion_signals(prices_df)
 
-        progress.update_status(agent_id, ticker, "Calculating momentum")
+        progress.update_status(agent_id, ticker, "Výpočet momentu")
         momentum_signals = calculate_momentum_signals(prices_df)
 
-        progress.update_status(agent_id, ticker, "Analyzing volatility")
+        progress.update_status(agent_id, ticker, "Analýza volatility")
         volatility_signals = calculate_volatility_signals(prices_df)
 
-        progress.update_status(agent_id, ticker, "Statistical analysis")
+        progress.update_status(agent_id, ticker, "Statistická analýza")
         stat_arb_signals = calculate_stat_arb_signals(prices_df)
 
-        # Combine all signals using a weighted ensemble approach
+        # Kombinace všech signálů pomocí váženého ensemble přístupu
         strategy_weights = {
             "trend": 0.25,
             "mean_reversion": 0.20,
@@ -91,7 +103,7 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
             "stat_arb": 0.15,
         }
 
-        progress.update_status(agent_id, ticker, "Combining signals")
+        progress.update_status(agent_id, ticker, "Kombinování signálů")
         combined_signal = weighted_signal_combination(
             {
                 "trend": trend_signals,
@@ -103,7 +115,7 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
             strategy_weights,
         )
 
-        # Generate detailed analysis report for this ticker
+        # Generování detailní analytické zprávy pro tento ticker
         technical_analysis[ticker] = {
             "signal": combined_signal["signal"],
             "confidence": round(combined_signal["confidence"] * 100),
@@ -135,9 +147,9 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
                 },
             },
         }
-        progress.update_status(agent_id, ticker, "Done", analysis=json.dumps(technical_analysis, indent=4))
+        progress.update_status(agent_id, ticker, "Hotovo", analysis=json.dumps(technical_analysis, indent=4))
 
-    # Create the technical analyst message
+    # Vytvoření zprávy technického analytika
     message = HumanMessage(
         content=json.dumps(technical_analysis),
         name=agent_id,
@@ -146,18 +158,18 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
     if state["metadata"]["show_reasoning"]:
         show_agent_reasoning(technical_analysis, "Technical Analyst")
 
-    # Add the signal to the analyst_signals list
+    # Přidání signálu do seznamu analyst_signals
     state["data"]["analyst_signals"][agent_id] = technical_analysis
 
-    progress.update_status(agent_id, None, "Done")
+    progress.update_status(agent_id, None, "Hotovo")
 
     return {
-        "messages": state["messages"] + [message],
+        "messages": list(state["messages"]) + [message],
         "data": data,
     }
 
 
-def calculate_trend_signals(prices_df):
+def calculate_trend_signals(prices_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Advanced trend following strategy using multiple timeframes and indicators
     """
@@ -196,7 +208,7 @@ def calculate_trend_signals(prices_df):
     }
 
 
-def calculate_mean_reversion_signals(prices_df):
+def calculate_mean_reversion_signals(prices_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Mean reversion strategy using statistical measures and Bollinger Bands
     """
@@ -238,7 +250,7 @@ def calculate_mean_reversion_signals(prices_df):
     }
 
 
-def calculate_momentum_signals(prices_df):
+def calculate_momentum_signals(prices_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Multi-factor momentum strategy
     """
@@ -283,7 +295,7 @@ def calculate_momentum_signals(prices_df):
     }
 
 
-def calculate_volatility_signals(prices_df):
+def calculate_volatility_signals(prices_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Volatility-based trading strategy
     """
@@ -330,7 +342,7 @@ def calculate_volatility_signals(prices_df):
     }
 
 
-def calculate_stat_arb_signals(prices_df):
+def calculate_stat_arb_signals(prices_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Statistical arbitrage signals based on price action analysis
     """
@@ -428,7 +440,7 @@ def calculate_rsi(prices_df: pd.DataFrame, period: int = 14) -> pd.Series:
     return rsi
 
 
-def calculate_bollinger_bands(prices_df: pd.DataFrame, window: int = 20) -> tuple[pd.Series, pd.Series]:
+def calculate_bollinger_bands(prices_df: pd.DataFrame, window: int = 20) -> Tuple[pd.Series, pd.Series]:
     sma = prices_df["close"].rolling(window).mean()
     std_dev = prices_df["close"].rolling(window).std()
     upper_band = sma + (std_dev * 2)
@@ -471,8 +483,8 @@ def calculate_adx(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
     df["up_move"] = df["high"] - df["high"].shift()
     df["down_move"] = df["low"].shift() - df["low"]
 
-    df["plus_dm"] = np.where((df["up_move"] > df["down_move"]) & (df["up_move"] > 0), df["up_move"], 0)
-    df["minus_dm"] = np.where((df["down_move"] > df["up_move"]) & (df["down_move"] > 0), df["down_move"], 0)
+    df["plus_dm"] = np.where((df["up_move"] > df["down_move"]) & (df["up_move"] > 0.0), df["up_move"], 0.0)
+    df["minus_dm"] = np.where((df["down_move"] > df["up_move"]) & (df["down_move"] > 0.0), df["down_move"], 0.0)
 
     # Calculate ADX
     df["+di"] = 100 * (df["plus_dm"].ewm(span=period).mean() / df["tr"].ewm(span=period).mean())

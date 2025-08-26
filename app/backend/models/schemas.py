@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional, Dict, Any
-from src.llm.models import ModelProvider
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field, field_validator
+
 from app.backend.services.graph import extract_base_agent_key
+from src.llm.models import ModelProvider
 
 
 class FlowRunStatus(str, Enum):
@@ -24,11 +26,11 @@ class PortfolioPosition(BaseModel):
     quantity: float
     trade_price: float
 
-    @field_validator('trade_price')
+    @field_validator("trade_price")
     @classmethod
     def price_must_be_positive(cls, v: float) -> float:
         if v <= 0:
-            raise ValueError('Trade price must be positive!')
+            raise ValueError("Trade price must be positive!")
         return v
 
 
@@ -64,7 +66,7 @@ class BaseHedgeFundRequest(BaseModel):
     graph_edges: List[GraphEdge]
     agent_models: Optional[List[AgentModelConfig]] = None
     model_name: Optional[str] = "gpt-4.1"
-    model_provider: Optional[ModelProvider] = ModelProvider.OPENAI
+    model_provider: Optional[ModelProvider] = ModelProvider.OPENROUTER
     margin_requirement: float = 0.0
     portfolio_positions: Optional[List[PortfolioPosition]] = None
     api_keys: Optional[Dict[str, str]] = None
@@ -73,22 +75,27 @@ class BaseHedgeFundRequest(BaseModel):
         """Extract agent IDs from graph structure"""
         return [node.id for node in self.graph_nodes]
 
-    def get_agent_model_config(self, agent_id: str) -> tuple[str, ModelProvider]:
+    def get_agent_model_config(self, agent_id: str) -> tuple[str, str]:
         """Get model configuration for a specific agent"""
         if self.agent_models:
             # Extract base agent key from unique node ID for matching
             base_agent_key = extract_base_agent_key(agent_id)
-            
+
             for config in self.agent_models:
                 # Check both unique node ID and base agent key for matches
                 config_base_key = extract_base_agent_key(config.agent_id)
                 if config.agent_id == agent_id or config_base_key == base_agent_key:
+                    # Konverze ModelProvider enum na string hodnotu
+                    provider = config.model_provider or self.model_provider or ModelProvider.OPENROUTER
+                    provider_str = provider.value if isinstance(provider, ModelProvider) else str(provider)
                     return (
-                        config.model_name or self.model_name,
-                        config.model_provider or self.model_provider
+                        config.model_name or self.model_name or "anthropic/claude-3.5-sonnet",
+                        provider_str,
                     )
         # Fallback to global model settings
-        return self.model_name, self.model_provider
+        provider = self.model_provider or ModelProvider.OPENROUTER
+        provider_str = provider.value if isinstance(provider, ModelProvider) else str(provider)
+        return (self.model_name or "anthropic/claude-3.5-sonnet", provider_str)
 
 
 class BacktestRequest(BaseHedgeFundRequest):
@@ -137,7 +144,8 @@ class HedgeFundRequest(BaseHedgeFundRequest):
         """Calculate start date if not provided"""
         if self.start_date:
             return self.start_date
-        return (datetime.strptime(self.end_date, "%Y-%m-%d") - timedelta(days=90)).strftime("%Y-%m-%d")
+        end_date = self.end_date or datetime.now().strftime("%Y-%m-%d")
+        return (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=90)).strftime("%Y-%m-%d")
 
 
 # Flow-related schemas
@@ -182,6 +190,7 @@ class FlowResponse(BaseModel):
 
 class FlowSummaryResponse(BaseModel):
     """Lightweight flow response without nodes/edges for listing"""
+
     id: int
     name: str
     description: Optional[str]
@@ -197,11 +206,13 @@ class FlowSummaryResponse(BaseModel):
 # Flow Run schemas
 class FlowRunCreateRequest(BaseModel):
     """Request to create a new flow run"""
+
     request_data: Optional[Dict[str, Any]] = None
 
 
 class FlowRunUpdateRequest(BaseModel):
     """Request to update an existing flow run"""
+
     status: Optional[FlowRunStatus] = None
     results: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
@@ -209,6 +220,7 @@ class FlowRunUpdateRequest(BaseModel):
 
 class FlowRunResponse(BaseModel):
     """Complete flow run response"""
+
     id: int
     flow_id: int
     status: FlowRunStatus
@@ -227,6 +239,7 @@ class FlowRunResponse(BaseModel):
 
 class FlowRunSummaryResponse(BaseModel):
     """Lightweight flow run response for listing"""
+
     id: int
     flow_id: int
     status: FlowRunStatus
@@ -243,6 +256,7 @@ class FlowRunSummaryResponse(BaseModel):
 # API Key schemas
 class ApiKeyCreateRequest(BaseModel):
     """Request to create or update an API key"""
+
     provider: str = Field(..., min_length=1, max_length=100)
     key_value: str = Field(..., min_length=1)
     description: Optional[str] = None
@@ -251,6 +265,7 @@ class ApiKeyCreateRequest(BaseModel):
 
 class ApiKeyUpdateRequest(BaseModel):
     """Request to update an existing API key"""
+
     key_value: Optional[str] = Field(None, min_length=1)
     description: Optional[str] = None
     is_active: Optional[bool] = None
@@ -258,6 +273,7 @@ class ApiKeyUpdateRequest(BaseModel):
 
 class ApiKeyResponse(BaseModel):
     """Complete API key response"""
+
     id: int
     provider: str
     key_value: str
@@ -273,6 +289,7 @@ class ApiKeyResponse(BaseModel):
 
 class ApiKeySummaryResponse(BaseModel):
     """API key response without the actual key value"""
+
     id: int
     provider: str
     is_active: bool
@@ -288,4 +305,158 @@ class ApiKeySummaryResponse(BaseModel):
 
 class ApiKeyBulkUpdateRequest(BaseModel):
     """Request to update multiple API keys at once"""
+
     api_keys: List[ApiKeyCreateRequest]
+
+
+# Backtest API schemas pro frontend komponenty
+class TradeHistoryItem(BaseModel):
+    """Individual trade item for trade history viewer"""
+    
+    id: str
+    date: str
+    ticker: str
+    action: str  # buy, sell, short, cover
+    quantity: int
+    price: float
+    value: float
+    pnl: Optional[float] = None
+    commission: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class ChartDataPoint(BaseModel):
+    """Data point for charts"""
+    
+    date: str
+    value: float
+    label: Optional[str] = None
+
+
+class BacktestChartData(BaseModel):
+    """Chart data for interactive charts"""
+    
+    portfolio_value: List[ChartDataPoint]
+    daily_returns: List[ChartDataPoint]
+    drawdown: List[ChartDataPoint]
+    cumulative_returns: List[ChartDataPoint]
+    trade_markers: List[Dict[str, Any]]
+    benchmark_comparison: Optional[List[ChartDataPoint]] = None
+
+
+class BacktestAdvancedMetrics(BaseModel):
+    """Advanced performance metrics for frontend"""
+    
+    # Returns metrics
+    total_return: Optional[float] = None
+    annualized_return: Optional[float] = None
+    volatility: Optional[float] = None
+    sharpe_ratio: Optional[float] = None
+    sortino_ratio: Optional[float] = None
+    calmar_ratio: Optional[float] = None
+    
+    # Risk metrics
+    max_drawdown: Optional[float] = None
+    max_drawdown_duration: Optional[int] = None
+    var_95: Optional[float] = None
+    cvar_95: Optional[float] = None
+    beta: Optional[float] = None
+    
+    # Efficiency metrics
+    information_ratio: Optional[float] = None
+    treynor_ratio: Optional[float] = None
+    jensen_alpha: Optional[float] = None
+    tracking_error: Optional[float] = None
+    
+    # Trading metrics
+    win_rate: Optional[float] = None
+    profit_factor: Optional[float] = None
+    avg_win: Optional[float] = None
+    avg_loss: Optional[float] = None
+    total_trades: Optional[int] = None
+    
+    # Exposure metrics
+    avg_gross_exposure: Optional[float] = None
+    avg_net_exposure: Optional[float] = None
+    avg_long_exposure: Optional[float] = None
+    avg_short_exposure: Optional[float] = None
+
+
+class BacktestResultsResponse(BaseModel):
+    """Complete backtest results for frontend"""
+    
+    id: str
+    name: str
+    status: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    
+    # Configuration
+    tickers: List[str]
+    start_date: str
+    end_date: str
+    initial_capital: float
+    
+    # Results summary
+    final_value: Optional[float] = None
+    total_return: Optional[float] = None
+    total_trades: Optional[int] = None
+    
+    # Performance metrics
+    performance_metrics: Optional[BacktestPerformanceMetrics] = None
+    advanced_metrics: Optional[BacktestAdvancedMetrics] = None
+    
+    # Chart data
+    chart_data: Optional[BacktestChartData] = None
+    
+    # Trade history
+    trade_history: Optional[List[TradeHistoryItem]] = None
+
+
+class BacktestListResponse(BaseModel):
+    """Lightweight backtest list item"""
+    
+    id: str
+    name: str
+    status: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    tickers: List[str]
+    final_value: Optional[float] = None
+    total_return: Optional[float] = None
+
+
+class BacktestCreateRequest(BaseModel):
+    """Request to create a new backtest"""
+    
+    name: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = None
+    
+    # Backtest configuration
+    tickers: List[str]
+    
+    @field_validator("tickers")
+    @classmethod
+    def validate_tickers(cls, v: List[str]) -> List[str]:
+        if len(v) < 1:
+            raise ValueError("At least one ticker must be provided")
+        return v
+    start_date: str
+    end_date: str
+    initial_capital: float = Field(default=100000.0, gt=0)
+    
+    # Graph configuration
+    graph_nodes: List[GraphNode]
+    graph_edges: List[GraphEdge]
+    agent_models: Optional[List[AgentModelConfig]] = None
+    
+    # Model settings
+    model_name: Optional[str] = "gpt-4.1"
+    model_provider: Optional[ModelProvider] = ModelProvider.OPENROUTER
+    
+    # Portfolio settings
+    margin_requirement: float = Field(default=0.0, ge=0.0, le=1.0)
+    portfolio_positions: Optional[List[PortfolioPosition]] = None
+    
+    # API keys
+    api_keys: Optional[Dict[str, str]] = None

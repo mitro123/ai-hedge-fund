@@ -1,24 +1,23 @@
+"""Michael Burry Agent - Deep-value contrarian analýza zaměřená na tvrdá čísla a katalyzátory."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 import json
-from typing_extensions import Literal
+from datetime import datetime, timedelta
+from typing import Any, cast, Dict, List, Optional
 
-from src.graph.state import AgentState, show_agent_reasoning
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
+from typing_extensions import Literal
 
-from src.tools.api import (
-    get_company_news,
-    get_financial_metrics,
-    get_insider_trades,
-    get_market_cap,
-    search_line_items,
-)
+from src.exceptions import APIKeyError
+from src.graph.state import AgentState, show_agent_reasoning
+from src.tools.api import get_company_news, get_financial_metrics, get_insider_trades, get_market_cap, search_line_items
+from src.utils.api_key import get_api_key_from_state
+from src.utils.constants import COMMODITY_SYMBOLS
 from src.utils.llm import call_llm
 from src.utils.progress import progress
-from src.utils.api_key import get_api_key_from_state
 
 
 class MichaelBurrySignal(BaseModel):
@@ -29,27 +28,41 @@ class MichaelBurrySignal(BaseModel):
     reasoning: str
 
 
-def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"):
-    """Analyse stocks using Michael Burry's deep‑value, contrarian framework."""
+def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent") -> Dict[str, Any]:
+    """Analyzuje akcie pomocí Michael Burry's deep-value, contrarian frameworku."""
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
+
     data = state["data"]
     end_date: str = data["end_date"]  # YYYY‑MM‑DD
-    tickers: list[str] = data["tickers"]
+    tickers: List[str] = data["tickers"]
 
-    # We look one year back for insider trades / news flow
+    # Hledáme jeden rok zpět pro insider obchody / zpravodajský tok
     start_date = (datetime.fromisoformat(end_date) - timedelta(days=365)).date().isoformat()
 
-    analysis_data: dict[str, dict] = {}
-    burry_analysis: dict[str, dict] = {}
+    analysis_data: Dict[str, Dict[str, Any]] = {}
+    burry_analysis: Dict[str, Dict[str, Any]] = {}
 
     for ticker in tickers:
+        # Skip commodity symbols as Michael Burry analysis is designed for stocks
+        if ticker in COMMODITY_SYMBOLS:
+            progress.update_status(agent_id, ticker, "Přeskakuji komoditu")
+            burry_analysis[ticker] = {
+                "signal": "neutral",
+                "confidence": 0.0,
+                "reasoning": f"Michael Burry analýza není vhodná pro komodity ({ticker}). Komodity jsou analyzovány specializovaným komoditním agentem.",
+            }
+            progress.update_status(agent_id, ticker, "Přeskočeno - komodita", analysis="Komodita přeskočena")
+            continue
+
         # ------------------------------------------------------------------
-        # Fetch raw data
+        # Načtení surových dat
         # ------------------------------------------------------------------
-        progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        progress.update_status(agent_id, ticker, "Načítání finančních metrik")
         metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching line items")
+        progress.update_status(agent_id, ticker, "Načítání položek")
         line_items = search_line_items(
             ticker,
             [
@@ -66,32 +79,32 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
             api_key=api_key,
         )
 
-        progress.update_status(agent_id, ticker, "Fetching insider trades")
+        progress.update_status(agent_id, ticker, "Načítání insider obchodů")
         insider_trades = get_insider_trades(ticker, end_date=end_date, start_date=start_date)
 
-        progress.update_status(agent_id, ticker, "Fetching company news")
+        progress.update_status(agent_id, ticker, "Načítání firemních zpráv")
         news = get_company_news(ticker, end_date=end_date, start_date=start_date, limit=250)
 
-        progress.update_status(agent_id, ticker, "Fetching market cap")
+        progress.update_status(agent_id, ticker, "Načítání tržní kapitalizace")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # ------------------------------------------------------------------
-        # Run sub‑analyses
+        # Spuštění dílčích analýz
         # ------------------------------------------------------------------
-        progress.update_status(agent_id, ticker, "Analyzing value")
+        progress.update_status(agent_id, ticker, "Analýza hodnoty")
         value_analysis = _analyze_value(metrics, line_items, market_cap)
 
-        progress.update_status(agent_id, ticker, "Analyzing balance sheet")
+        progress.update_status(agent_id, ticker, "Analýza rozvahy")
         balance_sheet_analysis = _analyze_balance_sheet(metrics, line_items)
 
-        progress.update_status(agent_id, ticker, "Analyzing insider activity")
+        progress.update_status(agent_id, ticker, "Analýza insider aktivity")
         insider_analysis = _analyze_insider_activity(insider_trades)
 
-        progress.update_status(agent_id, ticker, "Analyzing contrarian sentiment")
+        progress.update_status(agent_id, ticker, "Analýza contrarian sentimentu")
         contrarian_analysis = _analyze_contrarian_sentiment(news)
 
         # ------------------------------------------------------------------
-        # Aggregate score & derive preliminary signal
+        # Agregace skóre a odvození předběžného signálu
         # ------------------------------------------------------------------
         total_score = (
             value_analysis["score"]
@@ -114,7 +127,7 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
             signal = "neutral"
 
         # ------------------------------------------------------------------
-        # Collect data for LLM reasoning & output
+        # Shromáždění dat pro LLM zdůvodnění a výstup
         # ------------------------------------------------------------------
         analysis_data[ticker] = {
             "signal": signal,
@@ -127,7 +140,7 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
             "market_cap": market_cap,
         }
 
-        progress.update_status(agent_id, ticker, "Generating LLM output")
+        progress.update_status(agent_id, ticker, "Generování LLM výstupu")
         burry_output = _generate_burry_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -144,13 +157,15 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
         progress.update_status(agent_id, ticker, "Done", analysis=burry_output.reasoning)
 
     # ----------------------------------------------------------------------
-    # Return to the graph
+    # Návrat do grafu
     # ----------------------------------------------------------------------
     message = HumanMessage(content=json.dumps(burry_analysis), name=agent_id)
 
     if state["metadata"].get("show_reasoning"):
         show_agent_reasoning(burry_analysis, "Michael Burry Agent")
 
+    if "analyst_signals" not in state["data"]:
+        state["data"]["analyst_signals"] = {}
     state["data"]["analyst_signals"][agent_id] = burry_analysis
 
     progress.update_status(agent_id, None, "Done")
@@ -159,25 +174,26 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
 
 
 ###############################################################################
-# Sub‑analysis helpers
+# Pomocníci pro dílčí analýzy
 ###############################################################################
 
 
-def _latest_line_item(line_items: list):
-    """Return the most recent line‑item object or *None*."""
+def _latest_line_item(line_items: List[Any]) -> Any:
+    """Vrátí nejnovější objekt položky nebo *None*."""
     return line_items[0] if line_items else None
 
 
-# ----- Value ----------------------------------------------------------------
+# ----- Hodnota ----------------------------------------------------------------
 
-def _analyze_value(metrics, line_items, market_cap):
-    """Free cash‑flow yield, EV/EBIT, other classic deep‑value metrics."""
 
-    max_score = 6  # 4 pts for FCF‑yield, 2 pts for EV/EBIT
+def _analyze_value(metrics: Any, line_items: List[Any], market_cap: Optional[float]) -> Dict[str, Any]:
+    """Free cash-flow yield, EV/EBIT, další klasické deep-value metriky."""
+
+    max_score = 6  # 4 body pro FCF-yield, 2 body pro EV/EBIT
     score = 0
-    details: list[str] = []
+    details: List[str] = []
 
-    # Free‑cash‑flow yield
+    # Free-cash-flow yield
     latest_item = _latest_line_item(line_items)
     fcf = getattr(latest_item, "free_cash_flow", None) if latest_item else None
     if fcf is not None and market_cap:
@@ -196,7 +212,7 @@ def _analyze_value(metrics, line_items, market_cap):
     else:
         details.append("FCF data unavailable")
 
-    # EV/EBIT (from financial metrics)
+    # EV/EBIT (z finančních metrik)
     if metrics:
         ev_ebit = getattr(metrics[0], "ev_to_ebit", None)
         if ev_ebit is not None:
@@ -216,14 +232,15 @@ def _analyze_value(metrics, line_items, market_cap):
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-# ----- Balance sheet --------------------------------------------------------
+# ----- Rozvaha --------------------------------------------------------
 
-def _analyze_balance_sheet(metrics, line_items):
-    """Leverage and liquidity checks."""
+
+def _analyze_balance_sheet(metrics: Any, line_items: List[Any]) -> Dict[str, Any]:
+    """Kontroly pákového efektu a likvidity."""
 
     max_score = 3
     score = 0
-    details: list[str] = []
+    details: List[str] = []
 
     latest_metrics = metrics[0] if metrics else None
     latest_item = _latest_line_item(line_items)
@@ -241,7 +258,7 @@ def _analyze_balance_sheet(metrics, line_items):
     else:
         details.append("Debt‑to‑equity data unavailable")
 
-    # Quick liquidity sanity check (cash vs total debt)
+    # Rychlá kontrola likvidity (hotovost vs celkový dluh)
     if latest_item is not None:
         cash = getattr(latest_item, "cash_and_equivalents", None)
         total_debt = getattr(latest_item, "total_debt", None)
@@ -257,14 +274,15 @@ def _analyze_balance_sheet(metrics, line_items):
     return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
 
-# ----- Insider activity -----------------------------------------------------
+# ----- Insider aktivita -----------------------------------------------------
 
-def _analyze_insider_activity(insider_trades):
-    """Net insider buying over the last 12 months acts as a hard catalyst."""
+
+def _analyze_insider_activity(insider_trades: Any) -> Dict[str, Any]:
+    """Čisté insider nákupy za posledních 12 měsíců působí jako tvrdý katalyzátor."""
 
     max_score = 2
     score = 0
-    details: list[str] = []
+    details: List[str] = []
 
     if not insider_trades:
         details.append("No insider trade data")
@@ -284,24 +302,23 @@ def _analyze_insider_activity(insider_trades):
 
 # ----- Contrarian sentiment -------------------------------------------------
 
-def _analyze_contrarian_sentiment(news):
-    """Very rough gauge: a wall of recent negative headlines can be a *positive* for a contrarian."""
+
+def _analyze_contrarian_sentiment(news: Any) -> Dict[str, Any]:
+    """Velmi hrubý odhad: zeď nedávných negativních titulků může být *pozitivní* pro contrarian."""
 
     max_score = 1
     score = 0
-    details: list[str] = []
+    details: List[str] = []
 
     if not news:
         details.append("No recent news")
         return {"score": score, "max_score": max_score, "details": "; ".join(details)}
 
-    # Count negative sentiment articles
-    sentiment_negative_count = sum(
-        1 for n in news if n.sentiment and n.sentiment.lower() in ["negative", "bearish"]
-    )
-    
+    # Počítání článků s negativním sentimentem
+    sentiment_negative_count = sum(1 for n in news if n.sentiment and n.sentiment.lower() in ["negative", "bearish"])
+
     if sentiment_negative_count >= 5:
-        score += 1  # The more hated, the better (assuming fundamentals hold up)
+        score += 1  # Čím více nenáviděné, tím lepší (za předpokladu, že fundamenty drží)
         details.append(f"{sentiment_negative_count} negative headlines (contrarian opportunity)")
     else:
         details.append("Limited negative press")
@@ -310,8 +327,9 @@ def _analyze_contrarian_sentiment(news):
 
 
 ###############################################################################
-# LLM generation
+# LLM generování
 ###############################################################################
+
 
 def _generate_burry_output(
     ticker: str,
@@ -319,41 +337,41 @@ def _generate_burry_output(
     state: AgentState,
     agent_id: str,
 ) -> MichaelBurrySignal:
-    """Call the LLM to craft the final trading signal in Burry's voice."""
+    """Zavolá LLM pro vytvoření finálního obchodního signálu Burry's hlasem."""
 
     template = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
-                """You are an AI agent emulating Dr. Michael J. Burry. Your mandate:
-                - Hunt for deep value in US equities using hard numbers (free cash flow, EV/EBIT, balance sheet)
-                - Be contrarian: hatred in the press can be your friend if fundamentals are solid
-                - Focus on downside first – avoid leveraged balance sheets
-                - Look for hard catalysts such as insider buying, buybacks, or asset sales
-                - Communicate in Burry's terse, data‑driven style
+                """Jste AI agent emulující Dr. Michael J. Burry. Váš mandát:
+                - Lovte deep value v amerických akciích pomocí tvrdých čísel (free cash flow, EV/EBIT, rozvaha)
+                - Buďte contrarian: nenávist v tisku může být váš přítel, pokud jsou fundamenty solidní
+                - Zaměřte se nejprve na downside – vyhýbejte se pákovým rozvahám
+                - Hledejte tvrdé katalyzátory jako insider nákupy, zpětné odkupy nebo prodeje aktiv
+                - Komunikujte Burry's stručným, na data zaměřeným stylem
 
-                When providing your reasoning, be thorough and specific by:
-                1. Start with the key metric(s) that drove your decision
-                2. Cite concrete numbers (e.g. "FCF yield 14.7%", "EV/EBIT 5.3")
-                3. Highlight risk factors and why they are acceptable (or not)
-                4. Mention relevant insider activity or contrarian opportunities
-                5. Use Burry's direct, number-focused communication style with minimal words
+                Při poskytování svého zdůvodnění buďte důkladní a konkrétní:
+                1. Začněte klíčovou metrikou(ami), která řídila vaše rozhodnutí
+                2. Citujte konkrétní čísla (např. "FCF yield 14.7%", "EV/EBIT 5.3")
+                3. Zdůrazněte rizikové faktory a proč jsou (ne)přijatelné
+                4. Zmíňte relevantní insider aktivitu nebo contrarian příležitosti
+                5. Používejte Burry's přímý, na čísla zaměřený komunikační styl s minimem slov
                 
-                For example, if bullish: "FCF yield 12.8%. EV/EBIT 6.2. Debt-to-equity 0.4. Net insider buying 25k shares. Market missing value due to overreaction to recent litigation. Strong buy."
-                For example, if bearish: "FCF yield only 2.1%. Debt-to-equity concerning at 2.3. Management diluting shareholders. Pass."
+                Například, pokud bullish: "FCF yield 12.8%. EV/EBIT 6.2. Debt-to-equity 0.4. Čisté insider nákupy 25k akcií. Trh přehlíží hodnotu kvůli přehnané reakci na nedávnou žalobu. Silný nákup."
+                Například, pokud bearish: "FCF yield pouze 2.1%. Debt-to-equity znepokojující na 2.3. Management ředí akcionáře. Odmítnout."
                 """,
             ),
             (
                 "human",
-                """Based on the following data, create the investment signal as Michael Burry would:
+                """Na základě následujících dat vytvořte investiční signál, jak by to udělal Michael Burry:
 
-                Analysis Data for {ticker}:
+                Data analýzy pro {ticker}:
                 {analysis_data}
 
-                Return the trading signal in the following JSON format exactly:
+                Vraťte obchodní signál přesně v následujícím JSON formátu:
                 {{
                   "signal": "bullish" | "bearish" | "neutral",
-                  "confidence": float between 0 and 100,
+                  "confidence": float mezi 0 a 100,
                   "reasoning": "string"
                 }}
                 """,
@@ -363,14 +381,15 @@ def _generate_burry_output(
 
     prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
-    # Default fallback signal in case parsing fails
+    # Výchozí záložní signál v případě selhání parsování
     def create_default_michael_burry_signal():
-        return MichaelBurrySignal(signal="neutral", confidence=0.0, reasoning="Parsing error – defaulting to neutral")
+        return MichaelBurrySignal(signal="neutral", confidence=0.0, reasoning="Chyba parsování – výchozí neutral")
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=MichaelBurrySignal,
         agent_name=agent_id,
         state=state,
         default_factory=create_default_michael_burry_signal,
     )
+    return cast(MichaelBurrySignal, result)

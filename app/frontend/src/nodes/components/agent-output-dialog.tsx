@@ -110,7 +110,7 @@ export function AgentOutputDialog({
       <DialogTrigger asChild>
         <div className="border-t border-border p-3 flex justify-end items-center cursor-pointer hover:bg-accent/50" onClick={() => onOpenChange(true)}>
           <div className="flex items-center gap-1">
-            <div className="text-subtitle text-muted-foreground">Output</div>
+            <div className="text-subtitle text-muted-foreground">Výstup</div>
             <AlignJustify className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
         </div>
@@ -127,7 +127,7 @@ export function AgentOutputDialog({
         <div className="grid grid-cols-2 gap-6 pt-4" ref={initialFocusRef} tabIndex={-1}>
           {/* Activity Log Section */}
           <div>
-            <h3 className="font-medium mb-3 text-primary">Log</h3>
+            <h3 className="font-medium mb-3 text-primary">Protokol</h3>
             <div className="h-[400px] overflow-y-auto border border-border rounded-lg p-3">
               {messages.length > 0 ? (
                 <div className="p-3 space-y-3">
@@ -147,7 +147,7 @@ export function AgentOutputDialog({
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No activity available
+                  Žádná aktivita k dispozici
                 </div>
               )}
             </div>
@@ -156,7 +156,7 @@ export function AgentOutputDialog({
           {/* Analysis Section */}
           <div>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium text-primary">Analysis</h3>
+              <h3 className="font-medium text-primary">Analýza</h3>
               <div className="flex items-center gap-2">
                 {/* Ticker selector */}
                 {tickersWithDecisions.length > 0 && (
@@ -183,7 +183,7 @@ export function AgentOutputDialog({
                 <div className="p-3 rounded-lg text-sm leading-relaxed">
                   {selectedTicker && (
                     <div className="mb-3 flex justify-between items-center">
-                      <div className=" text-muted-foreground font-medium">Summary for {selectedTicker}</div>
+                      <div className=" text-muted-foreground font-medium">Shrnutí pro {selectedTicker}</div>
                       {selectedDecision && (
                         <button 
                           onClick={copyToClipboard}
@@ -191,7 +191,7 @@ export function AgentOutputDialog({
                           title="Copy to clipboard"
                         >
                           <Copy className="h-3.5 w-3.5 " />
-                          <span className="font-medium">{copySuccess ? 'Copied!' : 'Copy'}</span>
+                          <span className="font-medium">{copySuccess ? 'Zkopírováno!' : 'Kopírovat'}</span>
                         </button>
                       )}
                     </div>
@@ -236,30 +236,30 @@ export function AgentOutputDialog({
                   ) : nodeStatus === 'IN_PROGRESS' ? (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                      Analysis in progress...
+                      Probíhá analýza...
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-full text-muted-foreground">
-                      No analysis available for {selectedTicker}
+                      Žádná analýza není k dispozici pro {selectedTicker}
                     </div>
                   )}
                 </div>
               ) : nodeStatus === 'IN_PROGRESS' ? (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Analysis in progress...
+                  Probíhá analýza...
                 </div>
               ) : nodeStatus === 'COMPLETE' ? (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Analysis completed with no results
+                  Analýza dokončena bez výsledků
                 </div>
               ) : nodeStatus === 'ERROR' ? (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Analysis failed
+                  Analýza selhala
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No analysis available
+                  Žádná analýza není k dispozici
                 </div>
               )}
             </div>
@@ -268,4 +268,4 @@ export function AgentOutputDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}

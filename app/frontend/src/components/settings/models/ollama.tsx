@@ -558,10 +558,10 @@ export function OllamaSettings() {
   };
 
   const getStatusText = () => {
-    if (!ollamaStatus) return "Checking...";
-    if (!ollamaStatus.installed) return "Not Installed";
-    if (!ollamaStatus.running) return "Not Running";
-    return "Running";
+    if (!ollamaStatus) return "Kontroluji...";
+    if (!ollamaStatus.installed) return "Nenainstalováno";
+    if (!ollamaStatus.running) return "Neběží";
+    return "Běží";
   };
 
   const getStatusColor = (): "secondary" | "destructive" | "outline" | "warning" | "success" | null | undefined => {
@@ -615,7 +615,7 @@ export function OllamaSettings() {
         <div>
           <h3 className="text-lg font-semibold text-primary mb-2">Ollama</h3>
           <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-            Manage local AI models with Ollama for enhanced privacy and performance.
+            Spravujte lokální AI modely s Ollama pro zvýšenou soukromí a výkon.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -639,7 +639,7 @@ export function OllamaSettings() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5" />
             <div>
-              <h4 className="font-medium text-red-300">Error</h4>
+              <h4 className="font-medium text-red-300">Chyba</h4>
               <p className="text-sm text-red-400 mt-1">{error}</p>
             </div>
           </div>
@@ -651,9 +651,9 @@ export function OllamaSettings() {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div>
-              <h4 className="font-medium text-muted-foreground">Ollama Not Installed</h4>
+              <h4 className="font-medium text-muted-foreground">Ollama není nainstalována</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                Install Ollama to use local AI models. Visit{' '}
+                Nainstalujte Ollama pro použití lokálních AI modelů. Navštivte{' '}
                 <a 
                   href="https://ollama.com" 
                   target="_blank" 
@@ -662,7 +662,7 @@ export function OllamaSettings() {
                 >
                   ollama.com
                 </a>{' '}
-                to download and install.
+                pro stažení a instalaci.
               </p>
             </div>
           </div>
@@ -674,7 +674,7 @@ export function OllamaSettings() {
           <div>
             <h4 className="font-medium text-primary">Ollama Server</h4>
             <p className="text-sm text-primary">
-              Ollama is installed but not currently running.
+              Ollama je nainstalována, ale momentálně neběží.
             </p>
           </div>
           <Button
@@ -683,7 +683,7 @@ export function OllamaSettings() {
             className="flex items-center gap-2 text-primary hover:bg-primary/20 hover:text-primary bg-primary/10 border-primary/30 hover:border-primary/50"
           >
             <Play className="h-4 w-4" />
-            {actionLoading === 'start-server' ? 'Starting...' : 'Start Server'}
+            {actionLoading === 'start-server' ? 'Spouštím...' : 'Spustit server'}
           </Button>
         </div>
       )}
@@ -694,10 +694,10 @@ export function OllamaSettings() {
             <CheckCircle className="h-5 w-5 text-primary" />
             <div>
               <span className="font-medium text-primary">
-                Ollama Server Running
+                Ollama Server běží
               </span>
               <p className="text-sm text-muted-foreground">
-                Server available at {ollamaStatus.server_url}
+                Server dostupný na {ollamaStatus.server_url}
               </p>
             </div>
           </div>
@@ -707,7 +707,7 @@ export function OllamaSettings() {
             className="flex items-center gap-2 text-red-400 hover:bg-red-500/20 hover:text-red-300 bg-red-500/10 border-red-500/30 hover:border-red-500/50"
           >
             <Square className="h-4 w-4" />
-            {actionLoading === 'stop-server' ? 'Stopping...' : 'Disconnect'}
+            {actionLoading === 'stop-server' ? 'Zastavuji...' : 'Odpojit'}
           </Button>
         </div>
       )}
@@ -715,9 +715,9 @@ export function OllamaSettings() {
       {ollamaStatus?.running && (
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-primary">Available Models</h3>
+            <h3 className="font-medium text-primary">Dostupné modely</h3>
             <span className="text-xs text-muted-foreground">
-              {ollamaStatus.available_models.length} downloaded
+              {ollamaStatus.available_models.length} staženo
             </span>
           </div>
           
@@ -736,10 +736,10 @@ export function OllamaSettings() {
                     progress.status === 'error' && "bg-red-600/30 text-red-500 border-red-600/40",
                     progress.status === 'cancelled' && "bg-muted text-muted-foreground"
                   )}>
-                    {progress.status === 'downloading' && 'Downloading'}
-                    {progress.status === 'completed' && 'Completed'}
-                    {progress.status === 'error' && 'Failed'}
-                    {progress.status === 'cancelled' && 'Cancelled'}
+                    {progress.status === 'downloading' && 'Stahuji'}
+                    {progress.status === 'completed' && 'Dokončeno'}
+                    {progress.status === 'error' && 'Selhalo'}
+                    {progress.status === 'cancelled' && 'Zrušeno'}
                     {!['downloading', 'completed', 'error', 'cancelled'].includes(progress.status) && progress.status}
                   </Badge>
                 </div>
@@ -828,7 +828,7 @@ export function OllamaSettings() {
                           className="flex items-center gap-2 h-7 text-primary hover:bg-primary/20 hover:text-primary bg-primary/10 border-primary/30 hover:border-primary/50"
                         >
                           <Download className="h-3 w-3" />
-                          Download
+                          Stáhnout
                         </Button>
                       </>
                     )}
@@ -839,7 +839,7 @@ export function OllamaSettings() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Brain className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No models available</p>
+              <p className="text-sm">Žádné modely nejsou k dispozici</p>
             </div>
           )}
         </div>
@@ -853,16 +853,16 @@ export function OllamaSettings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-400" />
-              Delete Model
+              Smazat model
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong>{deleteConfirmation.displayName}</strong>?
+              Opravdu chcete smazat <strong>{deleteConfirmation.displayName}</strong>?
               <br />
               <span className="text-sm text-muted-foreground mt-1 block">
                 Model: {deleteConfirmation.modelName}
               </span>
               <br />
-              This action cannot be undone. You will need to download the model again to use it.
+              Tuto akci nelze vrátit zpět. Budete muset model znovu stáhnout, abyste ho mohli použít.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
@@ -871,7 +871,7 @@ export function OllamaSettings() {
               onClick={cancelDeleteModel}
               disabled={actionLoading === `delete-${deleteConfirmation.modelName}`}
             >
-              Cancel
+              Zrušit
             </Button>
             <Button
               variant="destructive"
@@ -880,7 +880,7 @@ export function OllamaSettings() {
               className="flex items-center gap-2"
             >
               <Trash2 className="h-4 w-4" />
-              {actionLoading === `delete-${deleteConfirmation.modelName}` ? 'Deleting...' : 'Delete Model'}
+              {actionLoading === `delete-${deleteConfirmation.modelName}` ? 'Mažu...' : 'Smazat model'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -894,16 +894,16 @@ export function OllamaSettings() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Cancel Download
+              Zrušit stahování
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel the download of <strong>{cancelConfirmation.displayName}</strong>?
+              Opravdu chcete zrušit stahování <strong>{cancelConfirmation.displayName}</strong>?
               <br />
               <span className="text-sm text-muted-foreground mt-1 block">
                 Model: {cancelConfirmation.modelName}
               </span>
               <br />
-              Any progress will be lost and you'll need to start the download again.
+              Veškerý pokrok bude ztracen a budete muset stahování spustit znovu.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
@@ -912,7 +912,7 @@ export function OllamaSettings() {
               onClick={cancelCancelDownload}
               disabled={cancellingDownloads.has(cancelConfirmation.modelName)}
             >
-              Continue Download
+              Pokračovat ve stahování
             </Button>
             <Button
               variant="destructive"
@@ -921,7 +921,7 @@ export function OllamaSettings() {
               className="flex items-center gap-2"
             >
               <X className="h-4 w-4" />
-              {cancellingDownloads.has(cancelConfirmation.modelName) ? 'Cancelling...' : 'Cancel Download'}
+              {cancellingDownloads.has(cancelConfirmation.modelName) ? 'Ruším...' : 'Zrušit stahování'}
             </Button>
           </DialogFooter>
         </DialogContent>

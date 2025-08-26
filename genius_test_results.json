@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-08-14T12:04:58.617494",
+  "suite_name": "Genius Test Suite",
+  "total_tests": 6,
+  "passed": 6,
+  "failed": 0,
+  "total_time": 8.907604694366455,
+  "success_rate": 100.0,
+  "python_version": "3.12.1 (main, Jul 10 2025, 11:57:50) [GCC 13.3.0]",
+  "platform": "linux",
+  "environment": {
+    "pandas_available": true,
+    "numpy_available": true,
+    "requests_available": true,
+    "mocks_available": true
+  },
+  "tests": [
+    {
+      "name": "Environment Setup",
+      "success": true,
+      "message": "Environment setup OK",
+      "duration": 0.00015306472778320312,
+      "details": {},
+      "timestamp": "2025-08-14T12:04:52.235809"
+    },
+    {
+      "name": "Basic Imports",
+      "success": true,
+      "message": "Available: 8, Missing: 0",
+      "duration": 0.9223537445068359,
+      "details": {},
+      "timestamp": "2025-08-14T12:04:53.158213"
+    },
+    {
+      "name": "Dependencies Check",
+      "success": true,
+      "message": "Available: 9, Missing: 1",
+      "duration": 5.4550182819366455,
+      "details": {
+        "available": 9,
+        "missing": 1
+      },
+      "timestamp": "2025-08-14T12:04:58.613300"
+    },
+    {
+      "name": "Launcher Functionality",
+      "success": true,
+      "message": "Launcher OK, health functions: 2/2",
+      "duration": 1.1205673217773438e-05,
+      "details": {
+        "health_functions": [
+          "check_backend_health",
+          "check_frontend_health"
+        ]
+      },
+      "timestamp": "2025-08-14T12:04:58.613392"
+    },
+    {
+      "name": "Mock Implementations",
+      "success": true,
+      "message": "Mock implementations OK, agents tested: 3",
+      "duration": 5.054473876953125e-05,
+      "details": {
+        "agents_tested": 3
+      },
+      "timestamp": "2025-08-14T12:04:58.613470"
+    },
+    {
+      "name": "Data Processing",
+      "success": true,
+      "message": "Data processing OK, processed 31 rows",
+      "duration": 0.0038461685180664062,
+      "details": {
+        "rows": 31,
+        "mean_price": 146.47
+      },
+      "timestamp": "2025-08-14T12:04:58.617348"
+    }
+  ]
+}

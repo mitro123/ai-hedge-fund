@@ -83,5 +83,80 @@
     "display_name": "Qwen 3 (235B) Thinking",
     "model_name": "qwen/qwen3-235b-a22b-thinking-2507",
     "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Claude 3.5 Sonnet",
+    "model_name": "anthropic/claude-3.5-sonnet",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Claude 3 Opus",
+    "model_name": "anthropic/claude-3-opus",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "GPT-4o",
+    "model_name": "openai/gpt-4o",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "GPT-4o Mini",
+    "model_name": "openai/gpt-4o-mini",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "o1-preview",
+    "model_name": "openai/o1-preview",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "o1-mini",
+    "model_name": "openai/o1-mini",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Gemini Pro 1.5",
+    "model_name": "google/gemini-pro-1.5",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Gemini Flash 1.5",
+    "model_name": "google/gemini-flash-1.5",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Llama 3.1 405B",
+    "model_name": "meta-llama/llama-3.1-405b-instruct",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Llama 3.1 70B",
+    "model_name": "meta-llama/llama-3.1-70b-instruct",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Qwen 2.5 72B",
+    "model_name": "qwen/qwen-2.5-72b-instruct",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "DeepSeek V2.5",
+    "model_name": "deepseek/deepseek-chat",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Mistral Large 2",
+    "model_name": "mistralai/mistral-large",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Perplexity Sonar Huge",
+    "model_name": "perplexity/llama-3.1-sonar-huge-128k-online",
+    "provider": "OpenRouter"
+  },
+  {
+    "display_name": "Cohere Command R+",
+    "model_name": "cohere/command-r-plus",
+    "provider": "OpenRouter"
   }
 ]

@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/integrations/openbb_integration.py
+# hypothesis_version: 6.138.0
+
+['%Y-%m-%d', '1d', 'AUDUSD=X', 'CL=F', 'DIA', 'EURUSD=X', 'GBPUSD=X', 'GC=F', 'HG=F', 'IWM', 'NG=F', 'NZDUSD=X', 'OpenBB', 'OpenBB not available', 'QQQ', 'SI=F', 'SPY', 'USDCAD=X', 'USDCHF=X', 'USDJPY=X', 'VTI', 'ZC=F', 'ZS=F', 'ZW=F', 'annual', 'balance', 'benzinga', 'call', 'calls', 'cash', 'crypto', 'currency', 'derivatives', 'economy', 'fmp', 'fred', 'fundamental', 'income', 'news', 'openbb_platform', 'option_type', 'options', 'profile', 'put', 'puts', 'to_dataframe', 'to_dict', 'yfinance']

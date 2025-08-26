@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/utils/constants.py
+# hypothesis_version: 6.138.0
+
+['CL=F', 'CT=F', 'GC=F', 'HG=F', 'KC=F', 'LBS=F', 'NG=F', 'SB=F', 'SI=F', 'ZC=F', 'ZS=F', 'ZW=F']

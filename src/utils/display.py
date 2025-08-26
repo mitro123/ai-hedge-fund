@@ -1,8 +1,10 @@
+import json
+import os
+
 from colorama import Fore, Style
 from tabulate import tabulate
+
 from .analysts import ANALYST_ORDER
-import os
-import json
 
 
 def sort_agent_signals(signals):
@@ -36,7 +38,7 @@ def print_trading_output(result: dict) -> None:
         for agent, signals in result.get("analyst_signals", {}).items():
             if ticker not in signals:
                 continue
-                
+
             # Skip Risk Management agent in the signals section
             if agent == "risk_management_agent":
                 continue
@@ -51,12 +53,12 @@ def print_trading_output(result: dict) -> None:
                 "BEARISH": Fore.RED,
                 "NEUTRAL": Fore.YELLOW,
             }.get(signal_type, Fore.WHITE)
-            
+
             # Get reasoning if available
             reasoning_str = ""
             if "reasoning" in signal and signal["reasoning"]:
                 reasoning = signal["reasoning"]
-                
+
                 # Handle different types of reasoning (string, dict, etc.)
                 if isinstance(reasoning, str):
                     reasoning_str = reasoning
@@ -66,7 +68,7 @@ def print_trading_output(result: dict) -> None:
                 else:
                     # Convert any other type to string
                     reasoning_str = str(reasoning)
-                
+
                 # Wrap long reasoning text to make it more readable
                 wrapped_reasoning = ""
                 current_line = ""
@@ -83,7 +85,7 @@ def print_trading_output(result: dict) -> None:
                             current_line = word
                 if current_line:
                     wrapped_reasoning += current_line
-                
+
                 reasoning_str = wrapped_reasoning
 
             table_data.append(
@@ -147,21 +149,21 @@ def print_trading_output(result: dict) -> None:
             ],
             ["Reasoning", f"{Fore.WHITE}{wrapped_reasoning}{Style.RESET_ALL}"],
         ]
-        
+
         print(f"\n{Fore.WHITE}{Style.BRIGHT}TRADING DECISION:{Style.RESET_ALL} [{Fore.CYAN}{ticker}{Style.RESET_ALL}]")
         print(tabulate(decision_data, tablefmt="grid", colalign=("left", "left")))
 
     # Print Portfolio Summary
     print(f"\n{Fore.WHITE}{Style.BRIGHT}PORTFOLIO SUMMARY:{Style.RESET_ALL}")
     portfolio_data = []
-    
+
     # Extract portfolio manager reasoning (common for all tickers)
     portfolio_manager_reasoning = None
     for ticker, decision in decisions.items():
         if decision.get("reasoning"):
             portfolio_manager_reasoning = decision.get("reasoning")
             break
-            
+
     for ticker, decision in decisions.items():
         action = decision.get("action", "").upper()
         action_color = {
@@ -181,7 +183,7 @@ def print_trading_output(result: dict) -> None:
         )
 
     headers = [f"{Fore.WHITE}Ticker", "Action", "Quantity", "Confidence"]
-    
+
     # Print the portfolio summary table
     print(
         tabulate(
@@ -191,7 +193,7 @@ def print_trading_output(result: dict) -> None:
             colalign=("left", "center", "right", "right"),
         )
     )
-    
+
     # Print Portfolio Manager's reasoning if available
     if portfolio_manager_reasoning:
         # Handle different types of reasoning (string, dict, etc.)
@@ -204,7 +206,7 @@ def print_trading_output(result: dict) -> None:
         else:
             # Convert any other type to string
             reasoning_str = str(portfolio_manager_reasoning)
-            
+
         # Wrap long reasoning text to make it more readable
         wrapped_reasoning = ""
         current_line = ""
@@ -221,15 +223,22 @@ def print_trading_output(result: dict) -> None:
                     current_line = word
         if current_line:
             wrapped_reasoning += current_line
-            
+
         print(f"\n{Fore.WHITE}{Style.BRIGHT}Portfolio Strategy:{Style.RESET_ALL}")
         print(f"{Fore.CYAN}{wrapped_reasoning}{Style.RESET_ALL}")
 
 
 def print_backtest_results(table_rows: list) -> None:
     """Print the backtest results in a nicely formatted table"""
-    # Clear the screen
-    os.system("cls" if os.name == "nt" else "clear")
+    # Clear the screen safely
+    try:
+        if os.name == "nt":
+            os.system("cls")
+        else:
+            os.system("clear")
+    except Exception:
+        # Fallback: print newlines if system clear fails
+        print("\n" * 50)
 
     # Split rows into ticker rows and summary rows
     ticker_rows = []
@@ -241,7 +250,6 @@ def print_backtest_results(table_rows: list) -> None:
         else:
             ticker_rows.append(row)
 
-    
     # Display latest portfolio summary
     if summary_rows:
         latest_summary = summary_rows[-1]
@@ -256,7 +264,7 @@ def print_backtest_results(table_rows: list) -> None:
         print(f"Total Position Value: {Fore.YELLOW}${float(position_str):,.2f}{Style.RESET_ALL}")
         print(f"Total Value: {Fore.WHITE}${float(total_str):,.2f}{Style.RESET_ALL}")
         print(f"Return: {latest_summary[9]}")
-        
+
         # Display performance metrics if available
         if latest_summary[10]:  # Sharpe ratio
             print(f"Sharpe Ratio: {latest_summary[10]}")
@@ -316,14 +324,14 @@ def format_backtest_row(
     bearish_count: int,
     neutral_count: int,
     is_summary: bool = False,
-    total_value: float = None,
-    return_pct: float = None,
-    cash_balance: float = None,
-    total_position_value: float = None,
-    sharpe_ratio: float = None,
-    sortino_ratio: float = None,
-    max_drawdown: float = None,
-) -> list[any]:
+    total_value: float | None = None,
+    return_pct: float | None = None,
+    cash_balance: float | None = None,
+    total_position_value: float | None = None,
+    sharpe_ratio: float | None = None,
+    sortino_ratio: float | None = None,
+    max_drawdown: float | None = None,
+) -> list:
     """Format a row for the backtest results table"""
     # Color the action
     action_color = {
@@ -335,7 +343,7 @@ def format_backtest_row(
     }.get(action.upper(), Fore.WHITE)
 
     if is_summary:
-        return_color = Fore.GREEN if return_pct >= 0 else Fore.RED
+        return_color = Fore.GREEN if return_pct is not None and return_pct >= 0 else Fore.RED
         return [
             date,
             f"{Fore.WHITE}{Style.BRIGHT}PORTFOLIO SUMMARY{Style.RESET_ALL}",

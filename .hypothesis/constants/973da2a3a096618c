@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/services/graph.py
+# hypothesis_version: 6.138.0
+
+['^[a-z0-9]+$', '_', 'agent_func', 'analyst_signals', 'data', 'dict', 'end_date', 'gpt-4.1', 'messages', 'metadata', 'model_name', 'model_provider', 'openrouter', 'portfolio', 'portfolio_manager', 'request', 'show_reasoning', 'start_date', 'start_node', 'tickers']

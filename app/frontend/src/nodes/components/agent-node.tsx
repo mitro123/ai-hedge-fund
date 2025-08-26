@@ -88,7 +88,7 @@ export function AgentNode({
         <div className="border-t border-border p-3">
           <div className="flex flex-col gap-2">
             <div className="text-subtitle text-primary flex items-center gap-1">
-              Status
+              Stav
             </div>
 
             <div className={cn(
@@ -107,7 +107,7 @@ export function AgentNode({
             <Accordion type="single" collapsible>
               <AccordionItem value="advanced" className="border-none">
                 <AccordionTrigger className="!text-subtitle text-primary">
-                  Advanced
+                  Pokročilé
                 </AccordionTrigger>
                 <AccordionContent className="pt-2">
                   <div className="flex flex-col gap-2">
@@ -118,14 +118,14 @@ export function AgentNode({
                       models={availableModels}
                       value={selectedModel?.model_name || ""}
                       onChange={handleModelChange}
-                      placeholder="Auto"
+                      placeholder="Automaticky"
                     />
                     {selectedModel && (
                       <button
                         onClick={handleUseGlobalModel}
                         className="text-subtitle text-primary hover:text-foreground transition-colors text-left"
                       >
-                        Reset to Auto
+                        Resetovat na automaticky
                       </button>
                     )}
                   </div>

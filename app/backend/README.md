@@ -1,102 +1,184 @@
-# AI Hedge Fund - Backend [WIP] 🚧
-This project is currently a work in progress.  To track progress, please get updates [here](https://x.com/virattt).
+# AI Hedge Fund - Backend 🚀
 
-This is the backend server for the AI Hedge Fund project. It provides a simple REST API to interact with the AI Hedge Fund system, allowing you to run the hedge fund through a web interface.
+**Verze:** v1.5 Production-ready Beta  
+**Status:** Plně funkční FastAPI backend s 36 API endpointy
 
-## Overview
+Production-ready backend server pro projekt AI Hedge Fund. Poskytuje kompletní REST API pro interakci se systémem AI Hedge Fund s 17 specializovanými investičními agenty, umožňuje vám spustit hedge fund prostřednictvím webového rozhraní.
 
-This backend project is a FastAPI application that serves as the server-side component of the AI Hedge Fund system. It exposes endpoints for running the hedge fund trading system and backtester.
+## 🎯 Aktuální stav (v1.5)
 
-This backend is designed to work with a future frontend application that will allow users to interact with the AI Hedge Fund system through their browser.
+### ✅ Dokončené komponenty:
+- **FastAPI Backend** - Production-ready s 36 API endpointy
+- **17 AI Agentů** - Všichni plně funkční a implementovaní
+- **Multi-LLM Podpora** - 6 providerů (OpenAI, Anthropic, Groq, DeepSeek, Google, Ollama)
+- **Database Layer** - SQLite/PostgreSQL s Alembic migrations
+- **API Documentation** - Automatická OpenAPI/Swagger dokumentace
+- **Error Handling** - Robustní error handling napříč API
 
-## Installation
+### 🔄 V procesu:
+- Security improvements (13 identifikovaných issues)
+- Test coverage enhancement (aktuálně 2.9%)
+- Code quality optimizations
 
-### Using Poetry
+## Přehled
 
-1. Clone the repository:
+Tento backend projekt je pokročilá FastAPI aplikace, která slouží jako serverová komponenta systému AI Hedge Fund. Vystavuje 36 endpointů pro spuštění hedge fund obchodního systému, backtesteru a management všech 17 AI agentů.
+
+Backend je plně integrován s React Flow frontend aplikací, která umožňuje uživatelům interakci se systémem AI Hedge Fund prostřednictvím intuitivního drag & drop rozhraní.
+
+## Instalace
+
+### Použití Poetry
+
+1. Klonujte repozitář:
 ```bash
 git clone https://github.com/virattt/ai-hedge-fund.git
 cd ai-hedge-fund
 ```
 
-2. Install Poetry (if not already installed):
+2. Nainstalujte Poetry (pokud ještě není nainstalováno):
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-3. Install dependencies:
+3. Nainstalujte závislosti:
 ```bash
-# From the root directory
+# Z kořenového adresáře
 poetry install
 ```
 
-4. Set up your environment variables:
+4. Nastavte proměnné prostředí:
 ```bash
-# Create .env file for your API keys (in the root directory)
+# Vytvořte .env soubor pro vaše API klíče (v kořenovém adresáři)
 cp .env.example .env
 ```
 
-5. Edit the .env file to add your API keys:
+5. Upravte .env soubor pro přidání vašich API klíčů:
 ```bash
-# For running LLMs hosted by openai (gpt-4o, gpt-4o-mini, etc.)
-OPENAI_API_KEY=your-openai-api-key
+# Pro spuštění LLM hostovaných OpenAI (gpt-4o, gpt-4o-mini, atd.)
+OPENAI_API_KEY=váš-openai-api-klíč
 
-# For running LLMs hosted by groq (deepseek, llama3, etc.)
-GROQ_API_KEY=your-groq-api-key
+# Pro spuštění LLM hostovaných Groq (deepseek, llama3, atd.)
+GROQ_API_KEY=váš-groq-api-klíč
 
-# For getting financial data to power the hedge fund
-FINANCIAL_DATASETS_API_KEY=your-financial-datasets-api-key
+# Pro získání finančních dat pro hedge fund
+FINANCIAL_DATASETS_API_KEY=váš-financial-datasets-api-klíč
 ```
 
-## Running the Server
+## Spuštění serveru
 
-To run the development server:
+Pro spuštění vývojového serveru:
 
 ```bash
-# Navigate to the backend directory
+# Přejděte do backend adresáře
 cd app/backend
 
-# Start the FastAPI server with uvicorn
+# Spusťte FastAPI server s uvicorn
 poetry run uvicorn main:app --reload
 ```
 
-This will start the FastAPI server with hot-reloading enabled.
+Toto spustí FastAPI server s povoleným hot-reloadingem.
 
-The API will be available at:
+API bude dostupné na:
 - API Endpoint: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+- API dokumentace: http://localhost:8000/docs
 
-## API Endpoints
+## 📋 API Endpointy (36 celkem)
 
-- `POST /hedge-fund/run`: Run the AI Hedge Fund with specified parameters
-- `GET /ping`: Simple endpoint to test server connectivity
+### 🤖 Hedge Fund Operations
+- `POST /hedge-fund/run`: Spustí AI Hedge Fund se specifikovanými parametry
+- `GET /hedge-fund/agents`: Seznam všech 17 dostupných AI agentů
+- `POST /hedge-fund/backtest`: Spustí backtesting s historickými daty
 
-## Project Structure
+### 🔑 API Keys Management
+- `GET /api-keys`: Seznam všech API klíčů
+- `POST /api-keys`: Vytvoří nový API klíč
+- `PUT /api-keys/{key_id}`: Aktualizuje existující API klíč
+- `DELETE /api-keys/{key_id}`: Smaže API klíč
+
+### 🔄 Workflow Management
+- `GET /flows`: Seznam všech workflow
+- `POST /flows`: Vytvoří nový workflow
+- `GET /flows/{flow_id}`: Detail konkrétního workflow
+- `PUT /flows/{flow_id}`: Aktualizuje workflow
+- `DELETE /flows/{flow_id}`: Smaže workflow
+
+### ▶️ Flow Runs
+- `GET /flow-runs`: Seznam všech spuštění
+- `POST /flow-runs`: Spustí nový workflow
+- `GET /flow-runs/{run_id}`: Detail konkrétního spuštění
+- `PUT /flow-runs/{run_id}`: Aktualizuje spuštění
+- `DELETE /flow-runs/{run_id}`: Zruší spuštění
+
+### 🧠 Language Models
+- `GET /language-models`: Seznam dostupných LLM
+- `POST /language-models/test`: Test LLM připojení
+- `GET /language-models/providers`: Seznam LLM providerů
+
+### 🐋 Ollama Integration
+- `GET /ollama/status`: Status Ollama serveru
+- `POST /ollama/start`: Spustí Ollama server
+- `POST /ollama/stop`: Zastaví Ollama server
+- `GET /ollama/models`: Seznam dostupných modelů
+- `POST /ollama/models/download`: Stáhne nový model
+- `DELETE /ollama/models/{model_name}`: Smaže model
+
+### 💾 Storage & Health
+- `GET /storage/files`: Seznam uložených souborů
+- `POST /storage/upload`: Nahraje soubor
+- `GET /health`: Health check endpoint
+- `GET /ping`: Jednoduchý ping endpoint
+
+**Kompletní API dokumentace:** http://localhost:8000/docs
+
+## Struktura projektu
 
 ```
 app/backend/
-├── api/                      # API layer (future expansion)
-├── models/                   # Domain models
+├── alembic/                  # Databázové migrace
+│   ├── versions/             # Migration soubory
+│   └── env.py               # Alembic konfigurace
+├── database/                 # Databázová vrstva
+│   ├── connection.py         # Databázové připojení
+│   └── models.py            # SQLAlchemy modely
+├── models/                   # API modely a schémata
 │   ├── __init__.py
-│   └── schemas.py            # Pydantic schema definitions
-├── routes/                   # API routes
-│   ├── __init__.py           # Router registry
-│   ├── hedge_fund.py         # Hedge fund endpoints
-│   └── health.py             # Health check endpoints
-├── services/                 # Business logic
-│   ├── graph.py              # Agent graph functionality
-│   └── portfolio.py          # Portfolio management
-├── __init__.py               # Package initialization
-└── main.py                   # FastAPI application entry point
+│   ├── events.py            # Event modely
+│   └── schemas.py           # Pydantic schémata
+├── repositories/             # Data access layer
+│   ├── api_key_repository.py
+│   ├── flow_repository.py
+│   └── flow_run_repository.py
+├── routes/                   # API endpointy
+│   ├── __init__.py
+│   ├── api_keys.py          # API klíče management
+│   ├── flows.py             # Workflow management
+│   ├── flow_runs.py         # Spuštění workflow
+│   ├── hedge_fund.py        # Hedge fund operace
+│   ├── health.py            # Health checks
+│   ├── language_models.py   # LLM konfigurace
+│   ├── ollama.py            # Ollama integrace
+│   └── storage.py           # File storage
+├── services/                 # Business logika
+│   ├── agent_service.py     # Agent management
+│   ├── api_key_service.py   # API klíče služby
+│   ├── backtest_service.py  # Backtesting
+│   ├── graph.py             # Workflow graph
+│   ├── ollama_service.py    # Ollama služby
+│   └── portfolio.py         # Portfolio management
+├── alembic.ini              # Alembic konfigurace
+├── hedge_fund.db            # SQLite databáze
+├── main.py                  # FastAPI aplikace
+└── migrate_api_keys.py      # Migration utility
 ```
 
-## Disclaimer
+## Prohlášení o vyloučení odpovědnosti
 
-This project is for **educational and research purposes only**.
+Tento projekt je určen **pouze pro vzdělávací a výzkumné účely**.
 
-- Not intended for real trading or investment
-- No warranties or guarantees provided
-- Creator assumes no liability for financial losses
-- Consult a financial advisor for investment decisions
+- Není určen pro skutečné obchodování nebo investování
+- Neposkytuje žádné záruky nebo garance
+- Tvůrce nepřebírá odpovědnost za finanční ztráty
+- Pro investiční rozhodnutí se poraďte s finančním poradcem
 
-By using this software, you agree to use it solely for learning purposes.
+Používáním tohoto softwaru souhlasíte s jeho použitím pouze pro vzdělávací účely.

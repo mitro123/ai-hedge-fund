@@ -73,7 +73,7 @@ export function FlowContextMenu({
           onClick={() => handleAction(onEdit)}
         >
           <Edit size={14} className="mr-2" />
-          Edit
+          Upravit
         </Button>
         
         <Button
@@ -83,7 +83,7 @@ export function FlowContextMenu({
           onClick={() => handleAction(onDuplicate)}
         >
           <Copy size={14} className="mr-2" />
-          Duplicate
+          Duplikovat
         </Button>
         
         <Button
@@ -93,9 +93,9 @@ export function FlowContextMenu({
           onClick={() => handleAction(onDelete)}
         >
           <Trash2 size={14} className="mr-2" />
-          Delete
+          Smazat
         </Button>
       </div>
     </div>
   );
-} 
+}

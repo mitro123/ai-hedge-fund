@@ -1,21 +1,29 @@
+"""Stanley Druckenmiller Agent - Implementuje investiční strategii zaměřenou na asymetrické příležitosti riziko-výnos."""
+
+import json
+import statistics
+from typing import Any, cast, Dict, List, Optional
+
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
+from typing_extensions import Literal
+
+from src.exceptions import APIKeyError
 from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import (
-    get_financial_metrics,
-    get_market_cap,
-    search_line_items,
-    get_insider_trades,
     get_company_news,
+    get_financial_metrics,
+    get_insider_trades,
+    get_market_cap,
     get_prices,
+    search_line_items,
 )
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import HumanMessage
-from pydantic import BaseModel
-import json
-from typing_extensions import Literal
-from src.utils.progress import progress
-from src.utils.llm import call_llm
-import statistics
 from src.utils.api_key import get_api_key_from_state
+from src.utils.constants import COMMODITY_SYMBOLS
+from src.utils.llm import call_llm
+from src.utils.progress import progress
+
 
 class StanleyDruckenmillerSignal(BaseModel):
     signal: Literal["bullish", "bearish", "neutral"]
@@ -23,34 +31,47 @@ class StanleyDruckenmillerSignal(BaseModel):
     reasoning: str
 
 
-def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druckenmiller_agent"):
+def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druckenmiller_agent") -> Dict[str, Any]:
     """
-    Analyzes stocks using Stanley Druckenmiller's investing principles:
-      - Seeking asymmetric risk-reward opportunities
-      - Emphasizing growth, momentum, and sentiment
-      - Willing to be aggressive if conditions are favorable
-      - Focus on preserving capital by avoiding high-risk, low-reward bets
+    Analyzuje akcie pomocí investičních principů Stanley Druckenmillera:
+      - Hledání asymetrických příležitostí riziko-výnos
+      - Důraz na růst, momentum a sentiment
+      - Ochota být agresivní pokud jsou podmínky příznivé
+      - Zaměření na zachování kapitálu vyhýbáním se vysokorizikovým, nízkoziskovým sázkám
 
-    Returns a bullish/bearish/neutral signal with confidence and reasoning.
+    Vrací býčí/medvědí/neutrální signál s důvěrou a zdůvodněním.
     """
     data = state["data"]
     start_date = data["start_date"]
     end_date = data["end_date"]
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     druck_analysis = {}
 
     for ticker in tickers:
-        progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        # Skip commodity symbols as Stanley Druckenmiller analysis is designed for stocks
+        if ticker in COMMODITY_SYMBOLS:
+            progress.update_status(agent_id, ticker, "Přeskakuji komoditu")
+            druck_analysis[ticker] = {
+                "signal": "neutral",
+                "confidence": 0.0,
+                "reasoning": f"Stanley Druckenmiller analýza není vhodná pro komodity ({ticker}). Komodity jsou analyzovány specializovaným komoditním agentem.",
+            }
+            progress.update_status(agent_id, ticker, "Přeskočeno - komodita", analysis="Komodita přeskočena")
+            continue
+
+        progress.update_status(agent_id, ticker, "Načítání finančních metrik")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Gathering financial line items")
-        # Include relevant line items for Stan Druckenmiller's approach:
-        #   - Growth & momentum: revenue, EPS, operating_income, ...
-        #   - Valuation: net_income, free_cash_flow, ebit, ebitda
-        #   - Leverage: total_debt, shareholders_equity
-        #   - Liquidity: cash_and_equivalents
+        progress.update_status(agent_id, ticker, "Shromažďování finančních položek")
+        # Zahrnutí relevantních položek pro přístup Stan Druckenmillera:
+        #   - Růst & momentum: tržby, EPS, provozní_příjem, ...
+        #   - Ocenění: čistý_příjem, volný_peněžní_tok, ebit, ebitda
+        #   - Páka: celkový_dluh, vlastní_kapitál
+        #   - Likvidita: hotovost_a_ekvivalenty
         financial_line_items = search_line_items(
             ticker,
             [
@@ -75,36 +96,36 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
             api_key=api_key,
         )
 
-        progress.update_status(agent_id, ticker, "Getting market cap")
+        progress.update_status(agent_id, ticker, "Získávání tržní kapitalizace")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching insider trades")
+        progress.update_status(agent_id, ticker, "Načítání insider obchodů")
         insider_trades = get_insider_trades(ticker, end_date, limit=50, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching company news")
+        progress.update_status(agent_id, ticker, "Načítání firemních zpráv")
         company_news = get_company_news(ticker, end_date, limit=50, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Fetching recent price data for momentum")
+        progress.update_status(agent_id, ticker, "Načítání nedávných cenových dat pro momentum")
         prices = get_prices(ticker, start_date=start_date, end_date=end_date, api_key=api_key)
 
-        progress.update_status(agent_id, ticker, "Analyzing growth & momentum")
+        progress.update_status(agent_id, ticker, "Analýza růstu a momentu")
         growth_momentum_analysis = analyze_growth_and_momentum(financial_line_items, prices)
 
-        progress.update_status(agent_id, ticker, "Analyzing sentiment")
+        progress.update_status(agent_id, ticker, "Analýza sentimentu")
         sentiment_analysis = analyze_sentiment(company_news)
 
-        progress.update_status(agent_id, ticker, "Analyzing insider activity")
+        progress.update_status(agent_id, ticker, "Analýza insider aktivity")
         insider_activity = analyze_insider_activity(insider_trades)
 
-        progress.update_status(agent_id, ticker, "Analyzing risk-reward")
+        progress.update_status(agent_id, ticker, "Analýza riziko-výnos")
         risk_reward_analysis = analyze_risk_reward(financial_line_items, prices)
 
-        progress.update_status(agent_id, ticker, "Performing Druckenmiller-style valuation")
+        progress.update_status(agent_id, ticker, "Provádění ocenění ve stylu Druckenmillera")
         valuation_analysis = analyze_druckenmiller_valuation(financial_line_items, market_cap)
 
-        # Combine partial scores with weights typical for Druckenmiller:
-        #   35% Growth/Momentum, 20% Risk/Reward, 20% Valuation,
-        #   15% Sentiment, 10% Insider Activity = 100%
+        # Kombinace dílčích skóre s váhami typickými pro Druckenmillera:
+        #   35% Růst/Momentum, 20% Riziko/Výnos, 20% Ocenění,
+        #   15% Sentiment, 10% Insider Aktivita = 100%
         total_score = (
             growth_momentum_analysis["score"] * 0.35
             + risk_reward_analysis["score"] * 0.20
@@ -115,7 +136,7 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
 
         max_possible_score = 10
 
-        # Simple bullish/neutral/bearish signal
+        # Jednoduchý býčí/neutrální/medvědí signál
         if total_score >= 7.5:
             signal = "bullish"
         elif total_score <= 4.5:
@@ -134,7 +155,7 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
             "valuation_analysis": valuation_analysis,
         }
 
-        progress.update_status(agent_id, ticker, "Generating Stanley Druckenmiller analysis")
+        progress.update_status(agent_id, ticker, "Generování analýzy Stanley Druckenmillera")
         druck_output = generate_druckenmiller_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -148,18 +169,20 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
             "reasoning": druck_output.reasoning,
         }
 
-        progress.update_status(agent_id, ticker, "Done", analysis=druck_output.reasoning)
+        progress.update_status(agent_id, ticker, "Hotovo", analysis=druck_output.reasoning)
 
-    # Wrap results in a single message
+    # Zabalení výsledků do jedné zprávy
     message = HumanMessage(content=json.dumps(druck_analysis), name=agent_id)
 
     if state["metadata"].get("show_reasoning"):
         show_agent_reasoning(druck_analysis, "Stanley Druckenmiller Agent")
 
+    if "analyst_signals" not in state["data"]:
+        state["data"]["analyst_signals"] = {}
     state["data"]["analyst_signals"][agent_id] = druck_analysis
 
-    progress.update_status(agent_id, None, "Done")
-    
+    progress.update_status(agent_id, None, "Hotovo")
+
     return {"messages": [message], "data": state["data"]}
 
 
@@ -323,7 +346,7 @@ def analyze_sentiment(news_items: list) -> dict:
     negative_keywords = ["lawsuit", "fraud", "negative", "downturn", "decline", "investigation", "recall"]
     negative_count = 0
     for news in news_items:
-        title_lower = (news.title or "").lower()
+        title_lower = (getattr(news, "title", None) or "").lower()
         if any(word in title_lower for word in negative_keywords):
             negative_count += 1
 
@@ -534,42 +557,42 @@ def generate_druckenmiller_output(
     template = ChatPromptTemplate.from_messages(
         [
             (
-              "system",
-              """You are a Stanley Druckenmiller AI agent, making investment decisions using his principles:
+                "system",
+                """Jste AI agent Stanley Druckenmillera, který činí investiční rozhodnutí podle jeho principů:
             
-              1. Seek asymmetric risk-reward opportunities (large upside, limited downside).
-              2. Emphasize growth, momentum, and market sentiment.
-              3. Preserve capital by avoiding major drawdowns.
-              4. Willing to pay higher valuations for true growth leaders.
-              5. Be aggressive when conviction is high.
-              6. Cut losses quickly if the thesis changes.
+              1. Hledejte asymetrické příležitosti riziko-výnos (velký růstový potenciál, omezené riziko poklesu).
+              2. Zdůrazňujte růst, momentum a tržní sentiment.
+              3. Chraňte kapitál vyhýbáním se velkým propadům.
+              4. Buďte ochotni platit vyšší ocenění za skutečné růstové lídry.
+              5. Buďte agresivní, když je přesvědčení vysoké.
+              6. Rychle omezujte ztráty, pokud se teze změní.
                             
-              Rules:
-              - Reward companies showing strong revenue/earnings growth and positive stock momentum.
-              - Evaluate sentiment and insider activity as supportive or contradictory signals.
-              - Watch out for high leverage or extreme volatility that threatens capital.
-              - Output a JSON object with signal, confidence, and a reasoning string.
+              Pravidla:
+              - Odměňujte společnosti vykazující silný růst tržeb/zisků a pozitivní momentum akcií.
+              - Vyhodnocujte sentiment a insider aktivitu jako podpůrné nebo protikladné signály.
+              - Pozor na vysokou páku nebo extrémní volatilitu, která ohrožuje kapitál.
+              - Výstupem je JSON objekt se signálem, důvěrou a řetězcem zdůvodnění.
               
-              When providing your reasoning, be thorough and specific by:
-              1. Explaining the growth and momentum metrics that most influenced your decision
-              2. Highlighting the risk-reward profile with specific numerical evidence
-              3. Discussing market sentiment and catalysts that could drive price action
-              4. Addressing both upside potential and downside risks
-              5. Providing specific valuation context relative to growth prospects
-              6. Using Stanley Druckenmiller's decisive, momentum-focused, and conviction-driven voice
+              Při poskytování zdůvodnění buďte důkladní a konkrétní:
+              1. Vysvětlete metriky růstu a momentu, které nejvíce ovlivnily vaše rozhodnutí
+              2. Zdůrazněte profil riziko-výnos s konkrétními číselnými důkazy
+              3. Diskutujte tržní sentiment a katalyzátory, které by mohly pohánět cenovou akci
+              4. Adresujte jak růstový potenciál, tak rizika poklesu
+              5. Poskytněte konkrétní kontext ocenění vzhledem k růstovým vyhlídkám
+              6. Používejte rozhodný, na momentum zaměřený a přesvědčením řízený hlas Stanley Druckenmillera
               
-              For example, if bullish: "The company shows exceptional momentum with revenue accelerating from 22% to 35% YoY and the stock up 28% over the past three months. Risk-reward is highly asymmetric with 70% upside potential based on FCF multiple expansion and only 15% downside risk given the strong balance sheet with 3x cash-to-debt. Insider buying and positive market sentiment provide additional tailwinds..."
-              For example, if bearish: "Despite recent stock momentum, revenue growth has decelerated from 30% to 12% YoY, and operating margins are contracting. The risk-reward proposition is unfavorable with limited 10% upside potential against 40% downside risk. The competitive landscape is intensifying, and insider selling suggests waning confidence. I'm seeing better opportunities elsewhere with more favorable setups..."
+              Například, pokud býčí: "Společnost vykazuje výjimečné momentum s tržbami zrychlujícími z 22% na 35% YoY a akcií rostoucí o 28% za poslední tři měsíce. Riziko-výnos je vysoce asymetrické s 70% růstovým potenciálem založeným na expanzi FCF násobku a pouze 15% rizikem poklesu díky silné rozvaze s 3x hotovost-k-dluhu. Insider nákupy a pozitivní tržní sentiment poskytují další podporu..."
+              Například, pokud medvědí: "Navzdory nedávnému momentu akcií se růst tržeb zpomalil z 30% na 12% YoY a provozní marže se snižují. Propozice riziko-výnos je nepříznivá s omezeným 10% růstovým potenciálem proti 40% riziku poklesu. Konkurenční prostředí se zostřuje a insider prodeje naznačují klesající důvěru. Vidím lepší příležitosti jinde s příznivějšími nastaveními..."
               """,
             ),
             (
-              "human",
-              """Based on the following analysis, create a Druckenmiller-style investment signal.
+                "human",
+                """Na základě následující analýzy vytvořte investiční signál ve stylu Druckenmillera.
 
-              Analysis Data for {ticker}:
+              Analytická data pro {ticker}:
               {analysis_data}
 
-              Return the trading signal in this JSON format:
+              Vraťte obchodní signál v tomto JSON formátu:
               {{
                 "signal": "bullish/bearish/neutral",
                 "confidence": float (0-100),
@@ -584,15 +607,14 @@ def generate_druckenmiller_output(
 
     def create_default_signal():
         return StanleyDruckenmillerSignal(
-            signal="neutral",
-            confidence=0.0,
-            reasoning="Error in analysis, defaulting to neutral"
+            signal="neutral", confidence=0.0, reasoning="Error in analysis, defaulting to neutral"
         )
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=StanleyDruckenmillerSignal,
         agent_name=agent_id,
         state=state,
         default_factory=create_default_signal,
     )
+    return cast(StanleyDruckenmillerSignal, result)

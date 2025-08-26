@@ -1,30 +1,36 @@
-from __future__ import annotations
+"""
+Aswath Damodaran Agent - Value investing analysis based on intrinsic
+valuation and risk assessment.
+"""
 
 import json
-from typing_extensions import Literal
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
-from src.graph.state import AgentState, show_agent_reasoning
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
+from typing_extensions import Literal
 
-from src.tools.api import (
-    get_financial_metrics,
-    get_market_cap,
-    search_line_items,
-)
+from src.data.models import FinancialMetrics, LineItem
+from src.exceptions import APIKeyError
+from src.graph.state import AgentState, show_agent_reasoning
+from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
 from src.utils.api_key import get_api_key_from_state
 from src.utils.llm import call_llm
 from src.utils.progress import progress
 
 
 class AswathDamodaranSignal(BaseModel):
+    """Signal model for Aswath Damodaran's value investing analysis."""
+
     signal: Literal["bullish", "bearish", "neutral"]
-    confidence: float          # 0‒100
+    confidence: float
     reasoning: str
 
 
-def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_agent"):
+def aswath_damodaran_agent(
+    state: AgentState, agent_id: str = "aswath_damodaran_agent"
+) -> Dict[str, Any]:
     """
     Analyze US equities through Aswath Damodaran's intrinsic-value lens:
       • Cost of Equity via CAPM (risk-free + β·ERP)
@@ -33,18 +39,25 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
       • Cross-check with relative valuation (PE vs. Fwd PE sector median proxy)
     Produces a trading signal and explanation in Damodaran's analytical voice.
     """
-    data      = state["data"]
-    end_date  = data["end_date"]
-    tickers   = data["tickers"]
-    api_key  = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
+    data: Dict[str, Any] = state["data"]
+    end_date: str = data["end_date"]
+    tickers: List[str] = data["tickers"]
+    api_key: Optional[str] = get_api_key_from_state(
+        state, "FINANCIAL_DATASETS_API_KEY"
+    )
 
-    analysis_data: dict[str, dict] = {}
-    damodaran_signals: dict[str, dict] = {}
+    if api_key is None:
+        raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
+
+    analysis_data: Dict[str, Dict[str, Any]] = {}
+    damodaran_signals: Dict[str, Dict[str, Any]] = {}
 
     for ticker in tickers:
         # ─── Fetch core data ────────────────────────────────────────────────────
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
+        metrics = get_financial_metrics(
+            ticker, end_date, period="ttm", limit=5, api_key=api_key
+        )
 
         progress.update_status(agent_id, ticker, "Fetching financial line items")
         line_items = search_line_items(
@@ -67,13 +80,17 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # ─── Analyses ───────────────────────────────────────────────────────────
-        progress.update_status(agent_id, ticker, "Analyzing growth and reinvestment")
+        progress.update_status(
+            agent_id, ticker, "Analyzing growth and reinvestment"
+        )
         growth_analysis = analyze_growth_and_reinvestment(metrics, line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing risk profile")
         risk_analysis = analyze_risk_profile(metrics, line_items)
 
-        progress.update_status(agent_id, ticker, "Calculating intrinsic value (DCF)")
+        progress.update_status(
+            agent_id, ticker, "Calculating intrinsic value (DCF)"
+        )
         intrinsic_val_analysis = calculate_intrinsic_value_dcf(metrics, line_items, risk_analysis)
 
         progress.update_status(agent_id, ticker, "Assessing relative valuation")
@@ -81,15 +98,21 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
 
         # ─── Score & margin of safety ──────────────────────────────────────────
         total_score = (
-            growth_analysis["score"]
-            + risk_analysis["score"]
-            + relative_val_analysis["score"]
+            growth_analysis["score"] + 
+            risk_analysis["score"] + 
+            relative_val_analysis["score"]
         )
-        max_score = growth_analysis["max_score"] + risk_analysis["max_score"] + relative_val_analysis["max_score"]
+        max_score = (
+            growth_analysis["max_score"] + 
+            risk_analysis["max_score"] + 
+            relative_val_analysis["max_score"]
+        )
 
         intrinsic_value = intrinsic_val_analysis["intrinsic_value"]
         margin_of_safety = (
-            (intrinsic_value - market_cap) / market_cap if intrinsic_value and market_cap else None
+            (intrinsic_value - market_cap) / market_cap 
+            if intrinsic_value and market_cap 
+            else None
         )
 
         # Decision rules (Damodaran tends to act with ~20-25 % MOS)
@@ -126,7 +149,7 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
         progress.update_status(agent_id, ticker, "Done", analysis=damodaran_output.reasoning)
 
     # ─── Push message back to graph state ──────────────────────────────────────
-    message = HumanMessage(content=json.dumps(damodaran_signals), name=agent_id)
+    message: HumanMessage = HumanMessage(content=json.dumps(damodaran_signals), name=agent_id)
 
     if state["metadata"]["show_reasoning"]:
         show_agent_reasoning(damodaran_signals, "Aswath Damodaran Agent")
@@ -140,7 +163,9 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
 # ────────────────────────────────────────────────────────────────────────────────
 # Helper analyses
 # ────────────────────────────────────────────────────────────────────────────────
-def analyze_growth_and_reinvestment(metrics: list, line_items: list) -> dict[str, any]:
+def analyze_growth_and_reinvestment(
+    metrics: List[FinancialMetrics], line_items: List[LineItem]
+) -> Dict[str, Any]:
     """
     Growth score (0-4):
       +2  5-yr CAGR of revenue > 8 %
@@ -152,30 +177,40 @@ def analyze_growth_and_reinvestment(metrics: list, line_items: list) -> dict[str
     if len(metrics) < 2:
         return {"score": 0, "max_score": max_score, "details": "Insufficient history"}
 
-    # Revenue CAGR (oldest to latest)
-    revs = [m.revenue for m in reversed(metrics) if hasattr(m, "revenue") and m.revenue]
-    if len(revs) >= 2 and revs[0] > 0:
-        cagr = (revs[-1] / revs[0]) ** (1 / (len(revs) - 1)) - 1
-    else:
-        cagr = None
+    # Revenue growth analysis (using revenue_growth field from metrics)
+    revenue_growths: List[float] = [
+        m.revenue_growth for m in metrics if m.revenue_growth is not None
+    ]
+    avg_revenue_growth = (
+        sum(revenue_growths) / len(revenue_growths) if revenue_growths else None
+    )
 
-    score, details = 0, []
+    score: int = 0
+    details: List[str] = []
 
-    if cagr is not None:
-        if cagr > 0.08:
+    if avg_revenue_growth is not None:
+        if avg_revenue_growth > 0.08:
             score += 2
-            details.append(f"Revenue CAGR {cagr:.1%} (> 8 %)")
-        elif cagr > 0.03:
+            details.append(f"Avg revenue growth {avg_revenue_growth:.1%} (> 8%)")
+        elif avg_revenue_growth > 0.03:
             score += 1
-            details.append(f"Revenue CAGR {cagr:.1%} (> 3 %)")
+            details.append(f"Avg revenue growth {avg_revenue_growth:.1%} (> 3%)")
         else:
-            details.append(f"Sluggish revenue CAGR {cagr:.1%}")
+            details.append(f"Sluggish revenue growth {avg_revenue_growth:.1%}")
     else:
-        details.append("Revenue data incomplete")
+        details.append("Revenue growth data incomplete")
 
     # FCFF growth (proxy: free_cash_flow trend)
-    fcfs = [li.free_cash_flow for li in reversed(line_items) if li.free_cash_flow]
-    if len(fcfs) >= 2 and fcfs[-1] > fcfs[0]:
+    fcfs_raw = [
+        getattr(li, "free_cash_flow", None) for li in reversed(line_items)
+    ]
+    fcfs: List[float] = [f for f in fcfs_raw if f is not None]
+    if (
+        len(fcfs) >= 2 
+        and fcfs[-1] is not None 
+        and fcfs[0] is not None 
+        and fcfs[-1] > fcfs[0]
+    ):
         score += 1
         details.append("Positive FCFF growth")
     else:
@@ -190,7 +225,7 @@ def analyze_growth_and_reinvestment(metrics: list, line_items: list) -> dict[str
     return {"score": score, "max_score": max_score, "details": "; ".join(details), "metrics": latest.model_dump()}
 
 
-def analyze_risk_profile(metrics: list, line_items: list) -> dict[str, any]:
+def analyze_risk_profile(metrics: List[FinancialMetrics], _: List[LineItem]) -> Dict[str, Any]:
     """
     Risk score (0-3):
       +1  Beta < 1.3
@@ -202,7 +237,8 @@ def analyze_risk_profile(metrics: list, line_items: list) -> dict[str, any]:
         return {"score": 0, "max_score": max_score, "details": "No metrics"}
 
     latest = metrics[0]
-    score, details = 0, []
+    score: int = 0
+    details: List[str] = []
 
     # Beta
     beta = getattr(latest, "beta", None)
@@ -246,12 +282,12 @@ def analyze_risk_profile(metrics: list, line_items: list) -> dict[str, any]:
         "score": score,
         "max_score": max_score,
         "details": "; ".join(details),
-        "beta": beta,
+        "beta": beta if beta is not None else 0.0,
         "cost_of_equity": cost_of_equity,
     }
 
 
-def analyze_relative_valuation(metrics: list) -> dict[str, any]:
+def analyze_relative_valuation(metrics: List[FinancialMetrics]) -> Dict[str, Any]:
     """
     Simple PE check vs. historical median (proxy since sector comps unavailable):
       +1 if TTM P/E < 70 % of 5-yr median
@@ -262,7 +298,11 @@ def analyze_relative_valuation(metrics: list) -> dict[str, any]:
     if not metrics or len(metrics) < 5:
         return {"score": 0, "max_score": max_score, "details": "Insufficient P/E history"}
 
-    pes = [m.price_to_earnings_ratio for m in metrics if m.price_to_earnings_ratio]
+    pes: List[float] = [
+        m.price_to_earnings_ratio 
+        for m in metrics 
+        if m.price_to_earnings_ratio
+    ]
     if len(pes) < 5:
         return {"score": 0, "max_score": max_score, "details": "P/E data sparse"}
 
@@ -274,7 +314,7 @@ def analyze_relative_valuation(metrics: list) -> dict[str, any]:
     elif ttm_pe > 1.3 * median_pe:
         score, desc = -1, f"P/E {ttm_pe:.1f} vs. median {median_pe:.1f} (expensive)"
     else:
-        score, desc = 0, f"P/E inline with history"
+        score, desc = 0, "P/E inline with history"
 
     return {"score": score, "max_score": max_score, "details": desc}
 
@@ -282,7 +322,9 @@ def analyze_relative_valuation(metrics: list) -> dict[str, any]:
 # ────────────────────────────────────────────────────────────────────────────────
 # Intrinsic value via FCFF DCF (Damodaran style)
 # ────────────────────────────────────────────────────────────────────────────────
-def calculate_intrinsic_value_dcf(metrics: list, line_items: list, risk_analysis: dict) -> dict[str, any]:
+def calculate_intrinsic_value_dcf(
+    metrics: List[FinancialMetrics], line_items: List[LineItem], risk_analysis: Dict[str, Any]
+) -> Dict[str, Any]:
     """
     FCFF DCF with:
       • Base FCFF = latest free cash flow
@@ -299,10 +341,11 @@ def calculate_intrinsic_value_dcf(metrics: list, line_items: list, risk_analysis
     if not fcff0 or not shares:
         return {"intrinsic_value": None, "details": ["Missing FCFF or share count"]}
 
-    # Growth assumptions
-    revs = [m.revenue for m in reversed(metrics) if m.revenue]
-    if len(revs) >= 2 and revs[0] > 0:
-        base_growth = min((revs[-1] / revs[0]) ** (1 / (len(revs) - 1)) - 1, 0.12)
+    # Growth assumptions - use revenue growth from metrics instead of calculating CAGR
+    revenue_growths = [m.revenue_growth for m in metrics if m.revenue_growth is not None]
+    if revenue_growths:
+        avg_growth = sum(revenue_growths) / len(revenue_growths)
+        base_growth = min(avg_growth, 0.12)  # cap at 12%
     else:
         base_growth = 0.04  # fallback
 
@@ -323,12 +366,7 @@ def calculate_intrinsic_value_dcf(metrics: list, line_items: list, risk_analysis
         g += g_step
 
     # Terminal value (perpetuity with terminal growth)
-    tv = (
-        fcff0
-        * (1 + terminal_growth)
-        / (discount - terminal_growth)
-        / (1 + discount) ** years
-    )
+    tv = fcff0 * (1 + terminal_growth) / (discount - terminal_growth) / (1 + discount) ** years
 
     equity_value = pv_sum + tv
     intrinsic_per_share = equity_value / shares
@@ -347,10 +385,10 @@ def calculate_intrinsic_value_dcf(metrics: list, line_items: list, risk_analysis
     }
 
 
-def estimate_cost_of_equity(beta: float | None) -> float:
+def estimate_cost_of_equity(beta: Optional[float]) -> float:
     """CAPM: r_e = r_f + β × ERP (use Damodaran's long-term averages)."""
-    risk_free = 0.04          # 10-yr US Treasury proxy
-    erp = 0.05                # long-run US equity risk premium
+    risk_free = 0.04  # 10-yr US Treasury proxy
+    erp = 0.05  # long-run US equity risk premium
     beta = beta if beta is not None else 1.0
     return risk_free + beta * erp
 
@@ -360,7 +398,7 @@ def estimate_cost_of_equity(beta: float | None) -> float:
 # ────────────────────────────────────────────────────────────────────────────────
 def generate_damodaran_output(
     ticker: str,
-    analysis_data: dict[str, any],
+    analysis_data: Dict[str, Any],
     state: AgentState,
     agent_id: str,
 ) -> AswathDamodaranSignal:
@@ -370,28 +408,30 @@ def generate_damodaran_output(
       • Emphasize risk, growth, and cash-flow assumptions
       • Cite cost of capital, implied MOS, and valuation cross-checks
     """
-    template = ChatPromptTemplate.from_messages(
+    template: ChatPromptTemplate = ChatPromptTemplate.from_messages(
         [
             (
                 "system",
-                """You are Aswath Damodaran, Professor of Finance at NYU Stern.
-                Use your valuation framework to issue trading signals on US equities.
+                """Jste Aswath Damodaran, profesor financí na NYU Stern.
+                Použijte svůj oceňovací rámec k vydávání obchodních signálů pro americké akcie.
 
-                Speak with your usual clear, data-driven tone:
-                  ◦ Start with the company "story" (qualitatively)
-                  ◦ Connect that story to key numerical drivers: revenue growth, margins, reinvestment, risk
-                  ◦ Conclude with value: your FCFF DCF estimate, margin of safety, and relative valuation sanity checks
-                  ◦ Highlight major uncertainties and how they affect value
-                Return ONLY the JSON specified below.""",
+                Mluvte svým obvyklým jasným, na datech založeným tónem:
+                  ◦ Začněte s "příběhem" společnosti (kvalitativně)
+                  ◦ Propojte tento příběh s klíčovými číselními faktory: 
+                    růst tržeb, marže, reinvestice, riziko
+                  ◦ Zakončete hodnotou: váš FCFF DCF odhad, 
+                    bezpečnostní rezerva a kontroly relativního ocenění
+                  ◦ Zdůrazněte hlavní nejistoty a jak ovlivňují hodnotu
+                Vraťte POUZE JSON specifikovaný níže.""",
             ),
             (
                 "human",
                 """Ticker: {ticker}
 
-                Analysis data:
+                Data analýzy:
                 {analysis_data}
 
-                Respond EXACTLY in this JSON schema:
+                Odpovězte PŘESNĚ v tomto JSON schématu:
                 {{
                   "signal": "bullish" | "bearish" | "neutral",
                   "confidence": float (0-100),
@@ -401,7 +441,7 @@ def generate_damodaran_output(
         ]
     )
 
-    prompt = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
+    prompt: Any = template.invoke({"analysis_data": json.dumps(analysis_data, indent=2), "ticker": ticker})
 
     def default_signal():
         return AswathDamodaranSignal(
@@ -410,10 +450,11 @@ def generate_damodaran_output(
             reasoning="Parsing error; defaulting to neutral",
         )
 
-    return call_llm(
+    result = call_llm(
         prompt=prompt,
         pydantic_model=AswathDamodaranSignal,
         agent_name=agent_id,
         state=state,
         default_factory=default_signal,
     )
+    return result  # type: ignore

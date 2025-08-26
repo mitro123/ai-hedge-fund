@@ -19,10 +19,10 @@ export function OutputNodeStatus({
   isOutputAvailable,
   isConnected,
   onViewOutput,
-  processingText = "In Progress",
-  completingText = "Completing",
-  availableText = "View Output",
-  idleText = "Idle"
+  processingText = "Probíhá",
+  completingText = "Dokončuje se",
+  availableText = "Zobrazit výstup",
+  idleText = "Nečinný"
 }: OutputNodeStatusProps) {
   // Determine the current state and appropriate styling
   const isLocallyProcessing = isProcessing; // Connected agents are running
@@ -63,4 +63,4 @@ export function OutputNodeStatus({
       )}
     </div>
   );
-} 
+}

@@ -1,17 +1,17 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Hlášení chyby
+about: Vytvořte hlášení, které nám pomůže zlepšit projekt
 title: ''
 labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Popište chybu**
+Jasný a stručný popis toho, co je chyba.
 
-**Screenshot**
-Add a screenshot of the bug to help explain your problem.
+**Snímek obrazovky**
+Přidejte snímek obrazovky chyby, který pomůže vysvětlit váš problém.
 
-**Additional context**
-Add any other context about the problem here.
+**Další kontext**
+Přidejte jakýkoli další kontext o problému zde.

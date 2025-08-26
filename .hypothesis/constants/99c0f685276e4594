@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/models/events.py
+# hypothesis_version: 6.138.0
+
+['complete', 'error', 'progress', 'start']

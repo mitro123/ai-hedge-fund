@@ -73,7 +73,7 @@ export function JsonOutputNode({
         selected={selected}
         isConnectable={isConnectable}
         icon={<FileJson className="h-5 w-5" />}
-        name={data.name || "JSON Output"}
+        name={data.name || "JSON výstup"}
         description={data.description}
         hasRightHandle={false}
         status={status}
@@ -82,7 +82,7 @@ export function JsonOutputNode({
           <div className="border-t border-border p-3">
             <div className="flex flex-col gap-2">
               <div className="text-subtitle text-muted-foreground flex items-center gap-1">
-                Results
+                Výsledky
               </div>
               
               <OutputNodeStatus
@@ -103,7 +103,7 @@ export function JsonOutputNode({
                   htmlFor="save-to-file"
                   className="text-subtitle text-muted-foreground cursor-pointer"
                 >
-                  Save to File
+                  Uložit do souboru
                 </label>
               </div>
             </div>
@@ -119,4 +119,4 @@ export function JsonOutputNode({
       />
     </>
   );
-} 
+}

@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/cathie_wood.py
+# hypothesis_version: 6.138.0
+
+[0.0, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.7, 0.75, 1.0, '; ', 'Done', 'Getting market cap', 'Market cap not found', 'analysis_data', 'analyst_signals', 'annual', 'bearish', 'bullish', 'capital_expenditure', 'cathie_wood_agent', 'confidence', 'data', 'debt_to_equity', 'details', 'disruptive_analysis', 'end_date', 'free_cash_flow', 'gross_margin', 'human', 'innovation_analysis', 'intrinsic_value', 'margin_of_safety', 'market_cap', 'max_score', 'messages', 'metadata', 'neutral', 'operating_expense', 'operating_margin', 'outstanding_shares', 'raw_score', 'reasoning', 'revenue', 'score', 'show_reasoning', 'signal', 'system', 'ticker', 'tickers', 'total_assets', 'total_liabilities', 'valuation_analysis']

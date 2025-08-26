@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useTabsContext } from '@/contexts/tabs-context';
 import { cn } from '@/lib/utils';
-import { FileText, Layout, Settings, X } from 'lucide-react';
+import { FileText, Layout, Settings, BarChart3, X } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 
 interface TabBarProps {
@@ -15,6 +15,8 @@ const getTabIcon = (type: string): ReactNode => {
       return <FileText size={13} />;
     case 'settings':
       return <Settings size={13} />;
+    case 'openbb':
+      return <BarChart3 size={13} />;
     default:
       return <Layout size={13} />;
   }
@@ -155,7 +157,7 @@ export function TabBar({ className }: TabBarProps) {
                 closeTab(tab.id);
               }}
               onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking close button
-              title="Close tab"
+              title="Zavřít záložku"
             >
               <X size={11} className="transition-transform duration-150 hover:scale-110" />
             </Button>
@@ -168,4 +170,4 @@ export function TabBar({ className }: TabBarProps) {
       </div>
     </div>
   );
-} 
+}

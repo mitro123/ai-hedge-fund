@@ -1,0 +1,1 @@
+**KRITICKY DŮLEŽITÉ**: Vždy při blížícím se limitu kontextu (>70%) vytvořit nový task pro zachování kontinuity práce

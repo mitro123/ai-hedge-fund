@@ -1,7 +1,8 @@
-from fastapi import APIRouter
-from fastapi.responses import StreamingResponse
 import asyncio
 import json
+
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
@@ -9,6 +10,12 @@ router = APIRouter()
 @router.get("/")
 async def root():
     return {"message": "Welcome to AI Hedge Fund API"}
+
+
+@router.get("/health")
+async def health():
+    """Health check endpoint pro launcher."""
+    return {"status": "healthy", "message": "AI Hedge Fund API is running"}
 
 
 @router.get("/ping")

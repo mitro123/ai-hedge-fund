@@ -35,7 +35,7 @@ interface PortfolioPosition {
 }
 
 const runModes = [
-  { value: 'single', label: 'Single Run' },
+  { value: 'single', label: 'Jednorázová analýza' },
   { value: 'backtest', label: 'Backtest' },
 ];
 
@@ -265,7 +265,7 @@ export function PortfolioStartNode({
         selected={selected}
         isConnectable={isConnectable}
         icon={<PieChart className="h-5 w-5" />}
-        name={data.name || "Portfolio Analyzer"}
+        name={data.name || "Analyzátor portfolia"}
         description={data.description}
         hasLeftHandle={false}
         width="w-80"
@@ -275,7 +275,7 @@ export function PortfolioStartNode({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <div className="text-subtitle text-primary flex items-center gap-1">
-                  Available Cash
+                  Dostupná hotovost
                 </div>
                 <div className="relative flex-1">
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
@@ -296,10 +296,10 @@ export function PortfolioStartNode({
                 <div className="text-subtitle text-primary flex items-center gap-1">
                   <Tooltip delayDuration={200}>
                     <TooltipTrigger asChild>
-                      <span>Positions</span>
+                      <span>Pozice</span>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      Add your portfolio positions with ticker, quantity, and trade price
+                      Přidejte pozice vašeho portfolia s tickerem, množstvím a obchodní cenou
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -315,7 +315,7 @@ export function PortfolioStartNode({
                       />
                       <Input
                         type="number"
-                        placeholder="Quantity"
+                        placeholder="Množství"
                         value={position.quantity}
                         onChange={(e) => handlePositionChange(index, 'quantity', e.target.value)}
                         className="w-20"
@@ -327,7 +327,7 @@ export function PortfolioStartNode({
                         </div>
                         <Input
                           type="number"
-                          placeholder="Price"
+                          placeholder="Cena"
                           value={position.tradePrice}
                           onChange={(e) => handlePositionChange(index, 'tradePrice', e.target.value)}
                           className="pl-8"
@@ -355,13 +355,13 @@ export function PortfolioStartNode({
                     variant="secondary"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Position
+                    Přidat pozici
                   </Button>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <div className="text-subtitle text-primary flex items-center gap-1">
-                  Run
+                  Spuštění
                 </div>
                 <div className="flex gap-2">
                   <Popover open={open} onOpenChange={setOpen}>
@@ -373,7 +373,7 @@ export function PortfolioStartNode({
                         className="flex-1 justify-between h-10 px-3 py-2 bg-node border border-border hover:bg-accent"
                       >
                         <span className="text-subtitle">
-                          {runModes.find((mode) => mode.value === runMode)?.label || 'Single Analysis'}
+                          {runModes.find((mode) => mode.value === runMode)?.label || 'Jednorázová analýza'}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -381,7 +381,7 @@ export function PortfolioStartNode({
                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-node border border-border shadow-lg">
                       <Command className="bg-node">
                         <CommandList className="bg-node">
-                          <CommandEmpty>No run mode found.</CommandEmpty>
+                          <CommandEmpty>Žádný režim spuštění nenalezen.</CommandEmpty>
                           <CommandGroup>
                             {runModes.map((mode) => (
                               <CommandItem
@@ -408,7 +408,7 @@ export function PortfolioStartNode({
                     size="icon" 
                     variant="secondary"
                     className="flex-shrink-0 transition-all duration-200 hover:bg-primary hover:text-primary-foreground active:scale-95"
-                    title={showAsProcessing ? "Stop" : `Run (${formatKeyboardShortcut('↵')})`}
+                    title={showAsProcessing ? "Zastavit" : `Spustit (${formatKeyboardShortcut('↵')})`}
                     onClick={showAsProcessing ? handleStop : handlePlay}
                     disabled={!canRunPortfolioAnalyzer && !showAsProcessing}
                   >
@@ -424,7 +424,7 @@ export function PortfolioStartNode({
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2">
                     <div className="text-subtitle text-primary flex items-center gap-1">
-                      Start Date
+                      Počáteční datum
                     </div>
                     <Input
                       type="date"
@@ -434,7 +434,7 @@ export function PortfolioStartNode({
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="text-subtitle text-primary flex items-center gap-1">
-                      End Date
+                      Koncové datum
                     </div>
                     <Input
                       type="date"

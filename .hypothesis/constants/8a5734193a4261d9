@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/fundamentals.py
+# hypothesis_version: 6.138.0
+
+[-0.1, -0.05, -0.02, 0.0, 0.02, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5, 0.8, 1.5, 100, 252, ', ', '2023-01-01', 'Analýza růstu', 'Analýza ziskovosti', 'Current Ratio: N/A', 'D/E: N/A', 'Done', 'Earnings Growth: N/A', 'Hotovo - komodita', 'Net Margin: N/A', 'Op Margin: N/A', 'P/B: N/A', 'P/E: N/A', 'P/S: N/A', 'ROE: N/A', 'Revenue Growth: N/A', 'Silný sestupný trend', 'Smíšené momentum', 'analyst_signals', 'bearish', 'bullish', 'close', 'confidence', 'data', 'details', 'end_date', 'growth_signal', 'index', 'interpretation', 'message', 'messages', 'metadata', 'momentum_analysis', 'month', 'neutral', 'price_ratios_signal', 'profitability_signal', 'reasoning', 'seasonal_analysis', 'show_reasoning', 'signal', 'tickers', 'trend_analysis', 'ttm', 'volatility_analysis']

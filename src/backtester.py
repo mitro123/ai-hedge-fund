@@ -1,27 +1,25 @@
+import itertools
 import sys
-
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
-import questionary
 
 import matplotlib.pyplot as plt
-import pandas as pd
-from colorama import Fore, Style, init
+import matplotlib.dates as mdates
 import numpy as np
-import itertools
-
-from src.llm.models import LLM_ORDER, OLLAMA_LLM_ORDER, get_model_info, ModelProvider
-from src.utils.analysts import ANALYST_ORDER
-from src.main import run_hedge_fund
-from src.tools.api import (
-    get_company_news,
-    get_price_data,
-    get_prices,
-    get_financial_metrics,
-    get_insider_trades,
-)
-from src.utils.display import print_backtest_results, format_backtest_row
+import pandas as pd
+import questionary
+import seaborn as sns
+from colorama import Fore, init, Style
+from dateutil.relativedelta import relativedelta
 from typing_extensions import Callable
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
+
+from src.llm.models import get_model_info, LLM_ORDER, ModelProvider, OLLAMA_LLM_ORDER
+from src.main import run_hedge_fund
+from src.tools.api import get_company_news, get_financial_metrics, get_insider_trades, get_price_data, get_prices
+from src.utils.analysts import ANALYST_ORDER
+from src.utils.display import format_backtest_row, print_backtest_results
 from src.utils.ollama import ensure_ollama_and_model
 
 init(autoreset=True)
@@ -62,11 +60,22 @@ class Backtester:
 
         # Initialize portfolio with support for long/short positions
         self.portfolio_values = []
+        self.trades_history = []  # Track all trades for visualization
+        self.price_history = {}  # Track price history for each ticker
         self.portfolio = {
             "cash": initial_capital,
             "margin_used": 0.0,  # total margin usage across all short positions
             "margin_requirement": initial_margin_requirement,  # The margin ratio required for shorts
-            "positions": {ticker: {"long": 0, "short": 0, "long_cost_basis": 0.0, "short_cost_basis": 0.0, "short_margin_used": 0.0} for ticker in tickers},  # Number of shares held long  # Number of shares held short  # Average cost basis per share (long)  # Average cost basis per share (short)  # Dollars of margin used for this ticker's short
+            "positions": {
+                ticker: {
+                    "long": 0,
+                    "short": 0,
+                    "long_cost_basis": 0.0,
+                    "short_cost_basis": 0.0,
+                    "short_margin_used": 0.0,
+                }
+                for ticker in tickers
+            },  # Number of shares held long  # Number of shares held short  # Average cost basis per share (long)  # Average cost basis per share (short)  # Dollars of margin used for this ticker's short
             "realized_gains": {
                 ticker: {
                     "long": 0.0,  # Realized gains from long positions
@@ -263,6 +272,102 @@ class Backtester:
 
         return total_value
 
+    def _debug_agent_output(self, output, current_date):
+        """Debug helper to print agent output."""
+        print(f"\n=== DEBUG {current_date} ===")
+        print(f"Raw output type: {type(output)}")
+        print(f"Raw output keys: {output.keys() if isinstance(output, dict) else 'Not a dict'}")
+        if isinstance(output, dict):
+            decisions = output.get("decisions")
+            print(f"Decisions type: {type(decisions)}")
+            print(f"Decisions: {decisions}")
+            print(f"Analyst signals: {output.get('analyst_signals', {})}")
+        print("========================\n")
+
+    def _safe_parse_decisions(self, output):
+        """Safely parse decisions from agent output."""
+        if not isinstance(output, dict):
+            print(f"Warning: Agent output is not a dict: {type(output)}")
+            return {ticker: {"action": "hold", "quantity": 0} for ticker in self.tickers}
+        
+        decisions = output.get("decisions")
+        if decisions is None:
+            print("Warning: No decisions found in agent output")
+            return {ticker: {"action": "hold", "quantity": 0} for ticker in self.tickers}
+        
+        if not isinstance(decisions, dict):
+            print(f"Warning: Decisions is not a dict: {type(decisions)}")
+            return {ticker: {"action": "hold", "quantity": 0} for ticker in self.tickers}
+        
+        # Validate each decision
+        validated_decisions = {}
+        for ticker in self.tickers:
+            decision = decisions.get(ticker, {"action": "hold", "quantity": 0})
+            validated_decisions[ticker] = self._validate_decision(decision)
+        
+        return validated_decisions
+
+    def _validate_decision(self, decision):
+        """Validate a single trading decision."""
+        if not isinstance(decision, dict):
+            return {"action": "hold", "quantity": 0}
+        
+        action = decision.get("action", "hold")
+        if isinstance(action, str):
+            action = action.lower()
+        else:
+            action = "hold"
+        
+        if action not in ["buy", "sell", "hold", "short", "cover"]:
+            action = "hold"
+        
+        quantity = decision.get("quantity", 0)
+        if not isinstance(quantity, (int, float)) or quantity < 0:
+            quantity = 0
+        
+        return {"action": action, "quantity": quantity}
+
+    def _fallback_strategy(self, current_prices):
+        """Simple fallback strategy when agent fails."""
+        print("Using fallback strategy (simple moving average)")
+        decisions = {}
+        
+        for ticker in self.tickers:
+            try:
+                # Get recent price data for simple moving average
+                end_date = datetime.now().strftime("%Y-%m-%d")
+                start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+                
+                price_data = get_price_data(ticker, start_date, end_date)
+                if price_data.empty or len(price_data) < 5:
+                    decisions[ticker] = {"action": "hold", "quantity": 0}
+                    continue
+                
+                # Simple moving average strategy
+                sma_short = price_data['close'].rolling(5).mean().iloc[-1]
+                sma_long = price_data['close'].rolling(20).mean().iloc[-1] if len(price_data) >= 20 else sma_short
+                current_price = current_prices[ticker]
+                
+                if sma_short > sma_long and current_price > sma_short:
+                    # Buy signal
+                    quantity = max(1, int(1000 / current_price))  # $1000 worth, minimum 1 share
+                    decisions[ticker] = {"action": "buy", "quantity": quantity}
+                elif sma_short < sma_long and current_price < sma_short:
+                    # Sell signal (if we have positions)
+                    position = self.portfolio["positions"][ticker]
+                    if position["long"] > 0:
+                        decisions[ticker] = {"action": "sell", "quantity": min(100, position["long"])}
+                    else:
+                        decisions[ticker] = {"action": "hold", "quantity": 0}
+                else:
+                    decisions[ticker] = {"action": "hold", "quantity": 0}
+                    
+            except Exception as e:
+                print(f"Error in fallback strategy for {ticker}: {e}")
+                decisions[ticker] = {"action": "hold", "quantity": 0}
+        
+        return decisions
+
     def prefetch_data(self):
         """Pre-fetch all data needed for the backtest period."""
         print("\nPre-fetching data for the entire backtest period...")
@@ -293,7 +398,14 @@ class Backtester:
 
         dates = pd.date_range(self.start_date, self.end_date, freq="B")
         table_rows = []
-        performance_metrics = {"sharpe_ratio": None, "sortino_ratio": None, "max_drawdown": None, "long_short_ratio": None, "gross_exposure": None, "net_exposure": None}
+        performance_metrics = {
+            "sharpe_ratio": None,
+            "sortino_ratio": None,
+            "max_drawdown": None,
+            "long_short_ratio": None,
+            "gross_exposure": None,
+            "net_exposure": None,
+        }
 
         print("\nStarting backtest...")
 
@@ -326,7 +438,9 @@ class Backtester:
                             break
                         current_prices[ticker] = price_data.iloc[-1]["close"]
                     except Exception as e:
-                        print(f"Error fetching price for {ticker} between {previous_date_str} and {current_date_str}: {e}")
+                        print(
+                            f"Error fetching price for {ticker} between {previous_date_str} and {current_date_str}: {e}"
+                        )
                         missing_data = True
                         break
 
@@ -342,17 +456,29 @@ class Backtester:
             # ---------------------------------------------------------------
             # 1) Execute the agent's trades
             # ---------------------------------------------------------------
-            output = self.agent(
-                tickers=self.tickers,
-                start_date=lookback_start,
-                end_date=current_date_str,
-                portfolio=self.portfolio,
-                model_name=self.model_name,
-                model_provider=self.model_provider,
-                selected_analysts=self.selected_analysts,
-            )
-            decisions = output["decisions"]
-            analyst_signals = output["analyst_signals"]
+            try:
+                output = self.agent(
+                    tickers=self.tickers,
+                    start_date=lookback_start,
+                    end_date=current_date_str,
+                    portfolio=self.portfolio,
+                    model_name=self.model_name,
+                    model_provider=self.model_provider,
+                    selected_analysts=self.selected_analysts,
+                )
+                
+                # Debug output
+                self._debug_agent_output(output, current_date_str)
+                
+                # Safe parsing of decisions
+                decisions = self._safe_parse_decisions(output)
+                analyst_signals = output.get("analyst_signals", {})
+                
+            except Exception as e:
+                print(f"Error running agent for {current_date_str}: {e}")
+                # Use fallback strategy
+                decisions = self._fallback_strategy(current_prices)
+                analyst_signals = {}
 
             # Execute trades for each ticker
             executed_trades = {}
@@ -362,6 +488,12 @@ class Backtester:
 
                 executed_quantity = self.execute_trade(ticker, action, quantity, current_prices[ticker])
                 executed_trades[ticker] = executed_quantity
+                
+                # Track trades and prices for visualization
+                if executed_quantity > 0:
+                    self.track_trade(current_date_str, ticker, action, executed_quantity, current_prices[ticker])
+                
+                self.track_price(current_date_str, ticker, current_prices[ticker])
 
             # ---------------------------------------------------------------
             # 2) Now that trades have executed trades, recalculate the final
@@ -379,7 +511,17 @@ class Backtester:
             long_short_ratio = long_exposure / short_exposure if short_exposure > 1e-9 else float("inf")
 
             # Track each day's portfolio value in self.portfolio_values
-            self.portfolio_values.append({"Date": current_date, "Portfolio Value": total_value, "Long Exposure": long_exposure, "Short Exposure": short_exposure, "Gross Exposure": gross_exposure, "Net Exposure": net_exposure, "Long/Short Ratio": long_short_ratio})
+            self.portfolio_values.append(
+                {
+                    "Date": current_date,
+                    "Portfolio Value": total_value,
+                    "Long Exposure": long_exposure,
+                    "Short Exposure": short_exposure,
+                    "Gross Exposure": gross_exposure,
+                    "Net Exposure": net_exposure,
+                    "Long/Short Ratio": long_short_ratio,
+                }
+            )
 
             # ---------------------------------------------------------------
             # 3) Build the table rows to display
@@ -507,7 +649,11 @@ class Backtester:
 
             # Store the date of max drawdown for reference
             if min_drawdown < 0:
-                performance_metrics["max_drawdown_date"] = drawdown.idxmin().strftime("%Y-%m-%d")
+                min_date = drawdown.idxmin()
+                if hasattr(min_date, 'strftime'):
+                    performance_metrics["max_drawdown_date"] = min_date.strftime("%Y-%m-%d")
+                else:
+                    performance_metrics["max_drawdown_date"] = str(min_date)
             else:
                 performance_metrics["max_drawdown_date"] = None
         else:
@@ -532,8 +678,13 @@ class Backtester:
         print(f"Total Return: {Fore.GREEN if total_return >= 0 else Fore.RED}{total_return:.2f}%{Style.RESET_ALL}")
 
         # Print realized P&L for informational purposes only
-        total_realized_gains = sum(self.portfolio["realized_gains"][ticker]["long"] + self.portfolio["realized_gains"][ticker]["short"] for ticker in self.tickers)
-        print(f"Total Realized Gains/Losses: {Fore.GREEN if total_realized_gains >= 0 else Fore.RED}${total_realized_gains:,.2f}{Style.RESET_ALL}")
+        total_realized_gains = sum(
+            self.portfolio["realized_gains"][ticker]["long"] + self.portfolio["realized_gains"][ticker]["short"]
+            for ticker in self.tickers
+        )
+        print(
+            f"Total Realized Gains/Losses: {Fore.GREEN if total_realized_gains >= 0 else Fore.RED}${total_realized_gains:,.2f}{Style.RESET_ALL}"
+        )
 
         # Plot the portfolio value over time
         plt.figure(figsize=(12, 6))
@@ -566,7 +717,11 @@ class Backtester:
             rolling_max = performance_df["Portfolio Value"].cummax()
             drawdown = (performance_df["Portfolio Value"] - rolling_max) / rolling_max
             max_drawdown = drawdown.min() * 100
-            max_drawdown_date = drawdown.idxmin().strftime("%Y-%m-%d") if pd.notnull(drawdown.idxmin()) else None
+            min_date = drawdown.idxmin()
+            if pd.notnull(min_date) and hasattr(min_date, 'strftime'):
+                max_drawdown_date = min_date.strftime("%Y-%m-%d")
+            else:
+                max_drawdown_date = str(min_date) if pd.notnull(min_date) else None
 
         if max_drawdown_date:
             print(f"Maximum Drawdown: {Fore.RED}{abs(max_drawdown):.2f}%{Style.RESET_ALL} (on {max_drawdown_date})")
@@ -593,8 +748,12 @@ class Backtester:
         # Maximum Consecutive Wins / Losses
         returns_binary = (performance_df["Daily Return"] > 0).astype(int)
         if len(returns_binary) > 0:
-            max_consecutive_wins = max((len(list(g)) for k, g in itertools.groupby(returns_binary) if k == 1), default=0)
-            max_consecutive_losses = max((len(list(g)) for k, g in itertools.groupby(returns_binary) if k == 0), default=0)
+            max_consecutive_wins = max(
+                (len(list(g)) for k, g in itertools.groupby(returns_binary) if k == 1), default=0
+            )
+            max_consecutive_losses = max(
+                (len(list(g)) for k, g in itertools.groupby(returns_binary) if k == 0), default=0
+            )
         else:
             max_consecutive_wins = 0
             max_consecutive_losses = 0
@@ -603,6 +762,457 @@ class Backtester:
         print(f"Max Consecutive Losses: {Fore.RED}{max_consecutive_losses}{Style.RESET_ALL}")
 
         return performance_df
+
+    def create_interactive_charts(self):
+        """Create interactive charts showing trades, price movements, and performance."""
+        if not self.portfolio_values or not self.trades_history:
+            print("No data available for visualization. Run backtest first.")
+            return
+
+        # Create subplots
+        fig = make_subplots(
+            rows=4, cols=1,
+            subplot_titles=('Price Chart with Trades', 'Portfolio Value', 'Daily Returns', 'Drawdown'),
+            vertical_spacing=0.08,
+            specs=[[{"secondary_y": True}],
+                   [{"secondary_y": False}],
+                   [{"secondary_y": False}],
+                   [{"secondary_y": False}]]
+        )
+
+        # Color scheme
+        colors = px.colors.qualitative.Set1
+
+        # 1. Price chart with trade markers
+        for i, ticker in enumerate(self.tickers):
+            if ticker in self.price_history:
+                price_data = pd.DataFrame(self.price_history[ticker])
+                
+                # Add price line
+                fig.add_trace(
+                    go.Scatter(
+                        x=price_data['date'],
+                        y=price_data['price'],
+                        mode='lines',
+                        name=f'{ticker} Price',
+                        line=dict(color=colors[i % len(colors)]),
+                        yaxis='y'
+                    ),
+                    row=1, col=1
+                )
+
+                # Add buy/sell markers
+                buy_trades = [t for t in self.trades_history if t['ticker'] == ticker and t['action'] == 'buy']
+                sell_trades = [t for t in self.trades_history if t['ticker'] == ticker and t['action'] == 'sell']
+                
+                if buy_trades:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[t['date'] for t in buy_trades],
+                            y=[t['price'] for t in buy_trades],
+                            mode='markers',
+                            name=f'{ticker} BUY',
+                            marker=dict(
+                                symbol='triangle-up',
+                                size=12,
+                                color='green',
+                                line=dict(width=2, color='darkgreen')
+                            ),
+                            text=[f"BUY {t['quantity']} @ ${t['price']:.2f}" for t in buy_trades],
+                            hovertemplate='<b>%{text}</b><br>Date: %{x}<extra></extra>',
+                            yaxis='y'
+                        ),
+                        row=1, col=1
+                    )
+
+                if sell_trades:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[t['date'] for t in sell_trades],
+                            y=[t['price'] for t in sell_trades],
+                            mode='markers',
+                            name=f'{ticker} SELL',
+                            marker=dict(
+                                symbol='triangle-down',
+                                size=12,
+                                color='red',
+                                line=dict(width=2, color='darkred')
+                            ),
+                            text=[f"SELL {t['quantity']} @ ${t['price']:.2f}" for t in sell_trades],
+                            hovertemplate='<b>%{text}</b><br>Date: %{x}<extra></extra>',
+                            yaxis='y'
+                        ),
+                        row=1, col=1
+                    )
+
+        # 2. Portfolio value over time
+        portfolio_df = pd.DataFrame(self.portfolio_values)
+        fig.add_trace(
+            go.Scatter(
+                x=portfolio_df['Date'],
+                y=portfolio_df['Portfolio Value'],
+                mode='lines',
+                name='Portfolio Value',
+                line=dict(color='blue', width=3),
+                fill='tonexty'
+            ),
+            row=2, col=1
+        )
+
+        # Add benchmark line (initial capital)
+        fig.add_hline(
+            y=self.initial_capital,
+            line_dash="dash",
+            line_color="gray",
+            annotation_text="Initial Capital",
+            row=2, col=1
+        )
+
+        # 3. Daily returns
+        portfolio_df['Daily Return'] = portfolio_df['Portfolio Value'].pct_change() * 100
+        fig.add_trace(
+            go.Scatter(
+                x=portfolio_df['Date'],
+                y=portfolio_df['Daily Return'],
+                mode='lines',
+                name='Daily Returns (%)',
+                line=dict(color='orange')
+            ),
+            row=3, col=1
+        )
+
+        # Add zero line for returns
+        fig.add_hline(y=0, line_dash="dash", line_color="gray", row=3, col=1)
+
+        # 4. Drawdown
+        rolling_max = portfolio_df['Portfolio Value'].cummax()
+        drawdown = (portfolio_df['Portfolio Value'] - rolling_max) / rolling_max * 100
+        
+        fig.add_trace(
+            go.Scatter(
+                x=portfolio_df['Date'],
+                y=drawdown,
+                mode='lines',
+                name='Drawdown (%)',
+                line=dict(color='red'),
+                fill='tonexty'
+            ),
+            row=4, col=1
+        )
+
+        # Update layout
+        fig.update_layout(
+            title='Backtest Analysis Dashboard',
+            height=1200,
+            showlegend=True,
+            hovermode='x unified'
+        )
+
+        # Update y-axes labels
+        fig.update_yaxes(title_text="Price ($)", row=1, col=1)
+        fig.update_yaxes(title_text="Portfolio Value ($)", row=2, col=1)
+        fig.update_yaxes(title_text="Daily Return (%)", row=3, col=1)
+        fig.update_yaxes(title_text="Drawdown (%)", row=4, col=1)
+
+        # Update x-axes labels
+        fig.update_xaxes(title_text="Date", row=4, col=1)
+
+        # Show the plot
+        fig.show()
+
+    def create_performance_metrics_dashboard(self):
+        """Create a comprehensive performance metrics dashboard."""
+        if not self.portfolio_values:
+            print("No portfolio data available. Run backtest first.")
+            return
+
+        portfolio_df = pd.DataFrame(self.portfolio_values)
+        portfolio_df['Daily Return'] = portfolio_df['Portfolio Value'].pct_change()
+
+        # Calculate comprehensive metrics
+        metrics = self._calculate_comprehensive_metrics(portfolio_df)
+
+        # Create metrics visualization
+        fig = make_subplots(
+            rows=2, cols=3,
+            subplot_titles=(
+                'Return Distribution', 'Rolling Sharpe Ratio', 'Monthly Returns Heatmap',
+                'Risk-Return Scatter', 'Underwater Plot', 'Trade Analysis'
+            ),
+            specs=[[{"type": "histogram"}, {"type": "scatter"}, {"type": "heatmap"}],
+                   [{"type": "scatter"}, {"type": "scatter"}, {"type": "bar"}]]
+        )
+
+        # 1. Return Distribution
+        returns = portfolio_df['Daily Return'].dropna() * 100
+        fig.add_trace(
+            go.Histogram(
+                x=returns,
+                nbinsx=50,
+                name='Daily Returns',
+                marker_color='lightblue',
+                opacity=0.7
+            ),
+            row=1, col=1
+        )
+
+        # 2. Rolling Sharpe Ratio (30-day window)
+        rolling_sharpe = self._calculate_rolling_sharpe(portfolio_df, window=30)
+        fig.add_trace(
+            go.Scatter(
+                x=portfolio_df['Date'][30:],
+                y=rolling_sharpe,
+                mode='lines',
+                name='30-Day Rolling Sharpe',
+                line=dict(color='green')
+            ),
+            row=1, col=2
+        )
+
+        # 3. Monthly Returns Heatmap
+        monthly_returns = self._calculate_monthly_returns(portfolio_df)
+        if not monthly_returns.empty:
+            fig.add_trace(
+                go.Heatmap(
+                    z=monthly_returns.values,
+                    x=monthly_returns.columns,
+                    y=monthly_returns.index,
+                    colorscale='RdYlGn',
+                    name='Monthly Returns'
+                ),
+                row=1, col=3
+            )
+
+        # 4. Risk-Return Scatter (if multiple periods)
+        if len(portfolio_df) > 252:  # More than a year of data
+            periods = self._get_period_risk_return(portfolio_df)
+            fig.add_trace(
+                go.Scatter(
+                    x=periods['Risk'],
+                    y=periods['Return'],
+                    mode='markers',
+                    name='Risk-Return',
+                    marker=dict(size=10, color='blue')
+                ),
+                row=2, col=1
+            )
+
+        # 5. Underwater Plot (Drawdown)
+        rolling_max = portfolio_df['Portfolio Value'].cummax()
+        drawdown = (portfolio_df['Portfolio Value'] - rolling_max) / rolling_max * 100
+        
+        fig.add_trace(
+            go.Scatter(
+                x=portfolio_df['Date'],
+                y=drawdown,
+                mode='lines',
+                name='Drawdown',
+                line=dict(color='red'),
+                fill='tonexty'
+            ),
+            row=2, col=2
+        )
+
+        # 6. Trade Analysis
+        if self.trades_history:
+            trade_analysis = self._analyze_trades()
+            fig.add_trace(
+                go.Bar(
+                    x=list(trade_analysis.keys()),
+                    y=list(trade_analysis.values()),
+                    name='Trade Stats',
+                    marker_color='lightgreen'
+                ),
+                row=2, col=3
+            )
+
+        # Update layout
+        fig.update_layout(
+            title='Performance Metrics Dashboard',
+            height=800,
+            showlegend=False
+        )
+
+        fig.show()
+
+        # Print comprehensive metrics
+        self._print_comprehensive_metrics(metrics)
+
+    def _calculate_comprehensive_metrics(self, portfolio_df):
+        """Calculate comprehensive performance metrics."""
+        returns = portfolio_df['Daily Return'].dropna()
+        
+        metrics = {}
+        
+        # Basic metrics
+        total_return = (portfolio_df['Portfolio Value'].iloc[-1] / self.initial_capital - 1) * 100
+        metrics['Total Return (%)'] = total_return
+        
+        # Risk metrics
+        volatility = returns.std() * np.sqrt(252) * 100
+        metrics['Annualized Volatility (%)'] = volatility
+        
+        # Sharpe ratio
+        risk_free_rate = 0.0434  # 4.34% annual
+        excess_returns = returns - risk_free_rate/252
+        sharpe = np.sqrt(252) * excess_returns.mean() / returns.std() if returns.std() > 0 else 0
+        metrics['Sharpe Ratio'] = sharpe
+        
+        # Sortino ratio
+        negative_returns = returns[returns < 0]
+        downside_std = negative_returns.std() if len(negative_returns) > 0 else 0
+        sortino = np.sqrt(252) * excess_returns.mean() / downside_std if downside_std > 0 else 0
+        metrics['Sortino Ratio'] = sortino
+        
+        # Maximum drawdown
+        rolling_max = portfolio_df['Portfolio Value'].cummax()
+        drawdown = (portfolio_df['Portfolio Value'] - rolling_max) / rolling_max
+        max_dd = drawdown.min() * 100
+        metrics['Maximum Drawdown (%)'] = max_dd
+        
+        # Calmar ratio
+        calmar = total_return / abs(max_dd) if max_dd != 0 else 0
+        metrics['Calmar Ratio'] = calmar
+        
+        # Win rate
+        winning_days = len(returns[returns > 0])
+        total_days = len(returns)
+        win_rate = (winning_days / total_days) * 100 if total_days > 0 else 0
+        metrics['Win Rate (%)'] = win_rate
+        
+        # Best/Worst day
+        metrics['Best Day (%)'] = returns.max() * 100
+        metrics['Worst Day (%)'] = returns.min() * 100
+        
+        # Value at Risk (95%)
+        var_95 = np.percentile(returns, 5) * 100
+        metrics['VaR 95% (%)'] = var_95
+        
+        # Expected Shortfall (95%)
+        es_95 = returns[returns <= np.percentile(returns, 5)].mean() * 100
+        metrics['Expected Shortfall 95% (%)'] = es_95
+        
+        return metrics
+
+    def _calculate_rolling_sharpe(self, portfolio_df, window=30):
+        """Calculate rolling Sharpe ratio."""
+        returns = portfolio_df['Portfolio Value'].pct_change().dropna()
+        risk_free_rate = 0.0434 / 252
+        
+        rolling_mean = returns.rolling(window).mean()
+        rolling_std = returns.rolling(window).std()
+        
+        rolling_sharpe = np.sqrt(252) * (rolling_mean - risk_free_rate) / rolling_std
+        return rolling_sharpe.dropna()
+
+    def _calculate_monthly_returns(self, portfolio_df):
+        """Calculate monthly returns for heatmap."""
+        portfolio_df = portfolio_df.copy()
+        portfolio_df['Date'] = pd.to_datetime(portfolio_df['Date'])
+        portfolio_df.set_index('Date', inplace=True)
+        
+        monthly_returns = portfolio_df['Portfolio Value'].resample('M').last().pct_change() * 100
+        monthly_returns.index = monthly_returns.index.strftime('%Y-%m')
+        
+        # Reshape for heatmap (years vs months)
+        monthly_df = monthly_returns.to_frame('Return')
+        monthly_df['Year'] = pd.to_datetime(monthly_returns.index).year
+        monthly_df['Month'] = pd.to_datetime(monthly_returns.index).month
+        
+        heatmap_data = monthly_df.pivot(index='Year', columns='Month', values='Return')
+        return heatmap_data.fillna(0)
+
+    def _get_period_risk_return(self, portfolio_df):
+        """Get risk-return data for different periods."""
+        # Split data into quarters
+        periods = []
+        quarter_size = len(portfolio_df) // 4
+        
+        for i in range(4):
+            start_idx = i * quarter_size
+            end_idx = (i + 1) * quarter_size if i < 3 else len(portfolio_df)
+            
+            period_data = portfolio_df.iloc[start_idx:end_idx]
+            returns = period_data['Portfolio Value'].pct_change().dropna()
+            
+            period_return = (period_data['Portfolio Value'].iloc[-1] / period_data['Portfolio Value'].iloc[0] - 1) * 100
+            period_risk = returns.std() * np.sqrt(252) * 100
+            
+            periods.append({'Return': period_return, 'Risk': period_risk})
+        
+        return pd.DataFrame(periods)
+
+    def _analyze_trades(self):
+        """Analyze trading patterns."""
+        if not self.trades_history:
+            return {}
+        
+        trades_df = pd.DataFrame(self.trades_history)
+        
+        analysis = {}
+        analysis['Total Trades'] = len(trades_df)
+        analysis['Buy Trades'] = len(trades_df[trades_df['action'] == 'buy'])
+        analysis['Sell Trades'] = len(trades_df[trades_df['action'] == 'sell'])
+        
+        # Average trade size
+        analysis['Avg Trade Size'] = trades_df['quantity'].mean()
+        
+        return analysis
+
+    def _print_comprehensive_metrics(self, metrics):
+        """Print comprehensive metrics in a formatted way."""
+        print(f"\n{Fore.WHITE}{Style.BRIGHT}COMPREHENSIVE PERFORMANCE METRICS:{Style.RESET_ALL}")
+        print("=" * 60)
+        
+        # Group metrics by category
+        return_metrics = ['Total Return (%)', 'Best Day (%)', 'Worst Day (%)']
+        risk_metrics = ['Annualized Volatility (%)', 'Maximum Drawdown (%)', 'VaR 95% (%)', 'Expected Shortfall 95% (%)']
+        ratio_metrics = ['Sharpe Ratio', 'Sortino Ratio', 'Calmar Ratio']
+        other_metrics = ['Win Rate (%)']
+        
+        categories = [
+            ("RETURN METRICS", return_metrics),
+            ("RISK METRICS", risk_metrics),
+            ("RISK-ADJUSTED RATIOS", ratio_metrics),
+            ("OTHER METRICS", other_metrics)
+        ]
+        
+        for category_name, metric_list in categories:
+            print(f"\n{Fore.CYAN}{category_name}:{Style.RESET_ALL}")
+            for metric in metric_list:
+                if metric in metrics:
+                    value = metrics[metric]
+                    if 'Return' in metric or 'Day' in metric:
+                        color = Fore.GREEN if value >= 0 else Fore.RED
+                    elif 'Drawdown' in metric or 'VaR' in metric or 'Shortfall' in metric:
+                        color = Fore.RED if value < 0 else Fore.GREEN
+                    elif 'Ratio' in metric:
+                        color = Fore.GREEN if value > 1 else Fore.YELLOW if value > 0 else Fore.RED
+                    else:
+                        color = Fore.WHITE
+                    
+                    print(f"  {metric}: {color}{value:.2f}{Style.RESET_ALL}")
+
+    def track_trade(self, date, ticker, action, quantity, price):
+        """Track individual trades for visualization."""
+        if quantity > 0:  # Only track actual trades
+            self.trades_history.append({
+                'date': date,
+                'ticker': ticker,
+                'action': action,
+                'quantity': quantity,
+                'price': price
+            })
+
+    def track_price(self, date, ticker, price):
+        """Track price history for visualization."""
+        if ticker not in self.price_history:
+            self.price_history[ticker] = []
+        
+        self.price_history[ticker].append({
+            'date': date,
+            'price': price
+        })
 
 
 ### 4. Run the Backtest #####
@@ -685,7 +1295,10 @@ if __name__ == "__main__":
             sys.exit(0)
         else:
             selected_analysts = choices
-            print(f"\nSelected analysts: " f"{', '.join(Fore.GREEN + choice.title().replace('_', ' ') + Style.RESET_ALL for choice in choices)}")
+            print(
+                f"\nSelected analysts: "
+                f"{', '.join(Fore.GREEN + choice.title().replace('_', ' ') + Style.RESET_ALL for choice in choices)}"
+            )
 
     # Select LLM model based on whether Ollama is being used
     model_name = ""
@@ -724,7 +1337,9 @@ if __name__ == "__main__":
             sys.exit(1)
 
         model_provider = ModelProvider.OLLAMA.value
-        print(f"\nSelected {Fore.CYAN}Ollama{Style.RESET_ALL} model: {Fore.GREEN + Style.BRIGHT}{model_name}{Style.RESET_ALL}\n")
+        print(
+            f"\nSelected {Fore.CYAN}Ollama{Style.RESET_ALL} model: {Fore.GREEN + Style.BRIGHT}{model_name}{Style.RESET_ALL}\n"
+        )
     else:
         # Use the standard cloud-based LLM selection
         model_choice = questionary.select(
@@ -743,7 +1358,7 @@ if __name__ == "__main__":
         if not model_choice:
             print("\n\nInterrupt received. Exiting...")
             sys.exit(0)
-        
+
         model_name, model_provider = model_choice
 
         model_info = get_model_info(model_name, model_provider)
@@ -754,7 +1369,9 @@ if __name__ == "__main__":
                     print("\n\nInterrupt received. Exiting...")
                     sys.exit(0)
 
-            print(f"\nSelected {Fore.CYAN}{model_provider}{Style.RESET_ALL} model: {Fore.GREEN + Style.BRIGHT}{model_name}{Style.RESET_ALL}\n")
+            print(
+                f"\nSelected {Fore.CYAN}{model_provider}{Style.RESET_ALL} model: {Fore.GREEN + Style.BRIGHT}{model_name}{Style.RESET_ALL}\n"
+            )
         else:
             model_provider = "Unknown"
             print(f"\nSelected model: {Fore.GREEN + Style.BRIGHT}{model_name}{Style.RESET_ALL}\n")
@@ -774,3 +1391,27 @@ if __name__ == "__main__":
 
     performance_metrics = backtester.run_backtest()
     performance_df = backtester.analyze_performance()
+    
+    # Ask user if they want to see interactive visualizations
+    try:
+        show_charts = questionary.confirm(
+            "Would you like to see interactive charts and advanced metrics?",
+            default=True
+        ).ask()
+        
+        if show_charts:
+            print("\nGenerating interactive charts...")
+            try:
+                backtester.create_interactive_charts()
+                backtester.create_performance_metrics_dashboard()
+            except ImportError as e:
+                print(f"{Fore.YELLOW}Warning: Interactive charts require additional packages.{Style.RESET_ALL}")
+                print(f"Error: {e}")
+                print(f"{Fore.CYAN}To install required packages, run:{Style.RESET_ALL}")
+                print("pip install plotly seaborn")
+                print("\nShowing basic performance analysis instead...")
+            except Exception as e:
+                print(f"{Fore.RED}Error creating interactive charts: {e}{Style.RESET_ALL}")
+                print("Showing basic performance analysis instead...")
+    except KeyboardInterrupt:
+        print("\nSkipping interactive charts...")

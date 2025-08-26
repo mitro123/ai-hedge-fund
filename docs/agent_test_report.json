@@ -1,0 +1,179 @@
+{
+  "timestamp": "2025-08-01T19:35:06.389713",
+  "total_agents": 17,
+  "successful_imports": 17,
+  "failed_imports": 0,
+  "fixed_agents": 0,
+  "agents": {
+    "aswath_damodaran": {
+      "file": "src/agents/aswath_damodaran.py",
+      "function_name": "aswath_damodaran_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "ben_graham": {
+      "file": "src/agents/ben_graham.py",
+      "function_name": "ben_graham_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "bill_ackman": {
+      "file": "src/agents/bill_ackman.py",
+      "function_name": "bill_ackman_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "cathie_wood": {
+      "file": "src/agents/cathie_wood.py",
+      "function_name": "cathie_wood_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "charlie_munger": {
+      "file": "src/agents/charlie_munger.py",
+      "function_name": "charlie_munger_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "fundamentals": {
+      "file": "src/agents/fundamentals.py",
+      "function_name": "fundamentals_analyst_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "michael_burry": {
+      "file": "src/agents/michael_burry.py",
+      "function_name": "michael_burry_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "peter_lynch": {
+      "file": "src/agents/peter_lynch.py",
+      "function_name": "peter_lynch_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "phil_fisher": {
+      "file": "src/agents/phil_fisher.py",
+      "function_name": "phil_fisher_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "portfolio_manager": {
+      "file": "src/agents/portfolio_manager.py",
+      "function_name": "portfolio_management_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "rakesh_jhunjhunwala": {
+      "file": "src/agents/rakesh_jhunjhunwala.py",
+      "function_name": "rakesh_jhunjhunwala_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "risk_manager": {
+      "file": "src/agents/risk_manager.py",
+      "function_name": "risk_management_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "sentiment": {
+      "file": "src/agents/sentiment.py",
+      "function_name": "sentiment_analyst_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "stanley_druckenmiller": {
+      "file": "src/agents/stanley_druckenmiller.py",
+      "function_name": "stanley_druckenmiller_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "technicals": {
+      "file": "src/agents/technicals.py",
+      "function_name": "technical_analyst_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "valuation": {
+      "file": "src/agents/valuation.py",
+      "function_name": "valuation_analyst_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    },
+    "warren_buffett": {
+      "file": "src/agents/warren_buffett.py",
+      "function_name": "warren_buffett_agent",
+      "initial_test": {
+        "success": true,
+        "error": null
+      },
+      "fixed": false,
+      "final_test": null
+    }
+  }
+}

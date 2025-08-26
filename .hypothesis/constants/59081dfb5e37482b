@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/michael_burry.py
+# hypothesis_version: 6.138.0
+
+[0.0, 0.08, 0.12, 0.15, 0.3, 0.5, 0.7, 250, 365, '; ', 'Analýza hodnoty', 'Analýza rozvahy', 'Done', 'FCF data unavailable', 'Komodita přeskočena', 'Michael Burry Agent', 'Načítání položek', 'Net cash position', 'Net debt position', 'Net insider selling', 'No recent news', 'Přeskakuji komoditu', 'analysis_data', 'analyst_signals', 'bearish', 'bullish', 'cash_and_equivalents', 'confidence', 'contrarian_analysis', 'data', 'debt_to_equity', 'details', 'end_date', 'ev_to_ebit', 'free_cash_flow', 'human', 'insider_analysis', 'market_cap', 'max_score', 'messages', 'metadata', 'michael_burry_agent', 'negative', 'net_income', 'neutral', 'outstanding_shares', 'reasoning', 'score', 'show_reasoning', 'signal', 'system', 'ticker', 'tickers', 'total_assets', 'total_debt', 'total_liabilities', 'ttm', 'value_analysis']

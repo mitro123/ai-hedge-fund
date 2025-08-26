@@ -24,14 +24,14 @@ export function Models({ className }: ModelsProps) {
       id: 'cloud',
       label: 'Cloud',
       icon: Cloud,
-      description: 'API-based models from cloud providers',
+      description: 'API modely od cloudových poskytovatelů',
       component: CloudModels,
     },
     {
       id: 'local',
       label: 'Ollama',
       icon: Server,
-      description: 'Ollama models running locally on your machine',
+      description: 'Ollama modely běžící lokálně na vašem počítači',
       component: OllamaSettings,
     },
   ];
@@ -47,9 +47,9 @@ export function Models({ className }: ModelsProps) {
   return (
     <div className={cn("space-y-6", className)}>
       <div>
-        <h2 className="text-xl font-semibold text-primary mb-2">Models</h2>
+        <h2 className="text-xl font-semibold text-primary mb-2">Modely</h2>
         <p className="text-sm text-muted-foreground">
-          Manage your AI models from local and cloud providers.
+          Spravujte své AI modely od lokálních a cloudových poskytovatelů.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function Models({ className }: ModelsProps) {
               {section.label}
               {isDisabled && (
                 <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
-                  Soon
+                  Brzy
                 </span>
               )}
             </button>
@@ -92,4 +92,4 @@ export function Models({ className }: ModelsProps) {
       </div>
     </div>
   );
-} 
+}

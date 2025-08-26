@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/agents/ben_graham.py
+# hypothesis_version: 6.138.0
+
+[0.0, 0.2, 0.3, 0.5, 0.67, 0.7, 0.8, 1.5, 2.0, 22.5, '; ', 'Ben Graham Agent', 'Done', 'Getting market cap', 'analysis_data', 'analyst_signals', 'annual', 'bearish', 'ben_graham_agent', 'book_value_per_share', 'bullish', 'confidence', 'current_assets', 'current_liabilities', 'data', 'details', 'earnings_analysis', 'earnings_per_share', 'end_date', 'human', 'max_score', 'messages', 'metadata', 'net_income', 'neutral', 'outstanding_shares', 'reasoning', 'revenue', 'score', 'show_reasoning', 'signal', 'strength_analysis', 'system', 'ticker', 'tickers', 'total_assets', 'total_liabilities', 'valuation_analysis']

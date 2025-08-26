@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/ollama.py
+# hypothesis_version: 6.138.0
+
+[400, 404, 500, '*', '/models/download', '/models/recommended', '/models/{model_name}', '/ollama', '/start', '/status', '/stop', 'Bad request', 'Cache-Control', 'Connection', 'Download not found', 'description', 'downloading', 'installed', 'keep-alive', 'message', 'model', 'no-cache', 'running', 'starting', 'status', 'success', 'text/event-stream']

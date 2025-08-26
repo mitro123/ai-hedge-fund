@@ -99,7 +99,7 @@ export function PortfolioManagerNode({
         isConnectable={isConnectable}
         icon={<Brain className="h-5 w-5" />}
         iconColor={getStatusColor(status)}
-        name={data.name || 'Portfolio Manager'}
+        name={data.name || 'Správce portfolia'}
         description={data.description}
         hasRightHandle={false}
         status={status}
@@ -109,7 +109,7 @@ export function PortfolioManagerNode({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
                 <div className="text-subtitle text-primary flex items-center gap-1">
-                  Status
+                  Stav
                 </div>
 
                 <div
@@ -129,7 +129,7 @@ export function PortfolioManagerNode({
                     size="sm"
                     onClick={() => setIsDialogOpen(true)}
                   >
-                    View Investment Report
+                    Zobrazit investiční zprávu
                   </Button>
                 )}
               </div>
@@ -141,7 +141,7 @@ export function PortfolioManagerNode({
                   models={availableModels}
                   value={selectedModel?.model_name || ''}
                   onChange={handleModelChange}
-                  placeholder="Auto"
+                  placeholder="Automaticky"
                 />
               </div>
             </div>

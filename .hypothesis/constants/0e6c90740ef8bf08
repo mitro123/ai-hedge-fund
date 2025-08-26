@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/utils/display.py
+# hypothesis_version: 6.138.0
+
+[999, '$', ',', 'Action', 'BEARISH', 'BULLISH', 'BUY', 'Bearish', 'Bullish', 'COVER', 'Confidence', 'Date', 'HOLD', 'NEUTRAL', 'Neutral', 'PORTFOLIO SUMMARY', 'Position Value', 'Price', 'Quantity', 'Reasoning', 'Risk Management', 'SELL', 'SHORT', 'Shares', 'Signal', 'Ticker', '_', '_agent', 'action', 'analyst_signals', 'center', 'clear', 'cls', 'confidence', 'decisions', 'grid', 'left', 'nt', 'reasoning', 'right', 'signal']

@@ -35,7 +35,7 @@ export function FlowCreateDialog({ isOpen, onClose, onFlowCreated }: FlowCreateD
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      error('Flow name is required');
+      error('Název toku je povinný');
       return;
     }
 
@@ -49,12 +49,12 @@ export function FlowCreateDialog({ isOpen, onClose, onFlowCreated }: FlowCreateD
         viewport: { x: 0, y: 0, zoom: 1 },
       });
       
-      success(`"${newFlow.name}" created!`);
+      success(`"${newFlow.name}" vytvořen!`);
       onFlowCreated(newFlow);
       onClose();
     } catch (err) {
       console.error('Failed to create flow:', err);
-      error('Failed to create flow');
+      error('Nepodařilo se vytvořit tok');
     } finally {
       setIsLoading(false);
     }
@@ -80,23 +80,23 @@ export function FlowCreateDialog({ isOpen, onClose, onFlowCreated }: FlowCreateD
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Flow</DialogTitle>
+          <DialogTitle>Vytvořit nový tok</DialogTitle>
           <DialogDescription>
-            Create a new flow with a custom name and description.
+            Vytvořte nový tok s vlastním názvem a popisem.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <label htmlFor="create-name" className="text-sm font-medium">
-              Name
+              Název
             </label>
             <Input
               id="create-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter flow name"
+              placeholder="Zadejte název toku"
               className="col-span-3"
               autoFocus
             />
@@ -104,14 +104,14 @@ export function FlowCreateDialog({ isOpen, onClose, onFlowCreated }: FlowCreateD
           
           <div className="grid gap-2">
             <label htmlFor="create-description" className="text-sm font-medium">
-              Description
+              Popis
             </label>
             <Input
               id="create-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter flow description (optional)"
+              placeholder="Zadejte popis toku (volitelné)"
               className="col-span-3"
             />
           </div>
@@ -119,16 +119,16 @@ export function FlowCreateDialog({ isOpen, onClose, onFlowCreated }: FlowCreateD
         
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
-            Cancel
+            Zrušit
           </Button>
           <Button 
             onClick={handleCreate} 
             disabled={isLoading || !name.trim()}
           >
-            {isLoading ? 'Creating...' : 'Create Flow'}
+            {isLoading ? 'Vytváření...' : 'Vytvořit tok'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

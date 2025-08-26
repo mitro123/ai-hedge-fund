@@ -10,20 +10,20 @@ export function ThemeSettings() {
   const themes = [
     {
       id: 'light',
-      name: 'Light',
-      description: 'A clean, bright interface',
+      name: 'Světlé',
+      description: 'Čisté, jasné rozhraní',
       icon: Sun,
     },
     {
       id: 'dark',
-      name: 'Dark',
-      description: 'A comfortable dark interface',
+      name: 'Tmavé',
+      description: 'Pohodlné tmavé rozhraní',
       icon: Moon,
     },
     {
       id: 'system',
-      name: 'System',
-      description: 'Use your system preference',
+      name: 'Systém',
+      description: 'Použít systémové nastavení',
       icon: Monitor,
     },
   ];
@@ -31,21 +31,21 @@ export function ThemeSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-primary mb-2">Theme</h2>
+        <h2 className="text-xl font-semibold text-primary mb-2">Téma</h2>
         <p className="text-sm text-muted-foreground">
-          Customize the look and feel of your application.
+          Přizpůsobte vzhled a chování vaší aplikace.
         </p>
       </div>
 
       <Card className="bg-panel border-gray-700 dark:border-gray-700">
         <CardHeader>
           <CardTitle className="text-lg font-medium text-primary">
-            Theme
+            Téma
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Select your preferred theme or use system setting to automatically switch between light and dark modes.
+            Vyberte preferované téma nebo použijte systémové nastavení pro automatické přepínání mezi světlým a tmavým režimem.
           </p>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -78,4 +78,4 @@ export function ThemeSettings() {
       </Card>
     </div>
   );
-} 
+}

@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/routes/api_keys.py
+# hypothesis_version: 6.138.0
+
+[200, 204, 400, 404, 500, '/', '/api-keys', '/bulk', '/{provider}', 'API key not found', 'Invalid request', 'api-keys', 'description', 'is_active', 'key_value', 'message', 'model', 'provider']

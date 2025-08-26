@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/models/schemas.py
+# hypothesis_version: 6.138.0
+
+[0.0, 1.0, 100000.0, 100, 200, '%Y-%m-%d', 'COMPLETE', 'ERROR', 'IDLE', 'IN_PROGRESS', 'gpt-4.1', 'tickers', 'trade_price']

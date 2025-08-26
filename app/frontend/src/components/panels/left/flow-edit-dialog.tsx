@@ -38,7 +38,7 @@ export function FlowEditDialog({ flow, isOpen, onClose, onFlowUpdated }: FlowEdi
 
   const handleSave = async () => {
     if (!flow || !name.trim()) {
-      error('Flow name is required');
+      error('Název toku je povinný');
       return;
     }
 
@@ -52,12 +52,12 @@ export function FlowEditDialog({ flow, isOpen, onClose, onFlowUpdated }: FlowEdi
       // Update the tab title if it's currently open
       updateFlowTabTitle(flow.id, name.trim());
       
-      success(`"${name}" updated!`);
+      success(`"${name}" aktualizován!`);
       onFlowUpdated();
       onClose();
     } catch (err) {
       console.error('Failed to update flow:', err);
-      error('Failed to update flow');
+      error('Nepodařilo se aktualizovat tok');
     } finally {
       setIsLoading(false);
     }
@@ -85,37 +85,37 @@ export function FlowEditDialog({ flow, isOpen, onClose, onFlowUpdated }: FlowEdi
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Edit Flow</DialogTitle>
+          <DialogTitle>Upravit tok</DialogTitle>
           <DialogDescription>
-            Update the name and description for your flow.
+            Aktualizujte název a popis vašeho toku.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <label htmlFor="name" className="text-sm font-medium">
-              Name
+              Název
             </label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter flow name"
+              placeholder="Zadejte název toku"
               className="col-span-3"
             />
           </div>
           
           <div className="grid gap-2">
             <label htmlFor="description" className="text-sm font-medium">
-              Description
+              Popis
             </label>
             <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Enter flow description (optional)"
+              placeholder="Zadejte popis toku (volitelné)"
               className="col-span-3"
             />
           </div>
@@ -123,16 +123,16 @@ export function FlowEditDialog({ flow, isOpen, onClose, onFlowUpdated }: FlowEdi
         
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
-            Cancel
+            Zrušit
           </Button>
           <Button 
             onClick={handleSave} 
             disabled={isLoading || !name.trim()}
           >
-            {isLoading ? 'Saving...' : 'Save Changes'}
+            {isLoading ? 'Ukládání...' : 'Uložit změny'}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}

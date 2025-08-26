@@ -2,4 +2,8 @@ export { DebugConsoleTab } from '@/components/panels/bottom/tabs/debug-console-t
 export { OutputTab } from '@/components/panels/bottom/tabs/output-tab';
 export { ProblemsTab } from '@/components/panels/bottom/tabs/problems-tab';
 export { TerminalTab } from '@/components/panels/bottom/tabs/terminal-tab';
-
+export { BacktestManager } from '@/components/panels/bottom/tabs/backtest-manager';
+export { BacktestOutput } from '@/components/panels/bottom/tabs/backtest-output';
+export { InteractiveCharts } from '@/components/panels/bottom/tabs/interactive-charts';
+export { AdvancedPerformanceMetrics } from '@/components/panels/bottom/tabs/advanced-performance-metrics';
+export { TradeHistoryViewer } from '@/components/panels/bottom/tabs/trade-history-viewer';

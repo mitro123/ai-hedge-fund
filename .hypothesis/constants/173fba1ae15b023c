@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/src/utils/analysts.py
+# hypothesis_version: 6.138.0
+
+['Aswath Damodaran', 'Ben Graham', 'Bill Ackman', 'Cathie Wood', 'Charlie Munger', 'Děkan oceňování', 'Komoditní analytik', 'Michael Burry', 'Oceňovací analytik', 'Peter Lynch', 'Phil Fisher', 'Racionální myslitel', 'Rakesh Jhunjhunwala', 'Technický analytik', 'Velký býk Indie', 'Věštec z Omahy', 'Warren Buffett', 'agent_func', 'analyst', 'aswath_damodaran', 'ben_graham', 'bill_ackman', 'cathie_wood', 'charlie_munger', 'commodities_analyst', 'description', 'display_name', 'fundamentals_analyst', 'investing_style', 'key', 'michael_burry', 'order', 'peter_lynch', 'phil_fisher', 'rakesh_jhunjhunwala', 'sentiment_analyst', 'technical_analyst', 'type', 'valuation_analyst', 'warren_buffett']

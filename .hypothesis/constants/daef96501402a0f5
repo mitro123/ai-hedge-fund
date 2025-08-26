@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/main.py
+# hypothesis_version: 6.138.0
+
+['*', '0.1.0', 'AI Hedge Fund API', 'available_models', 'installed', 'running']

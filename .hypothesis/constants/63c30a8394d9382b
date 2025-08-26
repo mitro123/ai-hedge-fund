@@ -1,0 +1,4 @@
+# file: /workspaces/ai-hedge-fund/app/backend/services/ollama_service.py
+# hypothesis_version: 6.138.0
+
+[100, '-f', '/F', '/IM', 'Ollama', '[alibaba] qwen3 (4B)', '[google] gemma3 (4B)', '[meta] llama3.1 (8B)', 'available_models', 'bytes_downloaded', 'cancelled', 'completed', 'darwin', 'digest', 'display_name', 'downloading', 'error', 'gemma3:4b', 'host', 'installed', 'linux', 'llama3.1:latest', 'llm', 'message', 'model_name', 'ollama', 'ollama serve', 'ollama.exe', 'ollama_models.json', 'percentage', 'pgrep', 'provider', 'qwen3:4b', 'r', 'raw_output', 'running', 'serve', 'server_running', 'server_url', 'src', 'starting', 'status', 'success', 'taskkill', 'total', 'total_bytes', 'where', 'which', 'windows']

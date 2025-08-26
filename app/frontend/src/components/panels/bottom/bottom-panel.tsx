@@ -1,11 +1,18 @@
 import { useLayoutContext } from '@/contexts/layout-context';
 import { useResizable } from '@/hooks/use-resizable';
 import { cn } from '@/lib/utils';
-import { FileText, X } from 'lucide-react';
+import { FileText, X, TrendingUp, BarChart3, Activity, History, Settings } from 'lucide-react';
 import { ReactNode, useEffect } from 'react';
 import { Button } from '../../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import { OutputTab } from './tabs';
+import { 
+  OutputTab, 
+  BacktestManager, 
+  BacktestOutput, 
+  InteractiveCharts, 
+  AdvancedPerformanceMetrics, 
+  TradeHistoryViewer 
+} from './tabs';
 
 interface BottomPanelProps {
   children?: ReactNode;
@@ -69,7 +76,42 @@ export function BottomPanel({
                 className="flex items-center gap-2 px-3 py-1.5 text-sm data-[state=active]:active-item text-muted-foreground"
               >
                 <FileText size={14} />
-                Output
+                Výstup
+              </TabsTrigger>
+              <TabsTrigger 
+                value="backtest-manager"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm data-[state=active]:active-item text-muted-foreground"
+              >
+                <Settings size={14} />
+                Správa Backtestů
+              </TabsTrigger>
+              <TabsTrigger 
+                value="backtest-output"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm data-[state=active]:active-item text-muted-foreground"
+              >
+                <TrendingUp size={14} />
+                Výsledky
+              </TabsTrigger>
+              <TabsTrigger 
+                value="interactive-charts"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm data-[state=active]:active-item text-muted-foreground"
+              >
+                <BarChart3 size={14} />
+                Grafy
+              </TabsTrigger>
+              <TabsTrigger 
+                value="performance-metrics"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm data-[state=active]:active-item text-muted-foreground"
+              >
+                <Activity size={14} />
+                Metriky
+              </TabsTrigger>
+              <TabsTrigger 
+                value="trade-history"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm data-[state=active]:active-item text-muted-foreground"
+              >
+                <History size={14} />
+                Historie
               </TabsTrigger>
             </TabsList>
             
@@ -78,7 +120,7 @@ export function BottomPanel({
               size="icon"
               onClick={onToggleCollapse}
               className="h-6 w-6 text-primary hover-bg"
-              aria-label="Close panel"
+              aria-label="Zavřít panel"
             >
               <X size={14} />
             </Button>
@@ -92,8 +134,23 @@ export function BottomPanel({
           <TabsContent value="output" className="h-full m-0 p-4">
             <OutputTab className="h-full" />
           </TabsContent>
+          <TabsContent value="backtest-manager" className="h-full m-0 p-4">
+            <BacktestManager />
+          </TabsContent>
+          <TabsContent value="backtest-output" className="h-full m-0 p-4">
+            <BacktestOutput />
+          </TabsContent>
+          <TabsContent value="interactive-charts" className="h-full m-0 p-4">
+            <InteractiveCharts />
+          </TabsContent>
+          <TabsContent value="performance-metrics" className="h-full m-0 p-4">
+            <AdvancedPerformanceMetrics />
+          </TabsContent>
+          <TabsContent value="trade-history" className="h-full m-0 p-4">
+            <TradeHistoryViewer />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
   );
-} 
+}
