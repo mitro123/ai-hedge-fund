@@ -4,13 +4,14 @@ import datetime
 from typing import Literal, Optional, Union
 from warnings import simplefilter, warn
 
+from typing_extensions import Annotated, deprecated
+
 from openbb_core.app.deprecation import OpenBBDeprecationWarning
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated, deprecated
 
 
 class ROUTER_fixedincome(Container):
@@ -41,9 +42,7 @@ class ROUTER_fixedincome(Container):
         ] = None,
         index_type: Annotated[
             Literal["yield", "yield_to_worst", "total_return", "oas"],
-            OpenBBField(
-                description="The type of series. OAS is the option-adjusted spread. Default is yield."
-            ),
+            OpenBBField(description="The type of series. OAS is the option-adjusted spread. Default is yield."),
         ] = "yield",
         provider: Annotated[
             Optional[Literal["fred"]],
@@ -51,7 +50,7 @@ class ROUTER_fixedincome(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Bond Indices.
 
@@ -226,7 +225,7 @@ class ROUTER_fixedincome(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @property
@@ -234,18 +233,14 @@ class ROUTER_fixedincome(Container):
         # pylint: disable=import-outside-toplevel
         from . import fixedincome_corporate
 
-        return fixedincome_corporate.ROUTER_fixedincome_corporate(
-            command_runner=self._command_runner
-        )
+        return fixedincome_corporate.ROUTER_fixedincome_corporate(command_runner=self._command_runner)
 
     @property
     def government(self):
         # pylint: disable=import-outside-toplevel
         from . import fixedincome_government
 
-        return fixedincome_government.ROUTER_fixedincome_government(
-            command_runner=self._command_runner
-        )
+        return fixedincome_government.ROUTER_fixedincome_government(command_runner=self._command_runner)
 
     @exception_handler
     @validate
@@ -265,7 +260,7 @@ class ROUTER_fixedincome(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Mortgage Indices.
 
@@ -398,7 +393,7 @@ class ROUTER_fixedincome(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @property
@@ -406,9 +401,7 @@ class ROUTER_fixedincome(Container):
         # pylint: disable=import-outside-toplevel
         from . import fixedincome_rate
 
-        return fixedincome_rate.ROUTER_fixedincome_rate(
-            command_runner=self._command_runner
-        )
+        return fixedincome_rate.ROUTER_fixedincome_rate(command_runner=self._command_runner)
 
     @exception_handler
     @validate
@@ -432,7 +425,7 @@ class ROUTER_fixedincome(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve, fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Secured Overnight Financing Rate.
 
@@ -553,7 +546,7 @@ class ROUTER_fixedincome(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @property
@@ -561,6 +554,4 @@ class ROUTER_fixedincome(Container):
         # pylint: disable=import-outside-toplevel
         from . import fixedincome_spreads
 
-        return fixedincome_spreads.ROUTER_fixedincome_spreads(
-            command_runner=self._command_runner
-        )
+        return fixedincome_spreads.ROUTER_fixedincome_spreads(command_runner=self._command_runner)

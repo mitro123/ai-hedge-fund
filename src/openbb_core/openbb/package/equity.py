@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity(Container):
@@ -36,9 +37,7 @@ class ROUTER_equity(Container):
         # pylint: disable=import-outside-toplevel
         from . import equity_calendar
 
-        return equity_calendar.ROUTER_equity_calendar(
-            command_runner=self._command_runner
-        )
+        return equity_calendar.ROUTER_equity_calendar(command_runner=self._command_runner)
 
     @property
     def compare(self):
@@ -52,27 +51,21 @@ class ROUTER_equity(Container):
         # pylint: disable=import-outside-toplevel
         from . import equity_discovery
 
-        return equity_discovery.ROUTER_equity_discovery(
-            command_runner=self._command_runner
-        )
+        return equity_discovery.ROUTER_equity_discovery(command_runner=self._command_runner)
 
     @property
     def estimates(self):
         # pylint: disable=import-outside-toplevel
         from . import equity_estimates
 
-        return equity_estimates.ROUTER_equity_estimates(
-            command_runner=self._command_runner
-        )
+        return equity_estimates.ROUTER_equity_estimates(command_runner=self._command_runner)
 
     @property
     def fundamental(self):
         # pylint: disable=import-outside-toplevel
         from . import equity_fundamental
 
-        return equity_fundamental.ROUTER_equity_fundamental(
-            command_runner=self._command_runner
-        )
+        return equity_fundamental.ROUTER_equity_fundamental(command_runner=self._command_runner)
 
     @exception_handler
     @validate
@@ -98,7 +91,7 @@ class ROUTER_equity(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the historical market cap of a ticker symbol.
 
@@ -172,7 +165,7 @@ class ROUTER_equity(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -185,7 +178,7 @@ class ROUTER_equity(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get an updated equity market snapshot. This includes price data for thousands of stocks.
 
@@ -394,7 +387,7 @@ class ROUTER_equity(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @property
@@ -402,9 +395,7 @@ class ROUTER_equity(Container):
         # pylint: disable=import-outside-toplevel
         from . import equity_ownership
 
-        return equity_ownership.ROUTER_equity_ownership(
-            command_runner=self._command_runner
-        )
+        return equity_ownership.ROUTER_equity_ownership(command_runner=self._command_runner)
 
     @property
     def price(self):
@@ -429,7 +420,7 @@ class ROUTER_equity(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get general information about a company. This includes company name, industry, sector and price data.
 
@@ -605,7 +596,7 @@ class ROUTER_equity(Container):
                         "yfinance": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -618,7 +609,7 @@ class ROUTER_equity(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Screen for companies meeting various criteria.
 
@@ -1163,7 +1154,7 @@ class ROUTER_equity(Container):
                         },
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1171,16 +1162,14 @@ class ROUTER_equity(Container):
     def search(
         self,
         query: Annotated[str, OpenBBField(description="Search query.")] = "",
-        is_symbol: Annotated[
-            bool, OpenBBField(description="Whether to search by ticker symbol.")
-        ] = False,
+        is_symbol: Annotated[bool, OpenBBField(description="Whether to search by ticker symbol.")] = False,
         provider: Annotated[
             Optional[Literal["intrinio", "sec"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio, sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search for stock symbol, CIK, LEI, or company name.
 
@@ -1250,7 +1239,7 @@ class ROUTER_equity(Container):
                     "is_symbol": is_symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @property

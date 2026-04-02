@@ -7,8 +7,9 @@ import zlib
 import aiohttp
 import pytest
 from multidict import CIMultiDict, CIMultiDictProxy
-from openbb_core.provider.utils import client
 from yarl import URL
+
+from openbb_core.provider.utils import client
 
 
 def test_obfuscate():
@@ -79,9 +80,7 @@ class MockClientSession(client.ClientSession):
     def __del__(self):  # type: ignore
         """Delete the session."""
 
-    async def request(  # type: ignore
-        self, *args, raise_for_status: bool = False, **kwargs
-    ) -> client.ClientResponse:
+    async def request(self, *args, raise_for_status: bool = False, **kwargs) -> client.ClientResponse:  # type: ignore
         """Mock the request method."""
         response = MockResponse(*args, **kwargs)
 
@@ -92,9 +91,7 @@ class MockClientSession(client.ClientSession):
         if encoding in ("gzip", "deflate") and not self.auto_decompress:
             response_body = await response.read()
             wbits = 16 + zlib.MAX_WBITS if encoding == "gzip" else -zlib.MAX_WBITS
-            response.body = json.loads(
-                zlib.decompress(response_body, wbits).decode("utf-8")
-            )
+            response.body = json.loads(zlib.decompress(response_body, wbits).decode("utf-8"))
 
         return response  # type: ignore
 
@@ -129,16 +126,12 @@ async def test_client_response_obfuscate_request_info(url_params, obfuscated_par
     """Test the ClientSession post helper."""
     headers = {"Authorization": "Bearer 1234"}
 
-    response = await MockClientSession().get(
-        f"http://mock.url{url_params}", headers=headers
-    )
+    response = await MockClientSession().get(f"http://mock.url{url_params}", headers=headers)
 
     assert isinstance(response, MockResponse)
     assert response.request_info.url == URL(f"http://mock.url{obfuscated_params}")
 
-    assert response.request_info.headers == CIMultiDictProxy(
-        CIMultiDict({"Authorization": "********"})
-    )
+    assert response.request_info.headers == CIMultiDictProxy(CIMultiDict({"Authorization": "********"}))
 
 
 @pytest.mark.asyncio

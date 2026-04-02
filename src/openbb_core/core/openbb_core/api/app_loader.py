@@ -4,11 +4,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, FastAPI
 from fastapi.exceptions import ResponseValidationError
+from pydantic import ValidationError
+
 from openbb_core.api.exception_handlers import ExceptionHandlers
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.app.router import RouterLoader
 from openbb_core.provider.utils.errors import EmptyDataError, UnauthorizedError
-from pydantic import ValidationError
 
 
 class AppLoader:

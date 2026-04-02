@@ -3,13 +3,11 @@
 from datetime import date as dateType
 from typing import Optional, Union
 
+from pydantic import computed_field, Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, computed_field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class YieldCurveQueryParams(QueryParams):
@@ -17,8 +15,7 @@ class YieldCurveQueryParams(QueryParams):
 
     date: Optional[Union[dateType, str]] = Field(
         default=None,
-        description=QUERY_DESCRIPTIONS.get("date", "")
-        + " By default is the current data.",
+        description=QUERY_DESCRIPTIONS.get("date", "") + " By default is the current data.",
     )
 
     @field_validator("date", mode="before", check_fields=False)
@@ -64,9 +61,6 @@ class YieldCurveData(Data):
             return None
 
         parts = self.maturity.split("_")  # pylint: disable=E1101
-        months = sum(
-            int(parts[i + 1]) * (12 if parts[i] == "year" else 1)
-            for i in range(0, len(parts), 2)
-        )
+        months = sum(int(parts[i + 1]) * (12 if parts[i] == "year" else 1) for i in range(0, len(parts), 2))
 
         return months / 12

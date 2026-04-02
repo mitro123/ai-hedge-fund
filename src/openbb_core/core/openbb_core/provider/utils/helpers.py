@@ -6,26 +6,13 @@ from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from functools import partial
 from inspect import iscoroutinefunction
-from typing import (
-    TYPE_CHECKING,
-    Awaitable,
-    Callable,
-    List,
-    Literal,
-    Optional,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Awaitable, Callable, cast, List, Literal, Optional, TYPE_CHECKING, TypeVar, Union
 
 from anyio.from_thread import start_blocking_portal
-from openbb_core.provider.abstract.data import Data
-from openbb_core.provider.utils.client import (
-    ClientResponse,
-    ClientSession,
-    get_user_agent,
-)
 from typing_extensions import ParamSpec
+
+from openbb_core.provider.abstract.data import Data
+from openbb_core.provider.utils.client import ClientResponse, ClientSession, get_user_agent
 
 if TYPE_CHECKING:
     from requests import Response, Session  # pylint: disable=import-outside-toplevel
@@ -53,9 +40,7 @@ def check_item(item: str, allowed: List[str], threshold: float = 0.75) -> None:
         If the item is not in the allowed list.
     """
     if item not in allowed:
-        similarities = map(
-            lambda c: (c, SequenceMatcher(None, item, c).ratio()), allowed
-        )
+        similarities = map(lambda c: (c, SequenceMatcher(None, item, c).ratio()), allowed)
         similar, score = max(similarities, key=lambda x: x[1])
         if score > threshold:
             raise ValueError(f"'{item}' is not available. Did you mean '{similar}'?")
@@ -142,9 +127,7 @@ def get_python_request_settings() -> dict:
         "cookies",
     ]
 
-    return {
-        k: v for k, v in http_settings.items() if v is not None and k in allowed_keys
-    }
+    return {k: v for k, v in http_settings.items() if v is not None and k in allowed_keys}
 
 
 def get_requests_session(**kwargs) -> "Session":
@@ -207,9 +190,7 @@ def get_requests_session(**kwargs) -> "Session":
         )
 
     if auth := python_settings.get("auth"):
-        _session.auth = (
-            auth if isinstance(auth, (tuple, requests.auth.AuthBase)) else tuple(auth)
-        )
+        _session.auth = auth if isinstance(auth, (tuple, requests.auth.AuthBase)) else tuple(auth)
 
     if kwargs:
         for key, value in kwargs.items():
@@ -230,9 +211,10 @@ def get_requests_session(**kwargs) -> "Session":
 async def get_async_requests_session(**kwargs) -> ClientSession:
     """Get an aiohttp session object with the applied user settings or environment variables."""
     # pylint: disable=import-outside-toplevel
-    import aiohttp  # noqa
     import atexit
     import ssl
+
+    import aiohttp  # noqa
 
     # If a session is already provided, just return it.
     if "session" in kwargs and isinstance(kwargs.get("session"), ClientSession):
@@ -256,11 +238,7 @@ async def get_async_requests_session(**kwargs) -> ClientSession:
     if python_settings.get("proxy") or python_settings.get("verify_ssl") is False:
         python_settings["verify_ssl"] = None
         python_settings["ssl"] = False
-    elif (
-        python_settings.get("certfile")
-        or python_settings.get("cafile")
-        or os.environ.get("REQUESTS_CA_BUNDLE")
-    ):
+    elif python_settings.get("certfile") or python_settings.get("cafile") or os.environ.get("REQUESTS_CA_BUNDLE"):
         ca = python_settings.get("cafile") or os.environ.get("REQUESTS_CA_BUNDLE")
         cert = python_settings.get("certfile")
         key = python_settings.get("keyfile")
@@ -280,16 +258,12 @@ async def get_async_requests_session(**kwargs) -> ClientSession:
         python_settings["ssl"] = ssl_context
 
     ssl_kwargs = {
-        k: v
-        for k, v in python_settings.items()
-        if k in ["ssl", "verify_ssl", "fingerprint"] and v is not None
+        k: v for k, v in python_settings.items() if k in ["ssl", "verify_ssl", "fingerprint"] and v is not None
     }
 
     # Merge the updated python_settings dict with the kwargs.
     if python_settings:
-        kwargs.update(
-            {k: v for k, v in python_settings.items() if not k.endswith("file")}
-        )
+        kwargs.update({k: v for k, v in python_settings.items() if not k.endswith("file")})
 
     # SSL settings get passed to the TCPConnector used by the session.
     connector = kwargs.pop("connector", None) or (
@@ -301,15 +275,11 @@ async def get_async_requests_session(**kwargs) -> ClientSession:
     # Add basic auth for proxies, if provided.
     p_auth = kwargs.pop("proxy_auth", [])
     if p_auth:
-        conn_kwargs["proxy_auth"] = aiohttp.BasicAuth(
-            *p_auth if isinstance(p_auth, (list, tuple)) else p_auth
-        )
+        conn_kwargs["proxy_auth"] = aiohttp.BasicAuth(*p_auth if isinstance(p_auth, (list, tuple)) else p_auth)
     # Add basic auth for server, if provided.
     s_auth = kwargs.pop("auth", [])
     if s_auth:
-        conn_kwargs["auth"] = aiohttp.BasicAuth(
-            *s_auth if isinstance(s_auth, (list, tuple)) else s_auth
-        )
+        conn_kwargs["auth"] = aiohttp.BasicAuth(*s_auth if isinstance(s_auth, (list, tuple)) else s_auth)
     # Add cookies to the session, if provided.
     _cookies = kwargs.pop("cookies", None)
     if _cookies:
@@ -323,11 +293,7 @@ async def get_async_requests_session(**kwargs) -> ClientSession:
         if v is None:
             continue
         if k == "timeout":
-            conn_kwargs["timeout"] = (
-                v
-                if isinstance(v, aiohttp.ClientTimeout)
-                else aiohttp.ClientTimeout(total=v)
-            )
+            conn_kwargs["timeout"] = v if isinstance(v, aiohttp.ClientTimeout) else aiohttp.ClientTimeout(total=v)
         elif k not in ("ssl", "verify_ssl", "fingerprint") and k in python_settings:
             conn_kwargs[k] = v
 
@@ -348,9 +314,7 @@ async def amake_request(
     url: str,
     method: Literal["GET", "POST"] = "GET",
     timeout: int = 10,
-    response_callback: Optional[
-        Callable[[ClientResponse, ClientSession], Awaitable[Union[dict, List[dict]]]]
-    ] = None,
+    response_callback: Optional[Callable[[ClientResponse, ClientSession], Awaitable[Union[dict, List[dict]]]]] = None,
     **kwargs,
 ) -> Union[dict, List[dict]]:
     """
@@ -380,9 +344,7 @@ async def amake_request(
 
     kwargs["timeout"] = kwargs.pop("preferences", {}).get("request_timeout", timeout)
 
-    response_callback = response_callback or (
-        lambda r, _: asyncio.ensure_future(r.json())
-    )
+    response_callback = response_callback or (lambda r, _: asyncio.ensure_future(r.json()))
 
     with_session = kwargs.pop("with_session", "session" in kwargs)
     session = kwargs.pop("session", await get_async_requests_session(**kwargs))
@@ -397,9 +359,7 @@ async def amake_request(
 
 async def amake_requests(
     urls: Union[str, List[str]],
-    response_callback: Optional[
-        Callable[[ClientResponse, ClientSession], Awaitable[Union[dict, List[dict]]]]
-    ] = None,
+    response_callback: Optional[Callable[[ClientResponse, ClientSession], Awaitable[Union[dict, List[dict]]]]] = None,
     **kwargs,
 ):
     """Make multiple requests asynchronously.
@@ -441,9 +401,7 @@ async def amake_requests(
             if is_exception or not result:
                 continue
 
-            results.extend(
-                result if isinstance(result, list) else [result]  # type: ignore[list-item]
-            )
+            results.extend(result if isinstance(result, list) else [result])  # type: ignore[list-item]
 
         return results
 
@@ -455,10 +413,11 @@ def combine_certificates(cert: str, bundle: Optional[str] = None) -> str:
     """Combine a certificate and a bundle into a single certificate file. Use the default bundle if none is provided."""
     # pylint: disable=import-outside-toplevel
     import atexit  # noqa
-    import certifi
     import shutil
     from pathlib import Path
     from warnings import warn
+
+    import certifi
 
     if not Path(cert).exists():
         raise FileNotFoundError(f"Certificate file '{cert}' not found")
@@ -489,15 +448,11 @@ def combine_certificates(cert: str, bundle: Optional[str] = None) -> str:
 
         return combined_cert
     except Exception as e:  # pylint: disable=broad-except
-        warn(
-            f"An error occurred while handling the certificates file -> {e.__class__.__name__}: {e}"
-        )
+        warn(f"An error occurred while handling the certificates file -> {e.__class__.__name__}: {e}")
         return cert
 
 
-def make_request(
-    url: str, method: str = "GET", timeout: int = 10, **kwargs
-) -> "Response":
+def make_request(url: str, method: str = "GET", timeout: int = 10, **kwargs) -> "Response":
     """Abstract helper to make requests from a url with potential headers and params.
 
     Parameters
@@ -560,17 +515,10 @@ def to_snake_case(string: str) -> str:
     import re  # pylint: disable=import-outside-toplevel
 
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", string)
-    return (
-        re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1)
-        .lower()
-        .replace(" ", "_")
-        .replace("__", "_")
-    )
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower().replace(" ", "_").replace("__", "_")
 
 
-async def maybe_coroutine(
-    func: Callable[P, Union[T, Awaitable[T]]], /, *args: P.args, **kwargs: P.kwargs
-) -> T:
+async def maybe_coroutine(func: Callable[P, Union[T, Awaitable[T]]], /, *args: P.args, **kwargs: P.kwargs) -> T:
     """Check if a function is a coroutine and run it accordingly."""
     if not iscoroutinefunction(func):
         return cast(T, func(*args, **kwargs))
@@ -578,9 +526,7 @@ async def maybe_coroutine(
     return await func(*args, **kwargs)
 
 
-def run_async(
-    func: Callable[P, Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs
-) -> T:
+def run_async(func: Callable[P, Awaitable[T]], /, *args: P.args, **kwargs: P.kwargs) -> T:
     """Run a coroutine function in a blocking context."""
     if not iscoroutinefunction(func):
         return cast(T, func(*args, **kwargs))
@@ -592,9 +538,7 @@ def run_async(
             portal.call(portal.stop)
 
 
-def filter_by_dates(
-    data: List[D], start_date: Optional[date] = None, end_date: Optional[date] = None
-) -> List[D]:
+def filter_by_dates(data: List[D], start_date: Optional[date] = None, end_date: Optional[date] = None) -> List[D]:
     """Filter data by dates."""
     if start_date is None and end_date is None:
         return data
@@ -615,9 +559,7 @@ def filter_by_dates(
     return list(filter(_filter, data))
 
 
-def safe_fromtimestamp(
-    timestamp: Union[float, int], tz: Optional[timezone] = None
-) -> datetime:
+def safe_fromtimestamp(timestamp: Union[float, int], tz: Optional[timezone] = None) -> datetime:
     """datetime.fromtimestamp alternative which supports negative timestamps on Windows platform."""
     if os.name == "nt" and timestamp < 0:
         return datetime(1970, 1, 1, tzinfo=tz) + timedelta(seconds=timestamp)

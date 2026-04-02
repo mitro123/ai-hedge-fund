@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_price(Container):
@@ -46,7 +47,7 @@ class ROUTER_equity_price(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon, tiingo, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical price data for a given stock. This includes open, high, low, close, and volume.
 
@@ -244,7 +245,7 @@ class ROUTER_equity_price(Container):
                         },
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -258,7 +259,7 @@ class ROUTER_equity_price(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: polygon."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the National Best Bid and Offer for a given stock.
 
@@ -346,7 +347,7 @@ class ROUTER_equity_price(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -365,7 +366,7 @@ class ROUTER_equity_price(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get price performance data for a given stock. This includes price changes for different time periods.
 
@@ -447,10 +448,8 @@ class ROUTER_equity_price(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -469,7 +468,7 @@ class ROUTER_equity_price(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the latest quote for a given stock. Quote includes price, volume, and other data.
 
@@ -626,5 +625,5 @@ class ROUTER_equity_price(Container):
                         "yfinance": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )

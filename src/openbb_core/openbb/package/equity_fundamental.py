@@ -4,12 +4,13 @@ import datetime
 from typing import Literal, Optional, Union
 
 from annotated_types import Ge
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_fundamental(Container):
@@ -59,7 +60,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the balance sheet for a given company.
 
@@ -413,7 +414,7 @@ class ROUTER_equity_fundamental(Container):
                         },
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -431,7 +432,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the growth of a company's balance sheet items over time.
 
@@ -579,7 +580,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -597,7 +598,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the cash flow statement for a given company.
 
@@ -865,7 +866,7 @@ class ROUTER_equity_fundamental(Container):
                         },
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -883,7 +884,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the growth of a company's cash flow statement items over time.
 
@@ -1013,7 +1014,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1035,7 +1036,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical dividend data for a given company.
 
@@ -1111,7 +1112,7 @@ class ROUTER_equity_fundamental(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -1125,7 +1126,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical employee count data for a given company.
 
@@ -1191,23 +1192,21 @@ class ROUTER_equity_fundamental(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
     @validate
     def filings(
         self,
-        symbol: Annotated[
-            Optional[str], OpenBBField(description="Symbol to get data for.")
-        ] = None,
+        symbol: Annotated[Optional[str], OpenBBField(description="Symbol to get data for.")] = None,
         provider: Annotated[
             Optional[Literal["fmp", "intrinio", "sec"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get public company filings.
 
@@ -1696,7 +1695,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1731,19 +1730,15 @@ class ROUTER_equity_fundamental(Container):
             Optional[int],
             OpenBBField(description="The number of data entries to return."),
         ] = 1000,
-        tag_type: Annotated[
-            Optional[str], OpenBBField(description="Filter by type, when applicable.")
-        ] = None,
-        sort: Annotated[
-            Optional[Literal["asc", "desc"]], OpenBBField(description="Sort order.")
-        ] = "desc",
+        tag_type: Annotated[Optional[str], OpenBBField(description="Filter by type, when applicable.")] = None,
+        sort: Annotated[Optional[Literal["asc", "desc"]], OpenBBField(description="Sort order.")] = "desc",
         provider: Annotated[
             Optional[Literal["intrinio"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the historical values of a data tag from Intrinio.
 
@@ -1821,14 +1816,10 @@ class ROUTER_equity_fundamental(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "symbol": {
-                        "intrinio": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "tag": {
-                        "intrinio": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "symbol": {"intrinio": {"multiple_items_allowed": True, "choices": None}},
+                    "tag": {"intrinio": {"multiple_items_allowed": True, "choices": None}},
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1842,7 +1833,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical earnings per share data for a given company.
 
@@ -1912,7 +1903,7 @@ class ROUTER_equity_fundamental(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -1926,7 +1917,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical stock splits for a given company.
 
@@ -1982,7 +1973,7 @@ class ROUTER_equity_fundamental(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -2000,7 +1991,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the income statement for a given company.
 
@@ -2362,7 +2353,7 @@ class ROUTER_equity_fundamental(Container):
                         },
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -2380,7 +2371,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the growth of a company's income statement items over time.
 
@@ -2502,7 +2493,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -2527,7 +2518,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the latest value of a data tag from Intrinio.
 
@@ -2585,14 +2576,10 @@ class ROUTER_equity_fundamental(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "symbol": {
-                        "intrinio": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "tag": {
-                        "intrinio": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "symbol": {"intrinio": {"multiple_items_allowed": True, "choices": None}},
+                    "tag": {"intrinio": {"multiple_items_allowed": True, "choices": None}},
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -2606,7 +2593,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get executive management team data for a given company.
 
@@ -2674,7 +2661,7 @@ class ROUTER_equity_fundamental(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -2693,7 +2680,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get executive management team compensation for a given company over time.
 
@@ -2773,10 +2760,8 @@ class ROUTER_equity_fundamental(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -2802,7 +2787,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the Management Discussion & Analysis section from the financial statements for a given company.
 
@@ -2884,7 +2869,7 @@ class ROUTER_equity_fundamental(Container):
                     "calendar_period": calendar_period,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -2907,7 +2892,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get fundamental metrics for a given company.
 
@@ -3203,7 +3188,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3222,7 +3207,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get equity valuation multiples for a given company.
 
@@ -3392,10 +3377,8 @@ class ROUTER_equity_fundamental(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -3403,16 +3386,14 @@ class ROUTER_equity_fundamental(Container):
     def ratios(
         self,
         symbol: Annotated[str, OpenBBField(description="Symbol to get data for.")],
-        limit: Annotated[
-            int, OpenBBField(description="The number of data entries to return.")
-        ] = 12,
+        limit: Annotated[int, OpenBBField(description="The number of data entries to return.")] = 12,
         provider: Annotated[
             Optional[Literal["fmp", "intrinio"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get an extensive set of financial and accounting ratios for a given company over time.
 
@@ -3600,7 +3581,7 @@ class ROUTER_equity_fundamental(Container):
                         },
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3608,14 +3589,10 @@ class ROUTER_equity_fundamental(Container):
     def reported_financials(
         self,
         symbol: Annotated[str, OpenBBField(description="Symbol to get data for.")],
-        period: Annotated[
-            str, OpenBBField(description="Time period of the data to return.")
-        ] = "annual",
+        period: Annotated[str, OpenBBField(description="Time period of the data to return.")] = "annual",
         statement_type: Annotated[
             str,
-            OpenBBField(
-                description="The type of financial statement - i.e, balance, income, cash."
-            ),
+            OpenBBField(description="The type of financial statement - i.e, balance, income, cash."),
         ] = "balance",
         limit: Annotated[
             Optional[int],
@@ -3629,7 +3606,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get financial statements as reported by the company.
 
@@ -3700,7 +3677,7 @@ class ROUTER_equity_fundamental(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -3714,7 +3691,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the geographic breakdown of revenue for a given company over time.
 
@@ -3785,7 +3762,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3799,7 +3776,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the revenue breakdown by business segment for a given company over time.
 
@@ -3870,7 +3847,7 @@ class ROUTER_equity_fundamental(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3888,7 +3865,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search Intrinio data tags to search in latest or historical attributes.
 
@@ -3961,7 +3938,7 @@ class ROUTER_equity_fundamental(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -3981,7 +3958,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: tiingo."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the 1 year trailing dividend yield for a given company over time.
 
@@ -4037,7 +4014,7 @@ class ROUTER_equity_fundamental(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -4062,7 +4039,7 @@ class ROUTER_equity_fundamental(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get earnings call transcripts for a given company.
 
@@ -4124,10 +4101,8 @@ class ROUTER_equity_fundamental(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "symbol": {
-                        "fmp": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}},
                     "year": {"fmp": {"multiple_items_allowed": True, "choices": None}},
                 },
-            )
+            ),
         )

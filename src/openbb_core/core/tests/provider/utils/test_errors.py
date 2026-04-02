@@ -1,6 +1,7 @@
 """Test custom errors."""
 
 import pytest
+
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.utils.errors import EmptyDataError
 
@@ -26,9 +27,7 @@ def test_empty_data_error_is_raised():
     """Test if the EmptyDataError is raised."""
     with pytest.raises(EmptyDataError) as exc_info:
         function_that_raises_empty_data_error()
-    assert (
-        str(exc_info.value) == "No results found. Try adjusting the query parameters."
-    )
+    assert str(exc_info.value) == "No results found. Try adjusting the query parameters."
 
 
 def test_empty_data_error_custom_message():

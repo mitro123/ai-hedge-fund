@@ -4,10 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from openbb_core.app.service.user_service import (
-    UserService,
-    UserSettings,
-)
+from openbb_core.app.service.user_service import UserService, UserSettings
 
 
 def test_read_from_file_file_exists():

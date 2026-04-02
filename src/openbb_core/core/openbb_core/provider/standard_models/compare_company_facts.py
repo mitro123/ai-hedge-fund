@@ -3,21 +3,17 @@
 from datetime import date as dateType
 from typing import Optional
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class CompareCompanyFactsQueryParams(QueryParams):
     """Compare Company Facts Query."""
 
-    symbol: Optional[str] = Field(
-        default=None, description=QUERY_DESCRIPTIONS.get("symbol", "")
-    )
+    symbol: Optional[str] = Field(default=None, description=QUERY_DESCRIPTIONS.get("symbol", ""))
     fact: str = Field(
         default="",
         description="The fact to lookup, typically a GAAP-reporting measure. Choices vary by provider.",
@@ -27,16 +23,12 @@ class CompareCompanyFactsQueryParams(QueryParams):
 class CompareCompanyFactsData(Data):
     """Compare Company Facts Data."""
 
-    symbol: Optional[str] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("symbol", "")
-    )
+    symbol: Optional[str] = Field(default=None, description=DATA_DESCRIPTIONS.get("symbol", ""))
     name: Optional[str] = Field(default=None, description="Name of the entity.")
     value: float = Field(
         description="The reported value of the fact or concept.",
     )
-    reported_date: Optional[dateType] = Field(
-        default=None, description="The date when the report was filed."
-    )
+    reported_date: Optional[dateType] = Field(default=None, description="The date when the report was filed.")
     period_beginning: Optional[dateType] = Field(
         default=None,
         description="The start date of the reporting period.",

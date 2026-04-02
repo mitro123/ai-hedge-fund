@@ -19,9 +19,7 @@ def get_app_id(contextual_user_data_directory: str) -> str:
     except OSError as e:
         if e.errno == 30:
             warnings.warn("Please move the application into a writable location.")
-            warnings.warn(
-                "Note for macOS users: copy `OpenBB Terminal` folder outside the DMG."
-            )
+            warnings.warn("Note for macOS users: copy `OpenBB Terminal` folder outside the DMG.")
         raise e
     except Exception as e:
         raise e

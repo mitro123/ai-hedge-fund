@@ -4,12 +4,13 @@ import datetime
 from typing import Literal, Optional, Union
 
 from annotated_types import Ge
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_ownership(Container):
@@ -31,9 +32,7 @@ class ROUTER_equity_ownership(Container):
         self,
         symbol: Annotated[
             str,
-            OpenBBField(
-                description="Symbol to get data for. A CIK or Symbol can be used."
-            ),
+            OpenBBField(description="Symbol to get data for. A CIK or Symbol can be used."),
         ],
         date: Annotated[
             Union[datetime.date, None, str],
@@ -53,7 +52,7 @@ class ROUTER_equity_ownership(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the form 13F.
 
@@ -147,7 +146,7 @@ class ROUTER_equity_ownership(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -174,7 +173,7 @@ class ROUTER_equity_ownership(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Obtain government transaction data, including data from the Senate
         and the House of Representatives.
@@ -255,10 +254,8 @@ class ROUTER_equity_ownership(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -266,16 +263,14 @@ class ROUTER_equity_ownership(Container):
     def insider_trading(
         self,
         symbol: Annotated[str, OpenBBField(description="Symbol to get data for.")],
-        limit: Annotated[
-            int, OpenBBField(description="The number of data entries to return.")
-        ] = 500,
+        limit: Annotated[int, OpenBBField(description="The number of data entries to return.")] = 500,
         provider: Annotated[
             Optional[Literal["fmp", "intrinio", "sec"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get data about trading by a company's management team and board of directors.
 
@@ -450,7 +445,7 @@ class ROUTER_equity_ownership(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -464,7 +459,7 @@ class ROUTER_equity_ownership(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get data about institutional ownership for a given company over time.
 
@@ -588,7 +583,7 @@ class ROUTER_equity_ownership(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -600,16 +595,14 @@ class ROUTER_equity_ownership(Container):
             Union[datetime.date, None, str],
             OpenBBField(description="A specific date to get data for."),
         ] = None,
-        page: Annotated[
-            Optional[int], OpenBBField(description="Page number of the data to fetch.")
-        ] = 0,
+        page: Annotated[Optional[int], OpenBBField(description="Page number of the data to fetch.")] = 0,
         provider: Annotated[
             Optional[Literal["fmp"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get data about major holders for a given company over time.
 
@@ -742,7 +735,7 @@ class ROUTER_equity_ownership(Container):
                     "page": page,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -761,7 +754,7 @@ class ROUTER_equity_ownership(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get data about share float for a given company.
 
@@ -845,10 +838,6 @@ class ROUTER_equity_ownership(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {
-                        "yfinance": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"symbol": {"yfinance": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )

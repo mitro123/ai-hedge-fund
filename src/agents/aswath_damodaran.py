@@ -28,9 +28,7 @@ class AswathDamodaranSignal(BaseModel):
     reasoning: str
 
 
-def aswath_damodaran_agent(
-    state: AgentState, agent_id: str = "aswath_damodaran_agent"
-) -> Dict[str, Any]:
+def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_agent") -> Dict[str, Any]:
     """
     Analyze US equities through Aswath Damodaran's intrinsic-value lens:
       • Cost of Equity via CAPM (risk-free + β·ERP)
@@ -42,9 +40,7 @@ def aswath_damodaran_agent(
     data: Dict[str, Any] = state["data"]
     end_date: str = data["end_date"]
     tickers: List[str] = data["tickers"]
-    api_key: Optional[str] = get_api_key_from_state(
-        state, "FINANCIAL_DATASETS_API_KEY"
-    )
+    api_key: Optional[str] = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
 
     if api_key is None:
         raise APIKeyError("FINANCIAL_DATASETS_API_KEY")
@@ -55,9 +51,7 @@ def aswath_damodaran_agent(
     for ticker in tickers:
         # ─── Fetch core data ────────────────────────────────────────────────────
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(
-            ticker, end_date, period="ttm", limit=5, api_key=api_key
-        )
+        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching financial line items")
         line_items = search_line_items(
@@ -80,40 +74,24 @@ def aswath_damodaran_agent(
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # ─── Analyses ───────────────────────────────────────────────────────────
-        progress.update_status(
-            agent_id, ticker, "Analyzing growth and reinvestment"
-        )
+        progress.update_status(agent_id, ticker, "Analyzing growth and reinvestment")
         growth_analysis = analyze_growth_and_reinvestment(metrics, line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing risk profile")
         risk_analysis = analyze_risk_profile(metrics, line_items)
 
-        progress.update_status(
-            agent_id, ticker, "Calculating intrinsic value (DCF)"
-        )
+        progress.update_status(agent_id, ticker, "Calculating intrinsic value (DCF)")
         intrinsic_val_analysis = calculate_intrinsic_value_dcf(metrics, line_items, risk_analysis)
 
         progress.update_status(agent_id, ticker, "Assessing relative valuation")
         relative_val_analysis = analyze_relative_valuation(metrics)
 
         # ─── Score & margin of safety ──────────────────────────────────────────
-        total_score = (
-            growth_analysis["score"] + 
-            risk_analysis["score"] + 
-            relative_val_analysis["score"]
-        )
-        max_score = (
-            growth_analysis["max_score"] + 
-            risk_analysis["max_score"] + 
-            relative_val_analysis["max_score"]
-        )
+        total_score = growth_analysis["score"] + risk_analysis["score"] + relative_val_analysis["score"]
+        max_score = growth_analysis["max_score"] + risk_analysis["max_score"] + relative_val_analysis["max_score"]
 
         intrinsic_value = intrinsic_val_analysis["intrinsic_value"]
-        margin_of_safety = (
-            (intrinsic_value - market_cap) / market_cap 
-            if intrinsic_value and market_cap 
-            else None
-        )
+        margin_of_safety = (intrinsic_value - market_cap) / market_cap if intrinsic_value and market_cap else None
 
         # Decision rules (Damodaran tends to act with ~20-25 % MOS)
         if margin_of_safety is not None and margin_of_safety >= 0.25:
@@ -163,9 +141,7 @@ def aswath_damodaran_agent(
 # ────────────────────────────────────────────────────────────────────────────────
 # Helper analyses
 # ────────────────────────────────────────────────────────────────────────────────
-def analyze_growth_and_reinvestment(
-    metrics: List[FinancialMetrics], line_items: List[LineItem]
-) -> Dict[str, Any]:
+def analyze_growth_and_reinvestment(metrics: List[FinancialMetrics], line_items: List[LineItem]) -> Dict[str, Any]:
     """
     Growth score (0-4):
       +2  5-yr CAGR of revenue > 8 %
@@ -178,12 +154,8 @@ def analyze_growth_and_reinvestment(
         return {"score": 0, "max_score": max_score, "details": "Insufficient history"}
 
     # Revenue growth analysis (using revenue_growth field from metrics)
-    revenue_growths: List[float] = [
-        m.revenue_growth for m in metrics if m.revenue_growth is not None
-    ]
-    avg_revenue_growth = (
-        sum(revenue_growths) / len(revenue_growths) if revenue_growths else None
-    )
+    revenue_growths: List[float] = [m.revenue_growth for m in metrics if m.revenue_growth is not None]
+    avg_revenue_growth = sum(revenue_growths) / len(revenue_growths) if revenue_growths else None
 
     score: int = 0
     details: List[str] = []
@@ -201,16 +173,9 @@ def analyze_growth_and_reinvestment(
         details.append("Revenue growth data incomplete")
 
     # FCFF growth (proxy: free_cash_flow trend)
-    fcfs_raw = [
-        getattr(li, "free_cash_flow", None) for li in reversed(line_items)
-    ]
+    fcfs_raw = [getattr(li, "free_cash_flow", None) for li in reversed(line_items)]
     fcfs: List[float] = [f for f in fcfs_raw if f is not None]
-    if (
-        len(fcfs) >= 2 
-        and fcfs[-1] is not None 
-        and fcfs[0] is not None 
-        and fcfs[-1] > fcfs[0]
-    ):
+    if len(fcfs) >= 2 and fcfs[-1] is not None and fcfs[0] is not None and fcfs[-1] > fcfs[0]:
         score += 1
         details.append("Positive FCFF growth")
     else:
@@ -298,11 +263,7 @@ def analyze_relative_valuation(metrics: List[FinancialMetrics]) -> Dict[str, Any
     if not metrics or len(metrics) < 5:
         return {"score": 0, "max_score": max_score, "details": "Insufficient P/E history"}
 
-    pes: List[float] = [
-        m.price_to_earnings_ratio 
-        for m in metrics 
-        if m.price_to_earnings_ratio
-    ]
+    pes: List[float] = [m.price_to_earnings_ratio for m in metrics if m.price_to_earnings_ratio]
     if len(pes) < 5:
         return {"score": 0, "max_score": max_score, "details": "P/E data sparse"}
 

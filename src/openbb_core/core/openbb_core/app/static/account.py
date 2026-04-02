@@ -5,7 +5,7 @@ import json
 from functools import wraps
 from pathlib import Path
 from sys import exc_info
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, TYPE_CHECKING
 
 from openbb_core.app.logs.logging_service import LoggingService
 from openbb_core.app.model.abstract.error import OpenBBError
@@ -31,9 +31,7 @@ class Account:  # noqa: D205, D400
     def __init__(self, base_app: "BaseApp"):
         """Initialize account service."""
         self._base_app = base_app
-        self._openbb_directory = (
-            base_app._command_runner.system_settings.openbb_directory
-        )
+        self._openbb_directory = base_app._command_runner.system_settings.openbb_directory
         self._hub_service: Optional[HubService] = None
 
     def __repr__(self) -> str:
@@ -54,9 +52,7 @@ class Account:  # noqa: D205, D400
                 user_settings = self._base_app._command_runner.user_settings
                 system_settings = self._base_app._command_runner.system_settings
                 if system_settings.logging_suppress is False:
-                    ls = LoggingService(
-                        user_settings=user_settings, system_settings=system_settings
-                    )
+                    ls = LoggingService(user_settings=user_settings, system_settings=system_settings)
                     ls.log(
                         user_settings=user_settings,
                         system_settings=system_settings,
@@ -135,9 +131,7 @@ class Account:  # noqa: D205, D400
                 if not self._hub_service.session:
                     raise OpenBBError("Not connected to hub.")
 
-                json.dump(
-                    self._hub_service.session.model_dump(mode="json"), f, indent=4
-                )
+                json.dump(self._hub_service.session.model_dump(mode="json"), f, indent=4)
 
         if return_settings:
             return self._base_app._command_runner.user_settings

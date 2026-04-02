@@ -1,15 +1,14 @@
 """Options Snapshots Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import List, Union
+
+from pydantic import Field
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS
-from pydantic import Field
 
 
 class OptionsSnapshotsQueryParams(QueryParams):
@@ -19,13 +18,9 @@ class OptionsSnapshotsQueryParams(QueryParams):
 class OptionsSnapshotsData(Data):
     """Options Snapshots Data."""
 
-    underlying_symbol: List[str] = Field(
-        description="Ticker symbol of the underlying asset."
-    )
+    underlying_symbol: List[str] = Field(description="Ticker symbol of the underlying asset.")
     contract_symbol: List[str] = Field(description="Symbol of the options contract.")
-    expiration: List[dateType] = Field(
-        description="Expiration date of the options contract."
-    )
+    expiration: List[dateType] = Field(description="Expiration date of the options contract.")
     dte: List[Union[int, None]] = Field(
         default_factory=list,
         description="Number of days to expiration of the options contract.",

@@ -22,9 +22,7 @@ class CharlieMungerSignal(BaseModel):
     reasoning: str
 
 
-def charlie_munger_agent(
-    state: AgentState, agent_id: str = "charlie_munger_agent"
-) -> Dict[str, Any]:
+def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agent") -> Dict[str, Any]:
     """
     Analyzes stocks using Charlie Munger's investing principles and mental models.
     Focuses on moat strength, management quality, predictability, and valuation.
@@ -74,15 +72,11 @@ def charlie_munger_agent(
 
         progress.update_status(agent_id, ticker, "Fetching insider trades")
         # Munger values management with skin in the game
-        insider_trades = get_insider_trades(
-            ticker, end_date, start_date=None, limit=100, api_key=api_key
-        )
+        insider_trades = get_insider_trades(ticker, end_date, start_date=None, limit=100, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching company news")
         # Munger avoids businesses with frequent negative press
-        company_news = get_company_news(
-            ticker, end_date, start_date=None, limit=100, api_key=api_key
-        )
+        company_news = get_company_news(ticker, end_date, start_date=None, limit=100, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Analyzing moat strength")
         moat_analysis = analyze_moat_strength(metrics, financial_line_items)
@@ -128,11 +122,7 @@ def charlie_munger_agent(
             "predictability_analysis": predictability_analysis,
             "valuation_analysis": valuation_analysis,
             # Include some qualitative assessment from news
-            "news_sentiment": (
-                analyze_news_sentiment(company_news)
-                if company_news
-                else "No news data available"
-            ),
+            "news_sentiment": (analyze_news_sentiment(company_news) if company_news else "No news data available"),
         }
 
         progress.update_status(agent_id, ticker, "Generating Charlie Munger analysis")

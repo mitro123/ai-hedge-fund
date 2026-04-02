@@ -3,25 +3,19 @@
 from datetime import date as dateType
 from typing import Optional
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class EquityOwnershipQueryParams(QueryParams):
     """Equity Ownership Query."""
 
     symbol: str = Field(description=QUERY_DESCRIPTIONS.get("symbol", ""))
-    date: Optional[dateType] = Field(
-        default=None, description=QUERY_DESCRIPTIONS.get("date", "")
-    )
-    page: Optional[int] = Field(
-        default=0, description="Page number of the data to fetch."
-    )
+    date: Optional[dateType] = Field(default=None, description=QUERY_DESCRIPTIONS.get("date", ""))
+    page: Optional[int] = Field(default=0, description="Page number of the data to fetch.")
 
     @field_validator("date", mode="before", check_fields=False)
     @classmethod

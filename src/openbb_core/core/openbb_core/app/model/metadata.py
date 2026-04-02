@@ -3,8 +3,9 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Sequence, Union
 
-from openbb_core.provider.abstract.data import Data
 from pydantic import BaseModel, Field, field_validator
+
+from openbb_core.provider.abstract.data import Data
 
 
 class Metadata(BaseModel):
@@ -14,17 +15,13 @@ class Metadata(BaseModel):
         default_factory=dict,
         description="Arguments of the command.",
     )
-    duration: int = Field(
-        description="Execution duration in nano second of the command."
-    )
+    duration: int = Field(description="Execution duration in nano second of the command.")
     route: str = Field(description="Route of the command.")
     timestamp: datetime = Field(description="Execution starting timestamp.")
 
     def __repr__(self) -> str:
         """Return string representation."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())
 
     @field_validator("arguments")
     @classmethod
@@ -39,6 +36,7 @@ class Metadata(BaseModel):
         """
         # pylint: disable=import-outside-toplevel
         from inspect import isclass  # noqa
+
         from numpy import ndarray  # noqa
         from pandas import DataFrame, Series  # noqa
 
@@ -46,9 +44,7 @@ class Metadata(BaseModel):
         for item in ["provider_choices", "standard_params", "extra_params"]:
             arguments[item] = {}
             # The item could be class or it could a dictionary.
-            v_item = (
-                v.__dict__.get(item, {}) if not isinstance(v, dict) else v.get(item, {})
-            )
+            v_item = v.__dict__.get(item, {}) if not isinstance(v, dict) else v.get(item, {})
             # The item might not be a dictionary yet.
             v_item = v_item if isinstance(v_item, dict) else v_item.__dict__
             for arg, arg_val in v_item.items():
@@ -64,9 +60,7 @@ class Metadata(BaseModel):
                 # List[Data]
                 if isinstance(arg_val, list) and issubclass(type(arg_val[0]), Data):
                     _columns = [list(d.model_dump().keys()) for d in arg_val]
-                    ld_columns = (
-                        item for sublist in _columns for item in sublist
-                    )  # flatten
+                    ld_columns = (item for sublist in _columns for item in sublist)  # flatten
                     new_arg_val = {
                         "type": f"List[{type(arg_val[0]).__name__}]",
                         "columns": list(set(ld_columns)),
@@ -85,9 +79,7 @@ class Metadata(BaseModel):
                     }
 
                 # List[DataFrame]
-                elif isinstance(arg_val, list) and issubclass(
-                    type(arg_val[0]), DataFrame
-                ):
+                elif isinstance(arg_val, list) and issubclass(type(arg_val[0]), DataFrame):
                     ldf_columns = [
                         (
                             list(df.index.names) + df.columns.tolist()
@@ -113,9 +105,7 @@ class Metadata(BaseModel):
                     ls_columns = [
                         (
                             list(series.index.names) + [series.name]
-                            if any(
-                                index is not None for index in list(series.index.names)
-                            )
+                            if any(index is not None for index in list(series.index.names))
                             else series.name
                         )
                         for series in arg_val

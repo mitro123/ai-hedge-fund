@@ -3,10 +3,8 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
-from openbb_core.app.provider_interface import (
-    ProviderChoices,
-    ProviderInterface,
-)
+
+from openbb_core.app.provider_interface import ProviderChoices, ProviderInterface
 
 
 @pytest.fixture(scope="module")

@@ -1,18 +1,14 @@
 """ESG Score Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import List, Set, Union
+
+from pydantic import Field, field_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class ESGScoreQueryParams(QueryParams):
@@ -36,9 +32,7 @@ class ESGScoreData(Data):
     form_type: str = Field(description="Form type of the company.")
     accepted_date: datetime = Field(description="Accepted date of the company.")
     date: dateType = Field(description=DATA_DESCRIPTIONS.get("date", ""))
-    environmental_score: float = Field(
-        description="Environmental score of the company."
-    )
+    environmental_score: float = Field(description="Environmental score of the company.")
     social_score: float = Field(description="Social score of the company.")
     governance_score: float = Field(description="Governance score of the company.")
     esg_score: float = Field(description="ESG score of the company.")

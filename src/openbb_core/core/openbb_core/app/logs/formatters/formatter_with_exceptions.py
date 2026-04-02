@@ -10,9 +10,7 @@ class FormatterWithExceptions(logging.Formatter):
 
     DATEFORMAT = "%Y-%m-%dT%H:%M:%S%z"
     LOGFORMAT = "%(asctime)s|%(name)s|%(funcName)s|%(lineno)s|%(message)s"
-    LOGPREFIXFORMAT = (
-        "%(levelname)s|%(appName)s|%(commitHash)s|%(appId)s|%(sessionId)s|%(userId)s|"
-    )
+    LOGPREFIXFORMAT = "%(levelname)s|%(appName)s|%(commitHash)s|%(appId)s|%(sessionId)s|%(userId)s|"
 
     @staticmethod
     def calculate_level_name(record: logging.LogRecord) -> str:
@@ -94,9 +92,7 @@ class FormatterWithExceptions(logging.Formatter):
         from pathlib import Path
 
         user_home_directory = str(Path.home().as_posix())
-        text_mocked = text.replace("\\", "/").replace(
-            user_home_directory, "MOCKING_USER_PATH"
-        )
+        text_mocked = text.replace("\\", "/").replace(user_home_directory, "MOCKING_USER_PATH")
 
         return text_mocked
 

@@ -3,14 +3,15 @@
 from typing import Any, Literal, Optional, Union
 
 from numpy import ndarray
+from pandas import DataFrame, Series
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
 from openbb_core.provider.abstract.data import Data
-from pandas import DataFrame, Series
-from typing_extensions import Annotated
 
 
 class ROUTER_derivatives_options(Container):
@@ -35,7 +36,7 @@ class ROUTER_derivatives_options(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the complete options chain for a ticker.
 
@@ -258,7 +259,7 @@ class ROUTER_derivatives_options(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get a snapshot of the options market universe.
 
@@ -383,9 +384,7 @@ class ROUTER_derivatives_options(Container):
             OpenBBField(description=""),
         ],
         target: Annotated[str, OpenBBField(description="")] = "implied_volatility",
-        underlying_price: Annotated[
-            Optional[float], OpenBBField(description="")
-        ] = None,
+        underlying_price: Annotated[Optional[float], OpenBBField(description="")] = None,
         option_type: Annotated[
             Optional[Literal["otm", "itm", "calls", "puts"]],
             OpenBBField(description=""),
@@ -397,11 +396,9 @@ class ROUTER_derivatives_options(Container):
         strike_max: Annotated[Optional[float], OpenBBField(description="")] = None,
         oi: Annotated[bool, OpenBBField(description="")] = False,
         volume: Annotated[bool, OpenBBField(description="")] = False,
-        theme: Annotated[
-            Literal["dark", "light"], OpenBBField(description="")
-        ] = "dark",
+        theme: Annotated[Literal["dark", "light"], OpenBBField(description="")] = "dark",
         chart_params: Annotated[Optional[dict], OpenBBField(description="")] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> OBBject:
         """Filter and process the options chains data for volatility.
 
@@ -514,7 +511,7 @@ class ROUTER_derivatives_options(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the complete options chain for a ticker.
 

@@ -22,9 +22,7 @@ class WarrenBuffettSignal(BaseModel):
     reasoning: str
 
 
-def warren_buffett_agent(
-    state: AgentState, agent_id: str = "warren_buffett_agent"
-) -> Dict[str, Any]:
+def warren_buffett_agent(state: AgentState, agent_id: str = "warren_buffett_agent") -> Dict[str, Any]:
     """Analyzes stocks using Buffett's principles and LLM reasoning."""
     data = state["data"]
     end_date = data["end_date"]

@@ -58,7 +58,7 @@ def call_llm(
             api_keys = request.api_keys
 
     model_info = get_model_info(model_name, model_provider)
-    
+
     # Konverze model_provider na ModelProvider enum pokud je to string
     if isinstance(model_provider, str):
         try:
@@ -74,7 +74,7 @@ def call_llm(
                 raise ModelNotFoundError(model_name=model_name, provider=model_provider)
     else:
         provider_enum = model_provider
-    
+
     llm = get_model(model_name, provider_enum, api_keys or {})
 
     # Pro modely bez JSON podpory můžeme použít strukturovaný výstup

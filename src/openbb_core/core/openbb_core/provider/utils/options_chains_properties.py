@@ -4,7 +4,7 @@
 
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, TYPE_CHECKING, Union
 
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.data import Data
@@ -49,7 +49,7 @@ class OptionsChainsProperties(Data):
         """
         # pylint: disable=import-outside-toplevel
         from numpy import nan
-        from pandas import DataFrame, DatetimeIndex, Timedelta, concat, to_datetime
+        from pandas import concat, DataFrame, DatetimeIndex, Timedelta, to_datetime
 
         chains_data = DataFrame(
             self.model_dump(
@@ -89,20 +89,14 @@ class OptionsChainsProperties(Data):
         try:
             _calls = DataFrame(chains_data[chains_data.option_type == "call"])
             _puts = DataFrame(chains_data[chains_data.option_type == "put"])
-            _ask = self._identify_price_col(  # pylint: disable=W0212
-                chains_data, "call", "ask"
-            )
+            _ask = self._identify_price_col(chains_data, "call", "ask")  # pylint: disable=W0212
             _calls.loc[:, ("Breakeven")] = _calls.strike + _calls.loc[:, (_ask)]
             _puts.loc[:, ("Breakeven")] = _puts.strike - _puts.loc[:, (_ask)]
             if "delta" in _calls.columns:
                 _calls.loc[:, ("DEX")] = (
                     (
                         _calls.delta
-                        * (
-                            _calls.contract_size
-                            if hasattr(_calls, "contract_size")
-                            else 100
-                        )
+                        * (_calls.contract_size if hasattr(_calls, "contract_size") else 100)
                         * _calls.open_interest
                         * _calls.underlying_price
                     )
@@ -112,11 +106,7 @@ class OptionsChainsProperties(Data):
                 _puts.loc[:, ("DEX")] = (
                     (
                         _puts.delta
-                        * (
-                            _puts.contract_size
-                            if hasattr(_puts, "contract_size")
-                            else 100
-                        )
+                        * (_puts.contract_size if hasattr(_puts, "contract_size") else 100)
                         * _puts.open_interest
                         * _puts.underlying_price
                     )
@@ -128,11 +118,7 @@ class OptionsChainsProperties(Data):
                 _calls.loc[:, ("GEX")] = (
                     (
                         _calls.gamma
-                        * (
-                            _calls.contract_size
-                            if hasattr(_calls, "contract_size")
-                            else 100
-                        )
+                        * (_calls.contract_size if hasattr(_calls, "contract_size") else 100)
                         * _calls.open_interest
                         * (_calls.underlying_price * _calls.underlying_price)
                         * 0.01
@@ -143,11 +129,7 @@ class OptionsChainsProperties(Data):
                 _puts.loc[:, ("GEX")] = (
                     (
                         _puts.gamma
-                        * (
-                            _puts.contract_size
-                            if hasattr(_puts, "contract_size")
-                            else 100
-                        )
+                        * (_puts.contract_size if hasattr(_puts, "contract_size") else 100)
                         * _puts.open_interest
                         * (_puts.underlying_price * _puts.underlying_price)
                         * 0.01
@@ -322,7 +304,7 @@ class OptionsChainsProperties(Data):
         """
         # pylint: disable=import-outside-toplevel
         from numpy import nan
-        from pandas import DataFrame, concat
+        from pandas import concat, DataFrame
 
         stats = ["open_interest", "volume", "dex", "gex"]
         _stat = stat.upper() if stat in ["dex", "gex"] else stat
@@ -348,12 +330,8 @@ class OptionsChainsProperties(Data):
         df = self.dataframe
 
         if moneyness is not None:
-            df_calls = DataFrame(
-                df[df.strike >= df.underlying_price].query("option_type == 'call'")
-            )
-            df_puts = DataFrame(
-                df[df.strike <= df.underlying_price].query("option_type == 'put'")
-            )
+            df_calls = DataFrame(df[df.strike >= df.underlying_price].query("option_type == 'call'"))
+            df_puts = DataFrame(df[df.strike <= df.underlying_price].query("option_type == 'put'"))
             df = concat([df_calls, df_puts])
 
         if date is not None:
@@ -368,12 +346,7 @@ class OptionsChainsProperties(Data):
                 raise OpenBBError(f"Error: column '{column}' not found in data")
             df = DataFrame(df[df[column].notnull()])
             if value_min is not None and value_max is not None:
-                df = DataFrame(
-                    df[
-                        (df[column].abs() >= value_min)
-                        & (df[column].abs() <= value_max)
-                    ]
-                )
+                df = DataFrame(df[(df[column].abs() >= value_min) & (df[column].abs() <= value_max)])
             elif value_min is not None:
                 df = DataFrame(df[df[column].abs() >= value_min])
             elif value_max is not None:
@@ -394,7 +367,7 @@ class OptionsChainsProperties(Data):
         """
         # pylint: disable=import-outside-toplevel
         from numpy import inf, nan
-        from pandas import DataFrame, concat
+        from pandas import concat, DataFrame
 
         df = self.dataframe
 
@@ -438,9 +411,7 @@ class OptionsChainsProperties(Data):
         by_expiration["Calls"] = df[df.option_type == "call"].groupby("expiration")[metric].sum().copy()  # type: ignore
         by_expiration["Puts"] = df[df.option_type == "put"].groupby("expiration")[metric].sum().copy()  # type: ignore
         by_expiration["PCR"] = round(by_expiration["Puts"] / by_expiration["Calls"], 4)
-        by_expiration["Net Percent"] = round(
-            (by_expiration["Total"] / total_metric) * 100, 4
-        )
+        by_expiration["Net Percent"] = round((by_expiration["Total"] / total_metric) * 100, 4)
         by_expiration = (
             by_expiration[["Calls", "Puts", "Total", "Net Percent", "PCR"]]
             .replace({0: None, inf: None, nan: None})
@@ -468,9 +439,7 @@ class OptionsChainsProperties(Data):
             "strike": by_strike_dict,
         }
 
-    def _get_nearest_expiration(
-        self, date: Optional[Union[str, int]] = None, df: Optional["DataFrame"] = None
-    ) -> str:
+    def _get_nearest_expiration(self, date: Optional[Union[str, int]] = None, df: Optional["DataFrame"] = None) -> str:
         """Return the nearest expiration date to the given date or number of days until expiry.
         This method is not intended to be called directly.
 
@@ -486,6 +455,7 @@ class OptionsChainsProperties(Data):
         """
         # pylint: disable=import-outside-toplevel
         from datetime import timedelta  # noqa
+
         from pandas import DataFrame, Series, to_datetime
 
         df = df if df is not None else self.dataframe
@@ -500,9 +470,7 @@ class OptionsChainsProperties(Data):
                 return dataframe.loc[nearest, "expiration"].strftime("%Y-%m-%d")
         elif date is None:
             date = to_datetime(
-                df.eod_date.iloc[0]
-                if hasattr(df, "eod_date")
-                else datetime.today().strftime("%Y-%m-%d")
+                df.eod_date.iloc[0] if hasattr(df, "eod_date") else datetime.today().strftime("%Y-%m-%d")
             )  # type: ignore
         else:
             date = to_datetime(date)  # type: ignore
@@ -546,27 +514,19 @@ class OptionsChainsProperties(Data):
             moneyness = moneyness / 100
 
         if moneyness > 100 or moneyness < 0:
-            raise OpenBBError(
-                "Error: Moneyness must be expressed as a percentage between 0 and 100"
-            )
+            raise OpenBBError("Error: Moneyness must be expressed as a percentage between 0 and 100")
 
         df = self.dataframe
 
         if underlying_price is None and not hasattr(df, "underlying_price"):
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
         if date is not None:
             date = self._get_nearest_expiration(date)
             df = df[df.expiration.astype(str) == date]
             strikes = Series(df.strike.unique().tolist())
 
-        last_price = (
-            underlying_price
-            if underlying_price is not None
-            else df.underlying_price.iloc[0]
-        )
+        last_price = underlying_price if underlying_price is not None else df.underlying_price.iloc[0]
         strikes = Series(self.strikes)
 
         upper = last_price * (1 + moneyness)  # type: ignore
@@ -622,11 +582,7 @@ class OptionsChainsProperties(Data):
             days = 30
 
         dte_estimate = self._get_nearest_expiration(days)
-        df = (
-            chains[chains.expiration.astype(str) == dte_estimate]
-            .query("`option_type` == @option_type")
-            .copy()
-        )
+        df = chains[chains.expiration.astype(str) == dte_estimate].query("`option_type` == @option_type").copy()
         if strike is None:
             strike = df.underlying_price.iloc[0]
 
@@ -641,9 +597,7 @@ class OptionsChainsProperties(Data):
             nearest = (strikes - strike).abs().idxmin()
             return strikes.iloc[nearest]
 
-        nearest = (
-            df[df.strike <= strike] if option_type == "put" else df[df.strike >= strike]
-        )
+        nearest = df[df.strike <= strike] if option_type == "put" else df[df.strike >= strike]
 
         if nearest.empty or len(nearest) == 0:  # type: ignore
             return None
@@ -701,21 +655,13 @@ class OptionsChainsProperties(Data):
         chains = chains[chains.expiration.astype(str) == dte_estimate]
 
         if not hasattr(chains, "underlying_price") and underlying_price is None:
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
-        underlying_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
+        underlying_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
 
         force_otm = True
 
         if strike is None and not hasattr(chains, "underlying_price"):
-            raise OpenBBError(
-                "Error: strike must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: strike must be provided if underlying_price is not available")
 
         if strike is not None:
             force_otm = False
@@ -737,14 +683,10 @@ class OptionsChainsProperties(Data):
         put_strike_estimate = self._get_nearest_strike(
             "put", days, strike_price, put_price_col, force_otm
         )  # type: ignore
-        call_premium = chains[chains.strike == call_strike_estimate].query(  # type: ignore
-            "`option_type` == 'call'"
-        )[
+        call_premium = chains[chains.strike == call_strike_estimate].query("`option_type` == 'call'")[  # type: ignore
             call_price_col
         ]
-        put_premium = chains[chains.strike == put_strike_estimate].query(  # type: ignore
-            "`option_type` == 'put'"
-        )[
+        put_premium = chains[chains.strike == put_strike_estimate].query("`option_type` == 'put'")[  # type: ignore
             put_price_col
         ]
         if call_premium.empty or put_premium.empty:
@@ -773,32 +715,24 @@ class OptionsChainsProperties(Data):
                 "Strike 1 Premium": call_premium,
                 "Strike 2 Premium": put_premium,
                 "Cost": straddle_cost * -1 if short else straddle_cost,
-                "Cost Percent": round(
-                    straddle_cost / underlying_price * 100, ndigits=4
-                ),
+                "Cost Percent": round(straddle_cost / underlying_price * 100, ndigits=4),
                 "Breakeven Upper": call_strike_estimate + straddle_cost,
                 "Breakeven Upper Percent": round(
-                    ((call_strike_estimate + straddle_cost) / underlying_price * 100)
-                    - 100,
+                    ((call_strike_estimate + straddle_cost) / underlying_price * 100) - 100,
                     ndigits=4,
                 ),
                 "Breakeven Lower": put_strike_estimate - straddle_cost,
                 "Breakeven Lower Percent": round(
-                    -100
-                    + (put_strike_estimate - straddle_cost) / underlying_price * 100,
+                    -100 + (put_strike_estimate - straddle_cost) / underlying_price * 100,
                     ndigits=4,
                 ),
                 "Max Profit": abs(straddle_cost) if short else inf,
                 "Max Loss": inf if short else straddle_cost * -1,
             }
         )
-        straddle = Series(
-            data=straddle_dict.values(), index=list(straddle_dict)  # type: ignore
-        )
+        straddle = Series(data=straddle_dict.values(), index=list(straddle_dict))  # type: ignore
         straddle.name = "Short Straddle" if short else "Long Straddle"
-        straddle.loc["Payoff Ratio"] = round(
-            abs(straddle.loc["Max Profit"] / straddle.loc["Max Loss"]), ndigits=4
-        )
+        straddle.loc["Payoff Ratio"] = round(abs(straddle.loc["Max Profit"] / straddle.loc["Max Loss"]), ndigits=4)
 
         return straddle.to_frame()
 
@@ -853,33 +787,19 @@ class OptionsChainsProperties(Data):
         put_price_col = self._identify_price_col(chains, "put", bid_ask)  # type: ignore
 
         if underlying_price is None and not hasattr(chains, "underlying_price"):
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
-        underlying_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+        underlying_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
 
-        strikes = self._get_nearest_otm_strikes(
-            dte_estimate, underlying_price, moneyness
-        )
+        strikes = self._get_nearest_otm_strikes(dte_estimate, underlying_price, moneyness)
         call_strike_estimate = self._get_nearest_strike(
             "call", days, strikes.get("call"), call_price_col, force_otm=False
         )
-        put_strike_estimate = self._get_nearest_strike(
-            "put", days, strikes.get("put"), put_price_col, force_otm=False
-        )
-        call_premium = chains[chains.strike == call_strike_estimate].query(  # type: ignore
-            "`option_type` == 'call'"
-        )[
+        put_strike_estimate = self._get_nearest_strike("put", days, strikes.get("put"), put_price_col, force_otm=False)
+        call_premium = chains[chains.strike == call_strike_estimate].query("`option_type` == 'call'")[  # type: ignore
             call_price_col
         ]
-        put_premium = chains[chains.strike == put_strike_estimate].query(  # type: ignore
-            "`option_type` == 'put'"
-        )[
+        put_premium = chains[chains.strike == put_strike_estimate].query("`option_type` == 'put'")[  # type: ignore
             put_price_col
         ]
 
@@ -893,11 +813,7 @@ class OptionsChainsProperties(Data):
 
         dte = chains[chains.expiration.astype(str) == dte_estimate]["dte"].unique()[0]  # type: ignore
         strangle_cost = call_premium + put_premium
-        underlying_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+        underlying_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
         strangle_dict: Dict = {}
         # Includes the as-of date if it is historical EOD data.
         if hasattr(chains, "eod_date"):
@@ -914,21 +830,15 @@ class OptionsChainsProperties(Data):
                 "Strike 1 Premium": call_premium,
                 "Strike 2 Premium": put_premium,
                 "Cost": strangle_cost * -1 if short else strangle_cost,
-                "Cost Percent": round(
-                    strangle_cost / underlying_price * 100, ndigits=4
-                ),
+                "Cost Percent": round(strangle_cost / underlying_price * 100, ndigits=4),
                 "Breakeven Upper": call_strike_estimate + strangle_cost,
                 "Breakeven Upper Percent": round(
-                    ((call_strike_estimate + strangle_cost) / underlying_price * 100)
-                    - 100,
+                    ((call_strike_estimate + strangle_cost) / underlying_price * 100) - 100,
                     ndigits=4,
                 ),
                 "Breakeven Lower": put_strike_estimate - strangle_cost,
                 "Breakeven Lower Percent": round(
-                    (
-                        -100
-                        + (put_strike_estimate - strangle_cost) / underlying_price * 100
-                    ),
+                    (-100 + (put_strike_estimate - strangle_cost) / underlying_price * 100),
                     ndigits=4,
                 ),
                 "Max Profit": abs(strangle_cost) if short else inf,
@@ -940,9 +850,7 @@ class OptionsChainsProperties(Data):
             index=list(strangle_dict),  # type: ignore
         )
         strangle.name = "Short Strangle" if short else "Long Strangle"
-        strangle.loc["Payoff Ratio"] = round(
-            abs(strangle.loc["Max Profit"] / strangle.loc["Max Loss"]), ndigits=4
-        )
+        strangle.loc["Payoff Ratio"] = round(abs(strangle.loc["Max Profit"] / strangle.loc["Max Loss"]), ndigits=4)
 
         return strangle.to_frame()
 
@@ -985,9 +893,7 @@ class OptionsChainsProperties(Data):
         chains = self.dataframe
 
         if not hasattr(chains, "underlying_price") and underlying_price is None:
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
         if days is None:
             days = 30
@@ -997,15 +903,9 @@ class OptionsChainsProperties(Data):
 
         dte_estimate = self._get_nearest_expiration(days)
 
-        chains = chains[chains["expiration"].astype(str) == dte_estimate].query(
-            "`option_type` == 'call'"
-        )
+        chains = chains[chains["expiration"].astype(str) == dte_estimate].query("`option_type` == 'call'")
 
-        last_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+        last_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
 
         if bought is None:
             bought = last_price * 1.0250
@@ -1043,29 +943,21 @@ class OptionsChainsProperties(Data):
                     "Cost": spread_cost,
                     "Cost Percent": round(spread_cost / last_price * 100, ndigits=4),
                     "Breakeven Lower": breakeven_price,
-                    "Breakeven Lower Percent": round(
-                        (breakeven_price / last_price * 100) - 100, ndigits=4
-                    ),
+                    "Breakeven Lower Percent": round((breakeven_price / last_price * 100) - 100, ndigits=4),
                     "Breakeven Upper": nan,
                     "Breakeven Upper Percent": nan,
                     "Max Profit": max_profit,
                     "Max Loss": spread_cost * -1,
                 }
             )
-            call_spread = Series(
-                data=call_spread_.values(), index=list(call_spread_)  # type: ignore
-            )
+            call_spread = Series(data=call_spread_.values(), index=list(call_spread_))  # type: ignore
             call_spread.name = "Bull Call Spread"
 
             if call_spread.loc["Cost"] < 0:
                 call_spread.loc["Max Profit"] = call_spread.loc["Cost"] * -1
-                call_spread.loc["Max Loss"] = -1 * (
-                    bought - sold + call_spread.loc["Cost"]  # type: ignore
-                )
+                call_spread.loc["Max Loss"] = -1 * (bought - sold + call_spread.loc["Cost"])  # type: ignore
                 lower = bought if sold > bought else sold  # type: ignore
-                call_spread.loc["Breakeven Upper"] = (
-                    lower + call_spread.loc["Max Profit"]
-                )
+                call_spread.loc["Breakeven Upper"] = lower + call_spread.loc["Max Profit"]
                 call_spread.loc["Breakeven Upper Percent"] = round(
                     (breakeven_price / last_price * 100) - 100, ndigits=4
                 )
@@ -1121,9 +1013,7 @@ class OptionsChainsProperties(Data):
         chains = self.dataframe
 
         if not hasattr(chains, "underlying_price") and underlying_price is None:
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
         if days is None:
             days = 30
@@ -1133,15 +1023,9 @@ class OptionsChainsProperties(Data):
 
         dte_estimate = self._get_nearest_expiration(days)
 
-        chains = chains[chains["expiration"].astype(str) == dte_estimate].query(
-            "`option_type` == 'put'"
-        )
+        chains = chains[chains["expiration"].astype(str) == dte_estimate].query("`option_type` == 'put'")
 
-        last_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+        last_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
 
         if bought is None:
             bought = last_price * 0.9750
@@ -1182,9 +1066,7 @@ class OptionsChainsProperties(Data):
                     "Breakeven Lower": nan,
                     "Breakeven Lower Percent": nan,
                     "Breakeven Upper": breakeven_price,
-                    "Breakeven Upper Percent": (
-                        100 - round((breakeven_price / last_price) * 100, ndigits=4)
-                    ),
+                    "Breakeven Upper Percent": (100 - round((breakeven_price / last_price) * 100, ndigits=4)),
                     "Max Profit": max_profit,
                     "Max Loss": max_loss,
                 }
@@ -1196,9 +1078,7 @@ class OptionsChainsProperties(Data):
                 put_spread.loc["Max Profit"] = bought - sold - spread_cost  # type: ignore
                 put_spread.loc["Max Loss"] = spread_cost * (-1)
                 put_spread.loc["Breakeven Lower"] = bought - spread_cost
-                put_spread.loc["Breakeven Lower Percent"] = 100 - round(
-                    (breakeven_price / last_price) * 100, ndigits=4
-                )
+                put_spread.loc["Breakeven Lower Percent"] = 100 - round((breakeven_price / last_price) * 100, ndigits=4)
                 put_spread.loc["Breakeven Upper"] = nan
                 put_spread.loc["Breakeven Upper Percent"] = nan
                 put_spread.name = "Bear Put Spread"
@@ -1245,9 +1125,7 @@ class OptionsChainsProperties(Data):
         chains = self.dataframe
 
         if not hasattr(chains, "underlying_price") and underlying_price is None:
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
         if days is None:
             days = 30
@@ -1257,11 +1135,7 @@ class OptionsChainsProperties(Data):
 
         dte_estimate = self._get_nearest_expiration(days)
         chains = DataFrame(chains[chains["expiration"].astype(str) == dte_estimate])
-        last_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+        last_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
         bid = self._identify_price_col(chains, "put", "bid")
         ask = self._identify_price_col(chains, "call", "ask")
         strike_price = last_price if strike == 0 else strike
@@ -1271,10 +1145,7 @@ class OptionsChainsProperties(Data):
         call_premium = chains[chains.strike == bought].query("`option_type` == 'call'")[ask]  # type: ignore
 
         if call_premium.empty or put_premium.empty:
-            raise OpenBBError(
-                "Error: No premium data found for the selected strikes."
-                f" Call: {bought}, Put: {sold}"
-            )
+            raise OpenBBError("Error: No premium data found for the selected strikes." f" Call: {bought}, Put: {sold}")
 
         put_premium = put_premium.values[0] * (-1)
         call_premium = call_premium.values[0]
@@ -1301,9 +1172,7 @@ class OptionsChainsProperties(Data):
                 "Breakeven Lower": nan,
                 "Breakeven Lower Percent": nan,
                 "Breakeven Upper": breakeven,
-                "Breakeven Upper Percent": round(
-                    ((breakeven - last_price) / last_price) * 100, ndigits=4
-                ),
+                "Breakeven Upper Percent": round(((breakeven - last_price) / last_price) * 100, ndigits=4),
                 "Max Profit": inf,
                 "Max Loss": breakeven * (-1),
             }
@@ -1348,9 +1217,7 @@ class OptionsChainsProperties(Data):
         chains = self.dataframe
 
         if not hasattr(chains, "underlying_price") and underlying_price is None:
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
         if days is None:
             days = 30
@@ -1360,11 +1227,7 @@ class OptionsChainsProperties(Data):
 
         dte_estimate = self._get_nearest_expiration(days)
         chains = DataFrame(chains[chains["expiration"].astype(str) == dte_estimate])
-        last_price = (
-            underlying_price
-            if underlying_price is not None
-            else chains.underlying_price.iloc[0]
-        )
+        last_price = underlying_price if underlying_price is not None else chains.underlying_price.iloc[0]
         bid = self._identify_price_col(chains, "call", "bid")
         ask = self._identify_price_col(chains, "put", "ask")
         strike_price = last_price if strike == 0 else strike
@@ -1374,10 +1237,7 @@ class OptionsChainsProperties(Data):
         call_premium = chains[chains.strike == sold].query("`option_type` == 'call'")[bid]  # type: ignore
 
         if call_premium.empty or put_premium.empty:
-            raise OpenBBError(
-                "Error: No premium data found for the selected strikes."
-                f" Call: {bought}, Put: {sold}"
-            )
+            raise OpenBBError("Error: No premium data found for the selected strikes." f" Call: {bought}, Put: {sold}")
 
         put_premium = put_premium.values[0]
         call_premium = call_premium.values[0] * (-1)
@@ -1402,9 +1262,7 @@ class OptionsChainsProperties(Data):
                 "Cost": position_cost,
                 "Cost Percent": round(position_cost / last_price * 100, ndigits=4),
                 "Breakeven Lower": breakeven,
-                "Breakeven Lower Percent": round(
-                    ((breakeven - last_price) / last_price) * 100, ndigits=4
-                ),
+                "Breakeven Lower Percent": round(((breakeven - last_price) / last_price) * 100, ndigits=4),
                 "Breakeven Upper": nan,
                 "Breakeven Upper Percent": nan,
                 "Max Profit": breakeven,
@@ -1476,7 +1334,7 @@ class OptionsChainsProperties(Data):
             Pandas DataFrame with the results.
         """
         # pylint: disable=import-outside-toplevel
-        from pandas import DataFrame, concat
+        from pandas import concat, DataFrame
 
         def to_clean_list(x):
             if x is None:
@@ -1510,11 +1368,7 @@ class OptionsChainsProperties(Data):
         chains = self.dataframe
         bid = self._identify_price_col(chains, "call", "bid")
         chains = chains[chains[bid].notnull()].query("`dte` >= 0")
-        days = (
-            chains.dte.unique().tolist()
-            if days == -1
-            else days if days else [20, 40, 60, 90, 180, 360]
-        )
+        days = chains.dte.unique().tolist() if days == -1 else days if days else [20, 40, 60, 90, 180, 360]
         # Allows a single input to be passed instead of a list.
         days = [days] if isinstance(days, int) else days  # type: ignore[list-item]
 
@@ -1549,9 +1403,7 @@ class OptionsChainsProperties(Data):
                 c_strike1 = c[0]
                 c_strike2 = c[1]
                 for day in days:
-                    call_spread = self.vertical_call_spread(
-                        day, c_strike1, c_strike2, underlying_price
-                    )
+                    call_spread = self.vertical_call_spread(day, c_strike1, c_strike2, underlying_price)
                     if not call_spread.empty:
                         call_spreads = concat([call_spreads, call_spread.transpose()])
 
@@ -1560,27 +1412,21 @@ class OptionsChainsProperties(Data):
                 p_strike1 = c[0]
                 p_strike2 = c[1]
             for day in days:
-                put_spread = self.vertical_put_spread(
-                    day, p_strike1, p_strike2, underlying_price
-                )
+                put_spread = self.vertical_put_spread(day, p_strike1, p_strike2, underlying_price)
                 if not put_spread.empty:
                     put_spreads = concat([put_spreads, put_spread.transpose()])
 
         if straddle_strike or straddle_strike == 0:
             straddle_strike = None if straddle_strike == 0 else straddle_strike
             for day in days:
-                straddle = self.straddle(
-                    day, straddle_strike, underlying_price
-                ).transpose()
+                straddle = self.straddle(day, straddle_strike, underlying_price).transpose()
                 if not straddle.empty and straddle.iloc[0]["Cost"] != 0:
                     straddles = concat([straddles, straddle])
 
         if strangle_moneyness and strangle_moneyness[0] != 0:
             for day in days:
                 for moneyness in strangle_moneyness:
-                    strangle = self.strangle(
-                        day, moneyness, underlying_price
-                    ).transpose()
+                    strangle = self.strangle(day, moneyness, underlying_price).transpose()
                     if strangle.iloc[0]["Cost"] != 0:
                         strangles_ = concat([strangles_, strangle])
 
@@ -1591,13 +1437,8 @@ class OptionsChainsProperties(Data):
             strikes = synthetic_longs
             for day in days:
                 for strike in strikes:
-                    _synthetic_long = self.synthetic_long(
-                        day, strike, underlying_price
-                    ).transpose()
-                    if (
-                        not _synthetic_long.empty
-                        and _synthetic_long.iloc[0]["Strike 1 Premium"] != 0
-                    ):
+                    _synthetic_long = self.synthetic_long(day, strike, underlying_price).transpose()
+                    if not _synthetic_long.empty and _synthetic_long.iloc[0]["Strike 1 Premium"] != 0:
                         _synthetic_longs = concat([_synthetic_longs, _synthetic_long])
 
             synthetic_longs_df = concat([synthetic_longs_df, _synthetic_longs])
@@ -1606,16 +1447,9 @@ class OptionsChainsProperties(Data):
             strikes = synthetic_shorts
             for day in days:
                 for strike in strikes:
-                    _synthetic_short = self.synthetic_short(
-                        day, strike, underlying_price
-                    ).transpose()
-                    if (
-                        not _synthetic_short.empty
-                        and _synthetic_short.iloc[0]["Strike 1 Premium"] != 0
-                    ):
-                        _synthetic_shorts = concat(
-                            [_synthetic_shorts, _synthetic_short]
-                        )
+                    _synthetic_short = self.synthetic_short(day, strike, underlying_price).transpose()
+                    if not _synthetic_short.empty and _synthetic_short.iloc[0]["Strike 1 Premium"] != 0:
+                        _synthetic_shorts = concat([_synthetic_shorts, _synthetic_short])
 
             if not _synthetic_shorts.empty:
                 synthetic_shorts_df = concat([synthetic_shorts_df, _synthetic_shorts])
@@ -1635,11 +1469,7 @@ class OptionsChainsProperties(Data):
             raise OpenBBError("No strategies found for the given parameters.")
 
         strategies = strategies.reset_index().rename(columns={"index": "Strategy"})
-        strategies = (
-            strategies.set_index(["Expiration", "DTE"])
-            .sort_index()
-            .drop(columns=["Symbol"])
-        )
+        strategies = strategies.set_index(["Expiration", "DTE"]).sort_index().drop(columns=["Symbol"])
         return strategies.reset_index()
 
     def skew(
@@ -1674,7 +1504,7 @@ class OptionsChainsProperties(Data):
             Pandas DataFrame with the results.
         """
         # pylint: disable=import-outside-toplevel
-        from pandas import DataFrame, concat
+        from pandas import concat, DataFrame
 
         data = self.dataframe
         expiration: str = ""
@@ -1686,9 +1516,7 @@ class OptionsChainsProperties(Data):
         put_price_col = self._identify_price_col(data, "put", "ask")
 
         if not hasattr(data, "underlying_price") and underlying_price is None:
-            raise OpenBBError(
-                "Error: underlying_price must be provided if underlying_price is not available"
-            )
+            raise OpenBBError("Error: underlying_price must be provided if underlying_price is not available")
 
         if moneyness is not None and date is None:
             date = -1
@@ -1727,48 +1555,22 @@ class OptionsChainsProperties(Data):
                 atm_call_strike = self._get_nearest_strike(  # noqa:F841
                     "call", day, underlying_price, call_price_col, False
                 )
-                call_strike = self._get_nearest_strike(  # noqa:F841
-                    "call", day, strikes["call"], call_price_col, False
-                )
-                _calls = (
-                    data[data.dte == day]
-                    .query("`option_type` == 'call'")  # type: ignore
-                    .copy()
-                )
-                last_price = (
-                    underlying_price
-                    if underlying_price is not None
-                    else _calls.underlying_price.iloc[0]
-                )
+                call_strike = self._get_nearest_strike("call", day, strikes["call"], call_price_col, False)  # noqa:F841
+                _calls = data[data.dte == day].query("`option_type` == 'call'").copy()  # type: ignore
+                last_price = underlying_price if underlying_price is not None else _calls.underlying_price.iloc[0]
                 if len(_calls) > 0:
-                    call_iv = _calls[_calls.strike == call_strike][
-                        ["expiration", "strike", "implied_volatility"]
-                    ]
-                    atm_call = _calls[_calls.strike == atm_call_strike][
-                        ["expiration", "strike", "implied_volatility"]
-                    ]
+                    call_iv = _calls[_calls.strike == call_strike][["expiration", "strike", "implied_volatility"]]
+                    atm_call = _calls[_calls.strike == atm_call_strike][["expiration", "strike", "implied_volatility"]]
                     if len(atm_call) > 0:
                         calls = concat([calls, call_iv])  # type: ignore
                         atm_call_iv = concat([atm_call_iv, atm_call])  # type: ignore
 
-                atm_put_strike = self._get_nearest_strike(  # noqa:F841
-                    "put", day, last_price, put_price_col, False
-                )
-                put_strike = self._get_nearest_strike(  # noqa:F841
-                    "put", day, strikes["put"], put_price_col, False
-                )
-                _puts = (
-                    data[data.dte == day]
-                    .query("`option_type` == 'put'")  # type: ignore
-                    .copy()
-                )
+                atm_put_strike = self._get_nearest_strike("put", day, last_price, put_price_col, False)  # noqa:F841
+                put_strike = self._get_nearest_strike("put", day, strikes["put"], put_price_col, False)  # noqa:F841
+                _puts = data[data.dte == day].query("`option_type` == 'put'").copy()  # type: ignore
                 if len(_puts) > 0:
-                    put_iv = _puts[_puts.strike == put_strike][
-                        ["expiration", "strike", "implied_volatility"]
-                    ]
-                    atm_put = _puts[_puts.strike == atm_put_strike][
-                        ["expiration", "strike", "implied_volatility"]
-                    ]
+                    put_iv = _puts[_puts.strike == put_strike][["expiration", "strike", "implied_volatility"]]
+                    atm_put = _puts[_puts.strike == atm_put_strike][["expiration", "strike", "implied_volatility"]]
                     if len(atm_put) > 0:  # type: ignore
                         puts = concat([puts, put_iv])  # type: ignore
                         atm_put_iv = concat([atm_put_iv, atm_put])  # type: ignore
@@ -1780,13 +1582,9 @@ class OptionsChainsProperties(Data):
                 )
 
             calls = calls.drop_duplicates(subset=["expiration"]).set_index("expiration")  # type: ignore
-            atm_call_iv = atm_call_iv.drop_duplicates(subset=["expiration"]).set_index(  # type: ignore
-                "expiration"
-            )
+            atm_call_iv = atm_call_iv.drop_duplicates(subset=["expiration"]).set_index("expiration")  # type: ignore
             puts = puts.drop_duplicates(subset=["expiration"]).set_index("expiration")  # type: ignore
-            atm_put_iv = atm_put_iv.drop_duplicates(subset=["expiration"]).set_index(  # type: ignore
-                "expiration"
-            )
+            atm_put_iv = atm_put_iv.drop_duplicates(subset=["expiration"]).set_index("expiration")  # type: ignore
             skew_df["Call Strike"] = calls["strike"]
             skew_df["Call IV"] = calls["implied_volatility"]
             skew_df["Call ATM IV"] = atm_call_iv["implied_volatility"]
@@ -1808,35 +1606,23 @@ class OptionsChainsProperties(Data):
         puts = data[data.option_type == "put"]
 
         for day in days:
-            atm_call_strike = self._get_nearest_strike(
-                "call", day, underlying_price, force_otm=False
-            )  # noqa:F841
-            _calls = calls[calls["dte"] == day][
-                ["expiration", "option_type", "strike", "implied_volatility"]
-            ]
+            atm_call_strike = self._get_nearest_strike("call", day, underlying_price, force_otm=False)  # noqa:F841
+            _calls = calls[calls["dte"] == day][["expiration", "option_type", "strike", "implied_volatility"]]
 
             if len(_calls) > 0:
                 call = _calls.set_index("expiration").copy()  # type: ignore
-                call_atm_iv = call.query("`strike` == @atm_call_strike")[
-                    "implied_volatility"
-                ]
+                call_atm_iv = call.query("`strike` == @atm_call_strike")["implied_volatility"]
                 if len(call_atm_iv) > 0:
                     call["ATM IV"] = call_atm_iv.iloc[0]
                     call["Skew"] = call["implied_volatility"] - call["ATM IV"]
                     call_skew = concat([call_skew, call])
 
-            atm_put_strike = self._get_nearest_strike(
-                "put", day, force_otm=False
-            )  # noqa:F841
-            _puts = puts[puts["dte"] == day][
-                ["expiration", "option_type", "strike", "implied_volatility"]
-            ]
+            atm_put_strike = self._get_nearest_strike("put", day, force_otm=False)  # noqa:F841
+            _puts = puts[puts["dte"] == day][["expiration", "option_type", "strike", "implied_volatility"]]
 
             if len(_puts) > 0:
                 put = _puts.set_index("expiration").copy()  # type: ignore
-                put_atm_iv = put.query("`strike` == @atm_put_strike")[
-                    "implied_volatility"
-                ]
+                put_atm_iv = put.query("`strike` == @atm_put_strike")["implied_volatility"]
                 if len(put_atm_iv) > 0:
                     put["ATM IV"] = put_atm_iv.iloc[0]
                     put["Skew"] = put["implied_volatility"] - put["ATM IV"]

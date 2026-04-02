@@ -7,20 +7,12 @@
 from typing import List, Optional
 
 import pytest
+from pydantic import BaseModel, ConfigDict
+
 from openbb_core.app.model.command_context import CommandContext
 from openbb_core.app.model.obbject import OBBject
-from openbb_core.app.provider_interface import (
-    ExtraParams,
-    ProviderChoices,
-    StandardParams,
-)
-from openbb_core.app.router import (
-    CommandMap,
-    Router,
-    RouterLoader,
-    SignatureInspector,
-)
-from pydantic import BaseModel, ConfigDict
+from openbb_core.app.provider_interface import ExtraParams, ProviderChoices, StandardParams
+from openbb_core.app.router import CommandMap, Router, RouterLoader, SignatureInspector
 
 
 class MockBaseModel(BaseModel):
@@ -126,10 +118,7 @@ def test_validate_signature(signature_inspector):
         "extra_params": ExtraParams,
     }
 
-    assert (
-        signature_inspector.validate_signature(sample_function, expected_signature)
-        is None
-    )
+    assert signature_inspector.validate_signature(sample_function, expected_signature) is None
 
 
 def test_inject_dependency(signature_inspector):

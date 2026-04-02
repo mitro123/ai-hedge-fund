@@ -2,10 +2,11 @@
 
 from typing import List, Literal, Optional, Union
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS
-from pydantic import Field, field_validator
 
 
 class CurrencySnapshotsQueryParams(QueryParams):
@@ -23,8 +24,7 @@ class CurrencySnapshotsQueryParams(QueryParams):
         default="indirect",
     )
     counter_currencies: Optional[Union[str, List[str]]] = Field(
-        description="An optional list of counter currency symbols to filter for."
-        + " None returns all.",
+        description="An optional list of counter currency symbols to filter for." + " None returns all.",
         default=None,
     )
 
@@ -72,9 +72,7 @@ class CurrencySnapshotsData(Data):
         description=DATA_DESCRIPTIONS.get("close", ""),
         default=None,
     )
-    volume: Optional[int] = Field(
-        description=DATA_DESCRIPTIONS.get("volume", ""), default=None
-    )
+    volume: Optional[int] = Field(description=DATA_DESCRIPTIONS.get("volume", ""), default=None)
     prev_close: Optional[float] = Field(
         description=DATA_DESCRIPTIONS.get("prev_close", ""),
         default=None,

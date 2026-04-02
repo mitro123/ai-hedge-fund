@@ -64,8 +64,5 @@ class QueryParams(BaseModel):
         """Dump the model."""
         original = super().model_dump(*args, **kwargs)
         if self.__alias_dict__:
-            return {
-                self.__alias_dict__.get(key, key): value
-                for key, value in original.items()
-            }
+            return {self.__alias_dict__.get(key, key): value for key, value in original.items()}
         return original

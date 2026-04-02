@@ -3,9 +3,8 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
-from openbb_core.app.static.package_builder import (
-    Linters,
-)
+
+from openbb_core.app.static.package_builder import Linters
 
 
 @pytest.fixture(scope="module")

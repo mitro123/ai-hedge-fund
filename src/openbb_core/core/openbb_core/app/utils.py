@@ -3,13 +3,14 @@
 import ast
 import json
 from datetime import time
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import Dict, List, Optional, TYPE_CHECKING, Union
+
+from pydantic import ValidationError
 
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.app.model.preferences import Preferences
 from openbb_core.app.model.system_settings import SystemSettings
 from openbb_core.provider.abstract.data import Data
-from pydantic import ValidationError
 
 if TYPE_CHECKING:
     # pylint: disable=import-outside-toplevel
@@ -26,16 +27,12 @@ def basemodel_to_df(
     from pandas import DataFrame, to_datetime
 
     if isinstance(data, list):
-        df = DataFrame(
-            [d.model_dump(exclude_none=True, exclude_unset=True) for d in data]
-        )
+        df = DataFrame([d.model_dump(exclude_none=True, exclude_unset=True) for d in data])
     else:
         try:
             df = DataFrame(data.model_dump(exclude_none=True, exclude_unset=True))
         except ValueError:
-            df = DataFrame(
-                data.model_dump(exclude_none=True, exclude_unset=True), index=["values"]
-            )
+            df = DataFrame(data.model_dump(exclude_none=True, exclude_unset=True), index=["values"])
 
     if "is_multiindex" in df.columns:
         col_names = ast.literal_eval(df.multiindex_names.unique()[0])
@@ -58,9 +55,7 @@ def basemodel_to_df(
     return df
 
 
-def df_to_basemodel(
-    df: Union["DataFrame", "Series"], index: bool = False
-) -> List[Data]:
+def df_to_basemodel(df: Union["DataFrame", "Series"], index: bool = False) -> List[Data]:
     """Convert from a Pandas DataFrame to list of BaseModel."""
     # pylint: disable=import-outside-toplevel
     from pandas import MultiIndex, Series, to_datetime
@@ -84,9 +79,7 @@ def df_to_basemodel(
         if all(t.time() == time(0, 0) for t in df["date"]):
             df["date"] = df["date"].apply(lambda x: x.date().strftime("%Y-%m-%d"))
 
-    return [
-        Data(**d) for d in json.loads(df.to_json(orient="records", date_format="iso"))
-    ]
+    return [Data(**d) for d in json.loads(df.to_json(orient="records", date_format="iso"))]
 
 
 def list_to_basemodel(data_list: List) -> List[Data]:
@@ -112,9 +105,7 @@ def dict_to_basemodel(data_dict: Dict) -> Data:
     try:
         return Data(**data_dict)
     except ValidationError as e:
-        raise ValueError(
-            f"Validation error when converting dict to BaseModel: {e}"
-        ) from e
+        raise ValueError(f"Validation error when converting dict to BaseModel: {e}") from e
 
 
 def ndarray_to_basemodel(array: "ndarray") -> List[Data]:
@@ -122,9 +113,7 @@ def ndarray_to_basemodel(array: "ndarray") -> List[Data]:
     # Assuming a 2D array where rows are records
     if array.ndim != 2:
         raise ValueError("Only 2D arrays are supported.")
-    return [
-        Data(**{f"column_{i}": value for i, value in enumerate(row)}) for row in array
-    ]
+    return [Data(**{f"column_{i}": value for i, value in enumerate(row)}) for row in array]
 
 
 def convert_to_basemodel(data) -> Union[Data, List[Data]]:
@@ -150,9 +139,7 @@ def get_target_column(df: "DataFrame", target: str) -> "Series":
     """Get target column from time series data."""
     if target not in df.columns:
         choices = ", ".join(df.columns)
-        raise ValueError(
-            f"Target column '{target}' not found in data. Choose from {choices}"
-        )
+        raise ValueError(f"Target column '{target}' not found in data. Choose from {choices}")
     return df[target]
 
 
@@ -179,16 +166,12 @@ def get_user_cache_directory() -> str:
     except KeyError:
         settings = None
     cache_dir = (
-        settings["cache_directory"]
-        if settings and "cache_directory" in settings
-        else Preferences().cache_directory
+        settings["cache_directory"] if settings and "cache_directory" in settings else Preferences().cache_directory
     )
     return cache_dir
 
 
-def check_single_item(
-    value: Optional[str], message: Optional[str] = None
-) -> Optional[str]:
+def check_single_item(value: Optional[str], message: Optional[str] = None) -> Optional[str]:
     """Check that string contains a single item."""
     if value and isinstance(value, str) and ("," in value or ";" in value):
         raise OpenBBError(message if message else "multiple items not allowed")

@@ -3,18 +3,18 @@
 from datetime import date as dateType
 from typing import Optional
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
-from pydantic import Field
 
 
 class TreasuryPricesQueryParams(QueryParams):
     """Treasury Prices Query."""
 
     date: Optional[dateType] = Field(
-        description=QUERY_DESCRIPTIONS.get("date", "")
-        + " Defaults to the last business day.",
+        description=QUERY_DESCRIPTIONS.get("date", "") + " Defaults to the last business day.",
         default=None,
     )
 
@@ -46,9 +46,7 @@ class TreasuryPricesData(Data):
         default=None,
         description="The maturity date of the security.",
     )
-    call_date: Optional[dateType] = Field(
-        description="The call date of the security.", default=None
-    )
+    call_date: Optional[dateType] = Field(description="The call date of the security.", default=None)
     bid: Optional[float] = Field(
         default=None,
         description="The bid price of the security.",
@@ -64,9 +62,7 @@ class TreasuryPricesData(Data):
         description="The end-of-day price of the security.",
         json_schema_extra={"x-unit_measurement": "currency"},
     )
-    last_traded_date: Optional[dateType] = Field(
-        description="The last trade date of the security.", default=None
-    )
+    last_traded_date: Optional[dateType] = Field(description="The last trade date of the security.", default=None)
     total_trades: Optional[int] = Field(
         default=None,
         description="Total number of trades on the last traded date.",

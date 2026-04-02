@@ -3,7 +3,8 @@
 # pylint: disable=C2801
 
 import pytest
-from openbb_core.provider.abstract.data import Data, check_int
+
+from openbb_core.provider.abstract.data import check_int, Data
 
 
 def test_check_int_valid():

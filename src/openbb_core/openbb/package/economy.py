@@ -4,13 +4,14 @@ import datetime
 from typing import Literal, Optional, Union
 from warnings import simplefilter, warn
 
+from typing_extensions import Annotated, deprecated
+
 from openbb_core.app.deprecation import OpenBBDeprecationWarning
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated, deprecated
 
 
 class ROUTER_economy(Container):
@@ -62,7 +63,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: econdb, imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the available economic indicators for a provider.
 
@@ -150,10 +151,8 @@ class ROUTER_economy(Container):
                 },
                 standard_params={},
                 extra_params=kwargs,
-                info={
-                    "query": {"imf": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"query": {"imf": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -166,7 +165,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Balance of Payments Reports.
 
@@ -316,7 +315,7 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -337,7 +336,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, tradingeconomics."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the upcoming, or historical, economic calendar of global events.
 
@@ -687,7 +686,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -704,7 +703,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the balance sheet holdings of a central bank.
 
@@ -825,7 +824,7 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -846,7 +845,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the composite leading indicator (CLI).
 
@@ -948,7 +947,7 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -967,7 +966,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: econdb."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get a profile of country statistics and economic indicators.
 
@@ -1049,12 +1048,8 @@ class ROUTER_economy(Container):
                     "country": country,
                 },
                 extra_params=kwargs,
-                info={
-                    "country": {
-                        "econdb": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"country": {"econdb": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -1077,9 +1072,7 @@ class ROUTER_economy(Container):
             Literal["annual", "quarter", "monthly"],
             OpenBBField(description="The frequency of the data."),
         ] = "monthly",
-        harmonized: Annotated[
-            bool, OpenBBField(description="If true, returns harmonized data.")
-        ] = False,
+        harmonized: Annotated[bool, OpenBBField(description="If true, returns harmonized data.")] = False,
         start_date: Annotated[
             Union[datetime.date, None, str],
             OpenBBField(description="Start date of the data, in YYYY-MM-DD format."),
@@ -1094,7 +1087,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred, oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Consumer Price Index (CPI).
 
@@ -1289,7 +1282,7 @@ class ROUTER_economy(Container):
                         },
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1310,9 +1303,7 @@ class ROUTER_economy(Container):
         ] = None,
         direction: Annotated[
             Literal["exports", "imports", "balance", "all"],
-            OpenBBField(
-                description="Trade direction. Use 'all' to get all data for this dimension."
-            ),
+            OpenBBField(description="Trade direction. Use 'all' to get all data for this dimension."),
         ] = "balance",
         start_date: Annotated[
             Union[datetime.date, None, str],
@@ -1332,7 +1323,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Direction Of Trade Statistics from the IMF database.
 
@@ -1933,7 +1924,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1952,7 +1943,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: econdb."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get top export destinations by country from the UN Comtrade International Trade Statistics Database.
 
@@ -2012,12 +2003,8 @@ class ROUTER_economy(Container):
                     "country": country,
                 },
                 extra_params=kwargs,
-                info={
-                    "country": {
-                        "econdb": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"country": {"econdb": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -2030,7 +2017,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get FOMC documents by year and document type.
 
@@ -2234,7 +2221,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -2260,7 +2247,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Query the Geo Fred API for regional economic data by series group.
 
@@ -2404,7 +2391,7 @@ class ROUTER_economy(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -2413,15 +2400,11 @@ class ROUTER_economy(Container):
         self,
         release_id: Annotated[
             str,
-            OpenBBField(
-                description="The ID of the release. Use `fred_search` to find releases."
-            ),
+            OpenBBField(description="The ID of the release. Use `fred_search` to find releases."),
         ],
         element_id: Annotated[
             Optional[str],
-            OpenBBField(
-                description="The element ID of a specific table in the release."
-            ),
+            OpenBBField(description="The element ID of a specific table in the release."),
         ] = None,
         date: Annotated[
             Union[str, datetime.date, None, list[Union[str, datetime.date, None]]],
@@ -2435,7 +2418,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get economic release data by ID and/or element from FRED.
 
@@ -2514,26 +2497,22 @@ class ROUTER_economy(Container):
                     "date": date,
                 },
                 extra_params=kwargs,
-                info={
-                    "date": {"fred": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"date": {"fred": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
     @validate
     def fred_search(
         self,
-        query: Annotated[
-            Optional[str], OpenBBField(description="The search word(s).")
-        ] = None,
+        query: Annotated[Optional[str], OpenBBField(description="The search word(s).")] = None,
         provider: Annotated[
             Optional[Literal["fred"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search for FRED series or economic releases by ID or string.
 
@@ -2678,14 +2657,10 @@ class ROUTER_economy(Container):
                             ],
                         }
                     },
-                    "tag_names": {
-                        "fred": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "exclude_tag_names": {
-                        "fred": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "tag_names": {"fred": {"multiple_items_allowed": True, "choices": None}},
+                    "exclude_tag_names": {"fred": {"multiple_items_allowed": True, "choices": None}},
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -2716,7 +2691,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get data by series ID from FRED.
 
@@ -2823,9 +2798,7 @@ class ROUTER_economy(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "symbol": {
-                        "fred": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "symbol": {"fred": {"multiple_items_allowed": True, "choices": None}},
                     "frequency": {
                         "fred": {
                             "multiple_items_allowed": False,
@@ -2869,7 +2842,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @property
@@ -2913,7 +2886,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the House Price Index by country from the OECD Short-Term Economics Statistics.
 
@@ -3048,7 +3021,7 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3079,7 +3052,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get immediate interest rates by country.
 
@@ -3209,7 +3182,7 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3236,7 +3209,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: econdb, imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get economic indicators by country and indicator.
 
@@ -3585,7 +3558,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3612,7 +3585,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get interest rates by country(s) and duration.
         Most OECD countries publish short-term, a long-term, and immediate rates monthly.
@@ -3753,7 +3726,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -3778,7 +3751,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Long-term interest rates that refer to government bonds maturing in ten years.
 
@@ -3857,7 +3830,7 @@ class ROUTER_economy(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -3882,7 +3855,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Money Measures (M1/M2 and components).
 
@@ -3956,7 +3929,7 @@ class ROUTER_economy(Container):
                     "adjusted": adjusted,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -3975,7 +3948,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Personal Consumption Expenditures (PCE) reports.
 
@@ -4045,10 +4018,8 @@ class ROUTER_economy(Container):
                     "date": date,
                 },
                 extra_params=kwargs,
-                info={
-                    "date": {"fred": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"date": {"fred": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -4073,7 +4044,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: econdb, imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get average dwelling times and TEU volumes from the top ports.
 
@@ -4196,11 +4167,7 @@ class ROUTER_economy(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "start_date": {
-                        "imf": {
-                            "x-widget_config": {"type": "date", "value": "2019-01-01"}
-                        }
-                    },
+                    "start_date": {"imf": {"x-widget_config": {"type": "date", "value": "2019-01-01"}}},
                     "port_code": {
                         "imf": {
                             "multiple_items_allowed": True,
@@ -9069,7 +9036,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -9090,7 +9057,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Primary Dealer Statistics for Fails to Deliver and Fails to Receive.
 
@@ -9189,7 +9156,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -9210,7 +9177,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Primary dealer positioning statistics.
 
@@ -9274,7 +9241,7 @@ class ROUTER_economy(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -9289,9 +9256,7 @@ class ROUTER_economy(Container):
         ] = None,
         country: Annotated[
             str,
-            OpenBBField(
-                description="The country to get data.\nChoices for fred: 'united_states'"
-            ),
+            OpenBBField(description="The country to get data.\nChoices for fred: 'united_states'"),
         ] = "united_states",
         start_date: Annotated[
             Union[datetime.date, None, str],
@@ -9307,7 +9272,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get retail prices for common items.
 
@@ -9463,7 +9428,7 @@ class ROUTER_economy(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -9476,7 +9441,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Market Risk Premium by country.
 
@@ -9528,7 +9493,7 @@ class ROUTER_economy(Container):
                 },
                 standard_params={},
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -9559,7 +9524,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the Share Price Index by country from the OECD Short-Term Economics Statistics.
 
@@ -9691,7 +9656,7 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @property
@@ -9699,9 +9664,7 @@ class ROUTER_economy(Container):
         # pylint: disable=import-outside-toplevel
         from . import economy_shipping
 
-        return economy_shipping.ROUTER_economy_shipping(
-            command_runner=self._command_runner
-        )
+        return economy_shipping.ROUTER_economy_shipping(command_runner=self._command_runner)
 
     @exception_handler
     @validate
@@ -9725,7 +9688,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Short-term interest rates.
 
@@ -9802,7 +9765,7 @@ class ROUTER_economy(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @property
@@ -9840,7 +9803,7 @@ class ROUTER_economy(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: oecd."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get global unemployment data.
 
@@ -9967,5 +9930,5 @@ class ROUTER_economy(Container):
                         }
                     }
                 },
-            )
+            ),
         )

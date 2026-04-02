@@ -19,17 +19,13 @@ class LoggingSettings:
     ):
         """Initialize the logging settings."""
         user_settings = user_settings if user_settings is not None else UserSettings()
-        system_settings = (
-            system_settings if system_settings is not None else SystemSettings()
-        )
+        system_settings = system_settings if system_settings is not None else SystemSettings()
         user_data_directory = (
             str(Path.home() / "OpenBBUserData")
             if not user_settings.preferences
             else user_settings.preferences.data_directory
         )
-        hub_session = (
-            user_settings.profile.hub_session if user_settings.profile else None
-        )
+        hub_session = user_settings.profile.hub_session if user_settings.profile else None
         if hub_session:
             user_id = hub_session.user_uuid
             user_email = hub_session.email

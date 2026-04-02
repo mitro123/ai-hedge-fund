@@ -6,12 +6,7 @@ from typing import Any, Dict
 
 from openbb_core.app.model.abstract.warning import OpenBBWarning
 from openbb_core.app.model.command_context import CommandContext
-from openbb_core.app.provider_interface import (
-    ExtraParams,
-    ProviderChoices,
-    ProviderInterface,
-    StandardParams,
-)
+from openbb_core.app.provider_interface import ExtraParams, ProviderChoices, ProviderInterface, StandardParams
 
 
 class Query:
@@ -67,9 +62,7 @@ class Query:
         """Execute the query."""
         standard_dict = asdict(self.standard_params)
         extra_dict = (
-            self.filter_extra_params(self.extra_params, self.provider)  # type: ignore
-            if self.extra_params
-            else {}
+            self.filter_extra_params(self.extra_params, self.provider) if self.extra_params else {}  # type: ignore
         )
         query_executor = self.provider_interface.create_executor()
 

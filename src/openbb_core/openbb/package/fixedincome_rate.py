@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_fixedincome_rate(Container):
@@ -46,7 +47,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """AMERIBOR.
 
@@ -168,7 +169,7 @@ class ROUTER_fixedincome_rate(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -189,7 +190,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Discount Window Primary Credit Rate.
 
@@ -253,7 +254,7 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -278,7 +279,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """European Central Bank Interest Rates.
 
@@ -345,7 +346,7 @@ class ROUTER_fixedincome_rate(Container):
                     "interest_rate_type": interest_rate_type,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -366,7 +367,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve, fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Fed Funds Rate.
 
@@ -487,7 +488,7 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -500,7 +501,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Fed Funds Rate Projections.
 
@@ -569,7 +570,7 @@ class ROUTER_fixedincome_rate(Container):
                 },
                 standard_params={},
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -590,7 +591,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Euro Short-Term Rate.
 
@@ -725,7 +726,7 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -746,7 +747,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Interest on Reserve Balances.
 
@@ -806,7 +807,7 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -827,7 +828,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve, fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Overnight Bank Funding.
 
@@ -936,7 +937,7 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -957,7 +958,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: federal_reserve, fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Secured Overnight Financing Rate.
 
@@ -1071,7 +1072,7 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -1092,7 +1093,7 @@ class ROUTER_fixedincome_rate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Sterling Overnight Index Average.
 
@@ -1155,5 +1156,5 @@ class ROUTER_fixedincome_rate(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

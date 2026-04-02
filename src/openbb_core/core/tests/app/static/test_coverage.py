@@ -3,6 +3,7 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
+
 from openbb_core.app.command_runner import CommandRunner
 from openbb_core.app.static.app_factory import BaseApp
 from openbb_core.app.static.coverage import Coverage

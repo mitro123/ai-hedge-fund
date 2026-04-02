@@ -7,14 +7,16 @@ import re
 import shutil
 import sys
 from functools import partial
-from inspect import Parameter, _empty, isclass, signature
+from inspect import _empty, isclass, Parameter, signature
 from json import dumps, load
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
+    get_args,
+    get_origin,
+    get_type_hints,
     List,
     Literal,
     Optional,
@@ -22,15 +24,18 @@ from typing import (
     Set,
     Tuple,
     Type,
+    TYPE_CHECKING,
     TypeVar,
     Union,
-    get_args,
-    get_origin,
-    get_type_hints,
 )
 
 from fastapi import Query
 from importlib_metadata import entry_points
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
+from starlette.routing import BaseRoute
+from typing_extensions import _AnnotatedAlias, Annotated
+
 from openbb_core.app.extension_loader import ExtensionLoader, OpenBBGroups
 from openbb_core.app.model.example import Example
 from openbb_core.app.model.field import OpenBBField
@@ -42,15 +47,12 @@ from openbb_core.app.static.utils.console import Console
 from openbb_core.app.static.utils.linters import Linters
 from openbb_core.app.version import CORE_VERSION, VERSION
 from openbb_core.env import Env
-from pydantic.fields import FieldInfo
-from pydantic_core import PydanticUndefined
-from starlette.routing import BaseRoute
-from typing_extensions import Annotated, _AnnotatedAlias
 
 if TYPE_CHECKING:
     # pylint: disable=import-outside-toplevel
     from numpy import ndarray  # noqa
     from pandas import DataFrame, Series  # noqa
+
     from openbb_core.provider.abstract.data import Data  # noqa
 
 try:
@@ -83,9 +85,7 @@ def create_indent(n: int) -> str:
 class PackageBuilder:
     """Build the extension package for the Platform."""
 
-    def __init__(
-        self, directory: Optional[Path] = None, lint: bool = True, verbose: bool = False
-    ) -> None:
+    def __init__(self, directory: Optional[Path] = None, lint: bool = True, verbose: bool = False) -> None:
         """Initialize the package builder."""
         self.directory = directory or Path(__file__).parent
         self.lint = lint
@@ -97,9 +97,7 @@ class PackageBuilder:
     def auto_build(self) -> None:
         """Trigger build if there are differences between built and installed extensions."""
         if Env().AUTO_BUILD:
-            reference = PackageBuilder._read(
-                self.directory / "assets" / "reference.json"
-            )
+            reference = PackageBuilder._read(self.directory / "assets" / "reference.json")
             ext_map = reference.get("info", {}).get("extensions", {})
             add, remove = PackageBuilder._diff(ext_map)
             if add:
@@ -146,9 +144,7 @@ class PackageBuilder:
         ext_map: Dict[str, List[str]] = {}
 
         for group, entry_point in zip(og, el.entry_points):
-            ext_map[group] = [
-                f"{e.name}@{getattr(e.dist, 'version', '')}" for e in entry_point
-            ]
+            ext_map[group] = [f"{e.name}@{getattr(e.dist, 'version', '')}" for e in entry_point]
         return ext_map
 
     def _save_modules(
@@ -165,11 +161,7 @@ class PackageBuilder:
 
         MAX_LEN = max([len(path) for path in self.path_list if path != "/"])
 
-        _path_list = (
-            [path for path in self.path_list if path in modules]
-            if modules
-            else self.path_list
-        )
+        _path_list = [path for path in self.path_list if path in modules] if modules else self.path_list
 
         for path in _path_list:
             route = PathHandler.get_route(path, self.route_map)
@@ -211,9 +203,7 @@ class PackageBuilder:
         linters.ruff()
         linters.black()
 
-    def _write(
-        self, code: str, name: str, extension: str = "py", folder: str = "package"
-    ) -> None:
+    def _write(self, code: str, name: str, extension: str = "py", folder: str = "package") -> None:
         """Write the module to the package."""
         package_folder = self.directory / folder
         package_path = package_folder / f"{name}.{extension}"
@@ -271,10 +261,7 @@ class PackageBuilder:
 
         for g in groups:
             built = set(ext_map.get(g, {}))
-            installed = set(
-                f"{e.name}@{getattr(e.dist, 'version', '')}"
-                for e in entry_points(group=g)
-            )
+            installed = set(f"{e.name}@{getattr(e.dist, 'version', '')}" for e in entry_points(group=g))
             add = add.union(installed - built)
             remove = remove.union(built - installed)
 
@@ -309,9 +296,9 @@ class ImportDefinition:
                 continue
 
             # Only include types that have a module and are not builtins
-            if (
-                hasattr(hint_type, "__module__") and hint_type.__module__ != "builtins"
-            ) or (isinstance(hint_type, str)):
+            if (hasattr(hint_type, "__module__") and hint_type.__module__ != "builtins") or (
+                isinstance(hint_type, str)
+            ):
                 new_hint_type_list.append(hint_type)
 
         new_hint_type_list = list(set(new_hint_type_list))
@@ -363,9 +350,7 @@ class ImportDefinition:
         """Get the hint type list from the path."""
         route_map = PathHandler.build_route_map()
         path_list = PathHandler.build_path_list(route_map=route_map)
-        child_path_list = PathHandler.get_child_path_list(
-            path=path, path_list=path_list
-        )
+        child_path_list = PathHandler.get_child_path_list(path=path, path_list=path_list)
         hint_type_list = []
         for child_path in child_path_list:
             route = PathHandler.get_route(path=child_path, route_map=route_map)
@@ -375,11 +360,7 @@ class ImportDefinition:
                 function_hint_type_list = cls.get_function_hint_type_list(route=route)  # type: ignore
                 hint_type_list.extend(function_hint_type_list)
 
-        hint_type_list = [
-            d
-            for d in list(set(hint_type_list))
-            if d not in [int, list, str, dict, float, set]
-        ]
+        hint_type_list = [d for d in list(set(hint_type_list)) if d not in [int, list, str, dict, float, set]]
         return hint_type_list
 
     @classmethod
@@ -415,8 +396,7 @@ class ImportDefinition:
         code += "\nfrom fastapi import Depends"
 
         module_list = [
-            hint_type.__module__ if hasattr(hint_type, "__module__") else hint_type
-            for hint_type in hint_type_list
+            hint_type.__module__ if hasattr(hint_type, "__module__") else hint_type for hint_type in hint_type_list
         ]
         module_list = list(set(module_list))
         module_list.sort()
@@ -446,16 +426,10 @@ class ImportDefinition:
                         "__name__",
                         str(hint_type).rsplit(".", maxsplit=1)[-1],
                     )
-                    type_name = (
-                        raw_type_name.split("[")[0]
-                        if "[" in raw_type_name
-                        else raw_type_name
-                    )
+                    type_name = raw_type_name.split("[")[0] if "[" in raw_type_name else raw_type_name
 
                 # Skip built-in types when adding to typing module
-                if (
-                    module == "typing" and type_name in dir(__builtins__)
-                ) or type_name in [
+                if (module == "typing" and type_name in dir(__builtins__)) or type_name in [
                     "Dict",
                     "List",
                     "int",
@@ -532,16 +506,8 @@ class ClassDefinition:
                 methods += MethodDefinition.build_command_method(
                     path=route.path,
                     func=route.endpoint,
-                    model_name=(
-                        route.openapi_extra.get("model", None)
-                        if route.openapi_extra
-                        else None
-                    ),
-                    examples=(
-                        route.openapi_extra.get("examples", [])
-                        if route.openapi_extra
-                        else []
-                    ),
+                    model_name=(route.openapi_extra.get("model", None) if route.openapi_extra else None),
+                    examples=(route.openapi_extra.get("examples", []) if route.openapi_extra else []),
                 )
             else:
                 doc += "    /" if path else "    /"
@@ -552,16 +518,9 @@ class ClassDefinition:
             if ext_map:
                 doc += "\n"
                 doc += "Extensions:\n"
-                doc += "\n".join(
-                    [f"    - {ext}" for ext in ext_map.get("openbb_core_extension", [])]
-                )
+                doc += "\n".join([f"    - {ext}" for ext in ext_map.get("openbb_core_extension", [])])
                 doc += "\n\n"
-                doc += "\n".join(
-                    [
-                        f"    - {ext}"
-                        for ext in ext_map.get("openbb_provider_extension", [])
-                    ]
-                )
+                doc += "\n".join([f"    - {ext}" for ext in ext_map.get("openbb_provider_extension", [])])
             doc += '    """\n'
             doc += "    # fmt: on\n"
         else:
@@ -608,9 +567,7 @@ class MethodDefinition:
     @staticmethod
     def get_type(field: FieldInfo) -> type:
         """Get the type of the field."""
-        field_type = getattr(
-            field, "annotation", getattr(field, "type", Parameter.empty)
-        )
+        field_type = getattr(field, "annotation", getattr(field, "type", Parameter.empty))
         if isclass(field_type):
             name = field_type.__name__
             if name.startswith("Constrained") and name.endswith("Value"):
@@ -653,9 +610,7 @@ class MethodDefinition:
     @staticmethod
     def is_annotated_dc(annotation) -> bool:
         """Check if the annotation is an annotated dataclass."""
-        return isinstance(annotation, _AnnotatedAlias) and hasattr(
-            annotation.__args__[0], "__dataclass_fields__"
-        )
+        return isinstance(annotation, _AnnotatedAlias) and hasattr(annotation.__args__[0], "__dataclass_fields__")
 
     @staticmethod
     def is_data_processing_function(path: str) -> bool:
@@ -704,9 +659,7 @@ class MethodDefinition:
         return od
 
     @staticmethod
-    def format_params(
-        path: str, parameter_map: Dict[str, Parameter]
-    ) -> OrderedDict[str, Parameter]:
+    def format_params(path: str, parameter_map: Dict[str, Parameter]) -> OrderedDict[str, Parameter]:
         """Format the params."""
 
         parameter_map.pop("cc", None)
@@ -732,10 +685,7 @@ class MethodDefinition:
                 query_obj = None
                 # Look for Query object in the metadata
                 for meta in param.annotation.__metadata__:
-                    if (
-                        hasattr(meta, "__class__")
-                        and "Query" in meta.__class__.__name__
-                    ):
+                    if hasattr(meta, "__class__") and "Query" in meta.__class__.__name__:
                         query_obj = meta
                         break
                 if query_obj:
@@ -759,10 +709,7 @@ class MethodDefinition:
                     continue
 
             # Case 2: Handle Query objects as default values
-            if (
-                hasattr(param.default, "__class__")
-                and "Query" in param.default.__class__.__name__
-            ):
+            if hasattr(param.default, "__class__") and "Query" in param.default.__class__.__name__:
                 query_obj = param.default
                 description = getattr(query_obj, "description", "") or ""
                 default_value = getattr(query_obj, "default", "")
@@ -777,8 +724,7 @@ class MethodDefinition:
                     ],
                     default=(
                         Parameter.empty
-                        if default_value is PydanticUndefined
-                        or default_value is Ellipsis
+                        if default_value is PydanticUndefined or default_value is Ellipsis
                         else default_value
                     ),
                 )
@@ -788,9 +734,7 @@ class MethodDefinition:
                 formatted[name] = Parameter(name="kwargs", kind=Parameter.VAR_KEYWORD)
                 var_kw.append(name)
             elif name == "provider_choices":
-                if param.annotation != Parameter.empty and hasattr(
-                    param.annotation, "__args__"
-                ):
+                if param.annotation != Parameter.empty and hasattr(param.annotation, "__args__"):
                     fields = param.annotation.__args__[0].__dataclass_fields__
                     field = fields["provider"]
                 else:
@@ -819,9 +763,7 @@ class MethodDefinition:
                     type_ = MethodDefinition.get_type(field)
                     default = MethodDefinition.get_default(field)
                     extra = MethodDefinition.get_extra(field)
-                    new_type = MethodDefinition.get_expanded_type(
-                        field_name, extra, type_
-                    )
+                    new_type = MethodDefinition.get_expanded_type(field_name, extra, type_)
                     updated_type = type_ if new_type is ... else Union[type_, new_type]
 
                     formatted[field_name] = Parameter(
@@ -833,25 +775,16 @@ class MethodDefinition:
 
             if isinstance(param.annotation, _AnnotatedAlias):
                 # Specifically look for Depends dependency rather than any annotation
-                has_depends = any(
-                    hasattr(meta, "dependency")
-                    for meta in param.annotation.__metadata__
-                )
+                has_depends = any(hasattr(meta, "dependency") for meta in param.annotation.__metadata__)
                 if has_depends:
                     continue
 
                 # If not a dependency, process it as a normal parameter
                 new_type = MethodDefinition.get_expanded_type(name)
-                updated_type = (
-                    param.annotation
-                    if new_type is ...
-                    else Union[param.annotation, new_type]
-                )
+                updated_type = param.annotation if new_type is ... else Union[param.annotation, new_type]
 
                 metadata = getattr(param.annotation, "__metadata__", [])
-                description = (
-                    getattr(metadata[0], "description", "") if metadata else ""
-                )
+                description = getattr(metadata[0], "description", "") if metadata else ""
 
                 formatted[name] = Parameter(
                     name=name,
@@ -871,16 +804,10 @@ class MethodDefinition:
                     types = new_type.__constraints__ + (param.annotation,)  # type: ignore
                     updated_type = Union[types]  # type: ignore
                 else:
-                    updated_type = (
-                        param.annotation
-                        if new_type is ...
-                        else Union[param.annotation, new_type]
-                    )
+                    updated_type = param.annotation if new_type is ... else Union[param.annotation, new_type]
 
                 metadata = getattr(param.annotation, "__metadata__", [])
-                description = (
-                    getattr(metadata[0], "description", "") if metadata else ""
-                )
+                description = getattr(metadata[0], "description", "") if metadata else ""
 
                 formatted[name] = Parameter(
                     name=name,
@@ -906,16 +833,12 @@ class MethodDefinition:
                 optional_params[name] = param
 
         # Combine them in the correct order
-        ordered_params = OrderedDict(
-            list(required_params.items()) + list(optional_params.items())
-        )
+        ordered_params = OrderedDict(list(required_params.items()) + list(optional_params.items()))
 
         return MethodDefinition.reorder_params(params=ordered_params, var_kw=var_kw)
 
     @staticmethod
-    def add_field_custom_annotations(
-        od: OrderedDict[str, Parameter], model_name: Optional[str] = None
-    ):
+    def add_field_custom_annotations(od: OrderedDict[str, Parameter], model_name: Optional[str] = None):
         """Add the field custom description and choices to the param signature as annotations."""
         if not model_name:
             return
@@ -924,12 +847,8 @@ class MethodDefinition:
 
         # Get fields from standard model
         try:
-            available_fields = provider_interface.params[model_name][
-                "standard"
-            ].__dataclass_fields__
-            extra_fields = provider_interface.params[model_name][
-                "extra"
-            ].__dataclass_fields__
+            available_fields = provider_interface.params[model_name]["standard"].__dataclass_fields__
+            extra_fields = provider_interface.params[model_name]["extra"].__dataclass_fields__
         except (KeyError, AttributeError):
             return
 
@@ -944,9 +863,7 @@ class MethodDefinition:
 
             field_default = all_fields[param].default
             extra = MethodDefinition.get_extra(all_fields[param])
-            choices = getattr(all_fields[param], "json_schema_extra", {}).get(
-                "choices", []
-            ) or extra.get("choices", [])
+            choices = getattr(all_fields[param], "json_schema_extra", {}).get("choices", []) or extra.get("choices", [])
             description = getattr(field_default, "description", "")
 
             # Handle provider-specific choices and add them to the description
@@ -969,18 +886,11 @@ class MethodDefinition:
                 if (
                     isinstance(provider_info, dict)
                     and provider_info.get("multiple_items_allowed")
-                    or (
-                        isinstance(provider_info, list)
-                        and "multiple_items_allowed" in provider_info
-                    )
+                    or (isinstance(provider_info, list) and "multiple_items_allowed" in provider_info)
                 ):
                     multiple_items_providers.append(provider)
 
-            if (
-                multiple_items_providers
-                and "Multiple comma separated items allowed for provider(s)"
-                not in description
-            ):
+            if multiple_items_providers and "Multiple comma separated items allowed for provider(s)" not in description:
                 description += f"\nMultiple items supported by: {', '.join(multiple_items_providers)}"
 
             # Process the field type - if it's a Union of many Literals, simplify to base type
@@ -988,11 +898,7 @@ class MethodDefinition:
             simplified_type = field_type
 
             # If there are provider-specific choices, try to simplify the type
-            if (
-                provider_specific
-                and hasattr(field_type, "__origin__")
-                and field_type.__origin__ is Union
-            ):
+            if provider_specific and hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
                 # Check if all union members are Literals
                 all_literals = True
                 for arg in field_type.__args__:
@@ -1021,11 +927,7 @@ class MethodDefinition:
 
             new_value = value.replace(
                 annotation=Annotated[
-                    (
-                        simplified_type
-                        if simplified_type != field_type
-                        else value.annotation
-                    ),
+                    (simplified_type if simplified_type != field_type else value.annotation),
                     OpenBBField(description=description),
                 ],
             )
@@ -1035,16 +937,10 @@ class MethodDefinition:
     @staticmethod
     def build_func_params(formatted_params: OrderedDict[str, Parameter]) -> str:
         """Stringify function params."""
-        func_params = ",\n        ".join(
-            str(param) for param in formatted_params.values()
-        )
+        func_params = ",\n        ".join(str(param) for param in formatted_params.values())
         func_params = func_params.replace("NoneType", "None")
-        func_params = func_params.replace(
-            "pandas.core.frame.DataFrame", "pandas.DataFrame"
-        )
-        func_params = func_params.replace(
-            "openbb_core.provider.abstract.data.Data", "Data"
-        )
+        func_params = func_params.replace("pandas.core.frame.DataFrame", "pandas.DataFrame")
+        func_params = func_params.replace("openbb_core.provider.abstract.data.Data", "Data")
         func_params = func_params.replace("ForwardRef('Data')", "Data")
         func_params = func_params.replace("ForwardRef('DataFrame')", "DataFrame")
         func_params = func_params.replace("ForwardRef('Series')", "Series")
@@ -1084,9 +980,7 @@ class MethodDefinition:
 
         args = (
             "(config=dict(arbitrary_types_allowed=True))"
-            if "DataFrame" in func_params
-            or "Series" in func_params
-            or "ndarray" in func_params
+            if "DataFrame" in func_params or "Series" in func_params or "ndarray" in func_params
             else ""
         )
 
@@ -1095,9 +989,7 @@ class MethodDefinition:
 
         if MethodDefinition.is_deprecated_function(path):
             deprecation_message = MethodDefinition.get_deprecation_message(path)
-            deprecation_type_class = type(
-                deprecation_message.metadata  # type: ignore
-            ).__name__
+            deprecation_type_class = type(deprecation_message.metadata).__name__  # type: ignore
 
             deprecated = "\n    @deprecated("
             deprecated += f'\n        "{deprecation_message}",'
@@ -1129,11 +1021,7 @@ class MethodDefinition:
             model_name=model_name,
             examples=examples,
         )
-        code = (
-            f'{create_indent(2)}"""{doc}{create_indent(2)}"""  # noqa: E501\n\n'
-            if doc
-            else ""
-        )
+        code = f'{create_indent(2)}"""{doc}{create_indent(2)}"""  # noqa: E501\n\n' if doc else ""
 
         return code
 
@@ -1190,9 +1078,7 @@ class MethodDefinition:
         code += "            **filter_inputs(\n"
 
         # Check if we already have a kwargs parameter (VAR_KEYWORD) in formatted_params
-        has_kwargs = any(
-            param.kind == Parameter.VAR_KEYWORD for param in formatted_params.values()
-        )
+        has_kwargs = any(param.kind == Parameter.VAR_KEYWORD for param in formatted_params.values())
         has_extra_params = False
 
         for name, param in parameter_map.items():
@@ -1264,9 +1150,7 @@ class MethodDefinition:
             for v in extra.values()
         ):
             if original_type is None:
-                raise ValueError(
-                    "multiple_items_allowed requires the original type to be specified."
-                )
+                raise ValueError("multiple_items_allowed requires the original type to be specified.")
             return List[original_type]  # type: ignore
         return cls.TYPE_EXPANSION.get(field_name, ...)
 
@@ -1291,21 +1175,15 @@ class MethodDefinition:
                 func_source = inspect.getsource(func)
 
                 # First, find the filter_inputs block to extract parameter names
-                filter_inputs_match = re.search(
-                    r"filter_inputs\(\s*(.*?)\s*\)", func_source, re.DOTALL
-                )
+                filter_inputs_match = re.search(r"filter_inputs\(\s*(.*?)\s*\)", func_source, re.DOTALL)
                 if filter_inputs_match:
                     filter_inputs_text = filter_inputs_match.group(1)
                     filter_params = re.findall(r"(\w+)=(\w+)", filter_inputs_text)
 
                     # Then look for parameter definitions in function body
                     # Find parameters defined with types in comments or actual code
-                    param_defs = re.findall(
-                        r"(\w+)\s*:\s*(\w+)(?:\s*=\s*([^,\n]+))?", func_source
-                    )
-                    param_dict = {
-                        name: (typ, default) for name, typ, default in param_defs
-                    }
+                    param_defs = re.findall(r"(\w+)\s*:\s*(\w+)(?:\s*=\s*([^,\n]+))?", func_source)
+                    param_dict = {name: (typ, default) for name, typ, default in param_defs}
 
                     # Add missing parameters preserving types when available
                     for param_name, param_value in filter_params:
@@ -1320,11 +1198,7 @@ class MethodDefinition:
                                 param_type = param_dict[param_value][0]
                                 try:
                                     # Try to evaluate the type
-                                    annotation = (
-                                        eval(  # noqa: S307  # pylint: disable=eval-used
-                                            param_type
-                                        )
-                                    )
+                                    annotation = eval(param_type)  # noqa: S307  # pylint: disable=eval-used
                                 except (NameError, SyntaxError):
                                     annotation = Any
 
@@ -1332,9 +1206,7 @@ class MethodDefinition:
                                 default_str = param_dict[param_value][1]
                                 try:
                                     default = (
-                                        eval(  # noqa: S307  # pylint: disable=eval-used
-                                            default_str
-                                        )
+                                        eval(default_str)  # noqa: S307  # pylint: disable=eval-used
                                         if default_str
                                         else None
                                     )
@@ -1361,9 +1233,7 @@ class MethodDefinition:
 
         formatted_params = cls.format_params(path=path, parameter_map=parameter_map)
 
-        has_var_kwargs = any(
-            param.kind == Parameter.VAR_KEYWORD for param in formatted_params.values()
-        )
+        has_var_kwargs = any(param.kind == Parameter.VAR_KEYWORD for param in formatted_params.values())
 
         # If not, add **kwargs to formatted_params
         if not has_var_kwargs:
@@ -1389,9 +1259,7 @@ class MethodDefinition:
             examples=examples,
         )
 
-        code += cls.build_command_method_body(
-            path=path, func=func, formatted_params=formatted_params
-        )
+        code += cls.build_command_method_body(path=path, func=func, formatted_params=formatted_params)
 
         return code
 
@@ -1445,15 +1313,10 @@ class DocstringGenerator:
 
             if "openbb_" in str(_type):
                 _type = (
-                    str(_type).split(".", maxsplit=1)[0].split("openbb_")[0]
-                    + str(_type).rsplit(".", maxsplit=1)[-1]
+                    str(_type).split(".", maxsplit=1)[0].split("openbb_")[0] + str(_type).rsplit(".", maxsplit=1)[-1]
                 )
 
-            _type = (
-                f"Optional[{_type}]"
-                if is_optional and "Optional" not in str(_type)
-                else _type
-            )
+            _type = f"Optional[{_type}]" if is_optional and "Optional" not in str(_type) else _type
 
             if target == "website":
                 _type = re.sub(r"Optional\[(.*)\]", r"\1", _type)
@@ -1540,11 +1403,7 @@ class DocstringGenerator:
             type_str = str(type_)
 
             # Check if this is a complex union of literals (provider-specific choices)
-            if (
-                "Union[" in type_str
-                and "Literal[" in type_str
-                and type_str.count("Literal[") > 1
-            ):
+            if "Union[" in type_str and "Literal[" in type_str and type_str.count("Literal[") > 1:
                 # For complex Union with multiple Literals, simplify to the base type
                 base_types = set()
 
@@ -1590,9 +1449,7 @@ class DocstringGenerator:
             )
 
             if char_limit:
-                type_str = type_str[:char_limit] + (
-                    "..." if len(str(type_str)) > char_limit else ""
-                )
+                type_str = type_str[:char_limit] + ("..." if len(str(type_str)) > char_limit else "")
             return type_str
 
         def format_schema_description(description: str) -> str:
@@ -1656,21 +1513,15 @@ class DocstringGenerator:
                             # Split the choice line at newlines
                             choice_parts = choice_line.split("\n")
                             # Add first part with "Choices for" prefix
-                            formatted_lines.append(
-                                f"{create_indent(3)}Choices for {choice_parts[0]}"
-                            )
+                            formatted_lines.append(f"{create_indent(3)}Choices for {choice_parts[0]}")
 
                             # Add remaining parts with proper indentation
                             for part in choice_parts[1:]:
                                 if part.strip():  # Skip empty lines
-                                    formatted_lines.append(
-                                        f"{create_indent(4)}{part.strip()}"
-                                    )
+                                    formatted_lines.append(f"{create_indent(4)}{part.strip()}")
                         else:
                             # No line breaks in this choice
-                            formatted_lines.append(
-                                f"{create_indent(3)}Choices for {choice_line}"
-                            )
+                            formatted_lines.append(f"{create_indent(3)}Choices for {choice_line}")
 
                     return "\n".join(formatted_lines)
 
@@ -1687,9 +1538,7 @@ class DocstringGenerator:
                 p_type = args[0] if args else None
             else:
                 p_type = annotation
-            type_ = (
-                getattr(p_type, "__name__", "") if inspect.isclass(p_type) else p_type
-            )
+            type_ = getattr(p_type, "__name__", "") if inspect.isclass(p_type) else p_type
             metadata = getattr(annotation, "__metadata__", [])
             description = getattr(metadata[0], "description", "") if metadata else ""
             return type_, description  # type: ignore
@@ -1727,11 +1576,7 @@ class DocstringGenerator:
             for param_name, param in kwarg_params.items():
                 type_, description = get_param_info(param)
                 p_type = getattr(param, "type", "")
-                type_ = (
-                    getattr(p_type, "__name__", "")
-                    if inspect.isclass(p_type)
-                    else p_type
-                )
+                type_ = getattr(p_type, "__name__", "") if inspect.isclass(p_type) else p_type
                 type_ = format_type(type_)
                 if "NoneType" in str(type_):
                     type_ = f"Optional[{type_}]".replace(", NoneType", "")
@@ -1758,10 +1603,7 @@ class DocstringGenerator:
                 # If still no description but param default is a Query object, extract from there
                 if not description and hasattr(param, "default"):
                     param_default = getattr(param, "default")
-                    if (
-                        hasattr(param_default, "__class__")
-                        and "Query" in param_default.__class__.__name__
-                    ):
+                    if hasattr(param_default, "__class__") and "Query" in param_default.__class__.__name__:
                         description = getattr(param_default, "description", "") or ""
 
                 # Extract provider-specific choices directly from the provider interface
@@ -1794,16 +1636,11 @@ class DocstringGenerator:
                                 if (
                                     provider_field_info
                                     and hasattr(provider_field_info, "annotation")
-                                    and hasattr(
-                                        provider_field_info.annotation, "__origin__"
-                                    )
-                                    and provider_field_info.annotation.__origin__
-                                    is Literal
+                                    and hasattr(provider_field_info.annotation, "__origin__")
+                                    and provider_field_info.annotation.__origin__ is Literal
                                 ):
                                     # Extract literal values as provider choices
-                                    provider_choices[provider] = list(
-                                        provider_field_info.annotation.__args__
-                                    )
+                                    provider_choices[provider] = list(provider_field_info.annotation.__args__)
                             except (KeyError, AttributeError):
                                 continue
                     except (AttributeError, KeyError):
@@ -1821,10 +1658,7 @@ class DocstringGenerator:
                                 choice_str = f"'{choice}'"
 
                                 # If adding this choice would exceed line limit, start a new line
-                                if (
-                                    line_length > 0
-                                    and line_length + len(choice_str) + 2 > line_limit
-                                ):
+                                if line_length > 0 and line_length + len(choice_str) + 2 > line_limit:
                                     # End the current line
                                     formatted_choices.append("\n")
                                     line_length = 0
@@ -1885,9 +1719,7 @@ class DocstringGenerator:
         param_types = {}
 
         sections = SystemService().system_settings.python_settings.docstring_sections
-        max_length = (
-            SystemService().system_settings.python_settings.docstring_max_length
-        )
+        max_length = SystemService().system_settings.python_settings.docstring_max_length
 
         # Parameters explicit in the function signature
         explicit_params = dict(formatted_params)
@@ -1948,9 +1780,7 @@ class DocstringGenerator:
             # Format the summary
             summary = summary.replace("\n    ", f"\n{create_indent(2)}")
 
-            sections = (
-                SystemService().system_settings.python_settings.docstring_sections
-            )
+            sections = SystemService().system_settings.python_settings.docstring_sections
             result_doc = summary
             # Add parameters section if needed and not already in docstring
             if (
@@ -1959,9 +1789,7 @@ class DocstringGenerator:
                 and "Parameters" not in doc
                 and [p for p_name, p in formatted_params.items() if p_name != "kwargs"]
             ):
-                param_section = (
-                    f"\n\n{create_indent(2)}Parameters\n{create_indent(2)}----------\n"
-                )
+                param_section = f"\n\n{create_indent(2)}Parameters\n{create_indent(2)}----------\n"
 
                 # Process each parameter
                 for param_name, param in formatted_params.items():
@@ -1974,17 +1802,13 @@ class DocstringGenerator:
                         # Extract from OpenBBField annotations
                         p_type = annotation.__args__[0]
                         metadata = getattr(annotation, "__metadata__", [])
-                        description = (
-                            getattr(metadata[0], "description", "") if metadata else ""
-                        )
+                        description = getattr(metadata[0], "description", "") if metadata else ""
                     else:
                         p_type = annotation
                         description = ""
 
                     # Format the type
-                    type_str = cls.get_field_type(
-                        p_type, param.default is Parameter.empty
-                    )
+                    type_str = cls.get_field_type(p_type, param.default is Parameter.empty)
 
                     # Add parameter to docstring
                     param_section += f"{create_indent(2)}{param_name} : {type_str}\n"
@@ -1995,19 +1819,13 @@ class DocstringGenerator:
             # Add returns section if needed and not already in docstring
             if "returns" in sections and "Returns" not in doc:
                 # Returns
-                returns_section = (
-                    f"\n\n{create_indent(2)}Returns\n{create_indent(2)}-------\n"
-                )
+                returns_section = f"\n\n{create_indent(2)}Returns\n{create_indent(2)}-------\n"
 
                 # Extract return annotation directly from function signature
                 sig = inspect.signature(func)
                 return_annotation = sig.return_annotation
 
-                if (
-                    return_annotation
-                    and return_annotation
-                    != inspect._empty  # pylint: disable=protected-access
-                ):
+                if return_annotation and return_annotation != inspect._empty:  # pylint: disable=protected-access
                     # Extract the type name properly
                     if hasattr(return_annotation, "__name__"):
                         type_name = return_annotation.__name__
@@ -2049,21 +1867,15 @@ class DocstringGenerator:
                                 # Process each field in the model
                                 for field_name, field in fields.items():
                                     # Get field type
-                                    field_type = cls.get_field_type(
-                                        field.annotation, field.is_required
-                                    )
+                                    field_type = cls.get_field_type(field.annotation, field.is_required)
 
                                     # Get field description
-                                    description = (
-                                        getattr(field, "description", "") or ""
-                                    )
+                                    description = getattr(field, "description", "") or ""
 
                                     # Add field to docstring with proper indentation
                                     returns_section += f"{create_indent(3)}{field_name} : {field_type}\n"
                                     if description:
-                                        returns_section += (
-                                            f"{create_indent(4)}{description}\n"
-                                        )
+                                        returns_section += f"{create_indent(4)}{description}\n"
                         except (AttributeError, TypeError):
                             pass
                 else:
@@ -2082,11 +1894,7 @@ class DocstringGenerator:
                     examples,
                 )
 
-        if (
-            max_length  # pylint: disable=chained-comparison
-            and len(doc) > max_length
-            and max_length > 3
-        ):
+        if max_length and len(doc) > max_length and max_length > 3:  # pylint: disable=chained-comparison
             doc = doc[: max_length - 3] + "..."
         return doc
 
@@ -2143,10 +1951,7 @@ class DocstringGenerator:
         --------
         [List, Dict, Tuple], M -> "Union[List[M], Dict[str, M], Tuple[M]]"
         """
-        if s := [
-            f"{i}[str, {model}]" if i.lower() == "dict" else f"{i}[{model}]"
-            for i in items
-        ]:
+        if s := [f"{i}[str, {model}]" if i.lower() == "dict" else f"{i}[{model}]" for i in items]:
             return f"Union[{', '.join(s)}]" if len(s) > 1 else s[0]
         return model
 
@@ -2263,9 +2068,7 @@ class ReferenceGenerator:
         """
         sig = signature(func)
         parameter_map = dict(sig.parameters)
-        formatted_params = MethodDefinition.format_params(
-            path=path, parameter_map=parameter_map
-        )
+        formatted_params = MethodDefinition.format_params(path=path, parameter_map=parameter_map)
         explicit_params = dict(formatted_params)
         explicit_params.pop("extra_params", None)
         param_types = {k: v.annotation for k, v in explicit_params.items()}
@@ -2295,9 +2098,7 @@ class ReferenceGenerator:
         provider_params_field = pi_model_provider.__dataclass_fields__["provider"]
 
         name = provider_params_field.name
-        field_type = DocstringGenerator.get_field_type(
-            provider_params_field.type, False, "website"
-        )
+        field_type = DocstringGenerator.get_field_type(provider_params_field.type, False, "website")
         default_priority = provider_params_field.type.__args__
         description = (
             "The provider to use, by default None. "
@@ -2316,9 +2117,7 @@ class ReferenceGenerator:
         return provider_parameter_info
 
     @classmethod
-    def _get_provider_field_params(
-        cls, model: str, params_type: str, provider: str = "openbb"
-    ) -> List[Dict[str, Any]]:
+    def _get_provider_field_params(cls, model: str, params_type: str, provider: str = "openbb") -> List[Dict[str, Any]]:
         """Get the fields of the given parameter type for the given provider of the standard_model."""
         provider_field_params = []
         expanded_types = MethodDefinition.TYPE_EXPANSION
@@ -2353,9 +2152,7 @@ class ReferenceGenerator:
             # Determine the field type, expanding it if necessary
             field_type = field_info.annotation
             is_required = field_info.is_required()
-            field_type_str = DocstringGenerator.get_field_type(
-                field_type, is_required, "website"
-            )
+            field_type_str = DocstringGenerator.get_field_type(field_type, is_required, "website")
 
             # Handle case where field_type_str contains ", optional" suffix
             if ", optional" in field_type_str:
@@ -2379,19 +2176,13 @@ class ReferenceGenerator:
 
                 if providers:
                     multiple_items = ", ".join(providers)
-                    cleaned_description += (
-                        f" Multiple items allowed for provider(s): {multiple_items}."
-                    )
+                    cleaned_description += f" Multiple items allowed for provider(s): {multiple_items}."
                     field_type_str = f"Union[{field_type_str}, List[{field_type_str}]]"
             elif field in expanded_types:
-                expanded_type = DocstringGenerator.get_field_type(
-                    expanded_types[field], is_required, "website"
-                )
+                expanded_type = DocstringGenerator.get_field_type(expanded_types[field], is_required, "website")
                 field_type_str = f"Union[{field_type_str}, {expanded_type}]"
 
-            default_value = (
-                "" if field_info.default is PydanticUndefined else field_info.default
-            )
+            default_value = "" if field_info.default is PydanticUndefined else field_info.default
 
             provider_field_params.append(
                 {
@@ -2508,9 +2299,7 @@ class ReferenceGenerator:
                     param_type = param_type.replace(", optional", "")
 
                 # If no default value is captured, set it to an empty string
-                default_value = (
-                    param_info["default"] if param_info["default"] is not None else ""
-                )
+                default_value = param_info["default"] if param_info["default"] is not None else ""
                 param_type = (
                     str(param_type)
                     .replace("openbb_core.provider.abstract.data.Data", "Data")
@@ -2522,9 +2311,7 @@ class ReferenceGenerator:
                 param_dict = {
                     "name": param_info["name"],
                     "type": ReferenceGenerator._clean_string_values(param_type),
-                    "description": ReferenceGenerator._clean_string_values(
-                        param_info["description"]
-                    ),
+                    "description": ReferenceGenerator._clean_string_values(param_info["description"]),
                     "default": default_value,
                     "optional": is_optional,
                 }
@@ -2555,17 +2342,10 @@ class ReferenceGenerator:
                 "list[Data]",
                 value,
             )
-            value = re.sub(
-                r"openbb_core\.provider\.abstract\.data\.Data", "Data", value
-            )
+            value = re.sub(r"openbb_core\.provider\.abstract\.data\.Data", "Data", value)
 
             # Handle Literal types specifically
-            if (
-                "Literal[" in value
-                and "]" in value
-                and "'" not in value
-                and '"' not in value
-            ):
+            if "Literal[" in value and "]" in value and "'" not in value and '"' not in value:
                 # Extract the content between Literal[ and ]
                 start_idx = value.find("Literal[") + len("Literal[")
                 end_idx = value.rfind("]")
@@ -2585,9 +2365,7 @@ class ReferenceGenerator:
             # Replace double quotes with single quotes for other strings
             return value.replace('"', "'")
         if isinstance(value, dict):
-            return {
-                k: ReferenceGenerator._clean_string_values(v) for k, v in value.items()
-            }
+            return {k: ReferenceGenerator._clean_string_values(v) for k, v in value.items()}
         if isinstance(value, list):
             return [ReferenceGenerator._clean_string_values(item) for item in value]
 
@@ -2617,9 +2395,7 @@ class ReferenceGenerator:
                     continue
 
             param_type = param.annotation
-            is_optional = (
-                param.default is not Parameter.empty
-            )  # Parameter is optional if it has a default value
+            is_optional = param.default is not Parameter.empty  # Parameter is optional if it has a default value
             description = ""
             choices = None
             default = param.default if param.default is not Parameter.empty else None
@@ -2634,11 +2410,7 @@ class ReferenceGenerator:
                 # Check if None or NoneType is in the union
                 is_optional = True
                 # Extract the actual type (excluding None)
-                non_none_args = [
-                    arg
-                    for arg in param_type.__args__
-                    if arg is not type(None) and arg is not None
-                ]
+                non_none_args = [arg for arg in param_type.__args__ if arg is not type(None) and arg is not None]
                 if len(non_none_args) == 1:
                     param_type = non_none_args[0]
 
@@ -2656,14 +2428,9 @@ class ReferenceGenerator:
                         json_extra = meta.json_schema_extra
 
                     # Add handling for Query objects inside Annotated metadata
-                    if (
-                        hasattr(meta, "__class__")
-                        and "Query" in meta.__class__.__name__
-                    ):
+                    if hasattr(meta, "__class__") and "Query" in meta.__class__.__name__:
                         description = getattr(meta, "description", "") or description
-                        json_extra = (
-                            getattr(meta, "json_schema_extra", {}) or json_extra
-                        )
+                        json_extra = getattr(meta, "json_schema_extra", {}) or json_extra
                         default_value = getattr(meta, "default", None)
                         if default_value not in [
                             Parameter.empty,
@@ -2676,14 +2443,8 @@ class ReferenceGenerator:
                 param_type = base_type
 
             # Handle Query objects passed as parameters or default values.
-            if str(default.__class__).endswith("Query'>") or "Query" in str(
-                default.__class__
-            ):
-                param_type = (
-                    param_type.annotation
-                    if hasattr(param_type, "annotation")
-                    else str(param_type)
-                )
+            if str(default.__class__).endswith("Query'>") or "Query" in str(default.__class__):
+                param_type = param_type.annotation if hasattr(param_type, "annotation") else str(param_type)
                 description = default.description  # type: ignore
                 json_extra = default.json_schema_extra  # type: ignore
 
@@ -2700,8 +2461,7 @@ class ReferenceGenerator:
 
                 default = (
                     default.default  # type: ignore
-                    if default.default  # type: ignore
-                    not in [Parameter.empty, PydanticUndefined, Ellipsis]
+                    if default.default not in [Parameter.empty, PydanticUndefined, Ellipsis]  # type: ignore
                     else None
                 )
 
@@ -2709,10 +2469,7 @@ class ReferenceGenerator:
             type_str = str(param_type)
             # Clean up type string
             type_str = (
-                type_str.replace("<class '", "")
-                .replace("'>", "")
-                .replace("typing.", "")
-                .replace("NoneType", "None")
+                type_str.replace("<class '", "").replace("'>", "").replace("typing.", "").replace("NoneType", "None")
             )
 
             params_info.append(
@@ -2763,9 +2520,7 @@ class ReferenceGenerator:
                 r"OBBject\[\s*((?:[^\[\]]|\[[^\[\]]*\])*)\s*\]", return_type
             ) or re.search(r"list\[\s*((?:[^\[\]]|\[[^\[\]]*\])*)\s*\]", return_type)
             return_type = (  # type: ignore
-                content_inside_brackets.group(1)
-                if content_inside_brackets is not None
-                else return_type
+                content_inside_brackets.group(1) if content_inside_brackets is not None else return_type
             )
 
             returns_dict = {
@@ -2777,9 +2532,7 @@ class ReferenceGenerator:
         return returns_dict
 
     @classmethod
-    def get_paths(  # noqa: PLR0912
-        cls, route_map: Dict[str, BaseRoute]
-    ) -> Dict[str, Dict[str, Any]]:
+    def get_paths(cls, route_map: Dict[str, BaseRoute]) -> Dict[str, Dict[str, Any]]:  # noqa: PLR0912
         """Get path reference data.
 
         The reference data is a dictionary containing the description, parameters,
@@ -2823,63 +2576,40 @@ class ReferenceGenerator:
             )
             validate_output = not openapi_extra.pop("no_validate", None)
             model_map = cls.pi.map.get(standard_model, {})
-            reference[path]["openapi_extra"] = {
-                k: v for k, v in openapi_extra.items() if v
-            }
+            reference[path]["openapi_extra"] = {k: v for k, v in openapi_extra.items() if v}
 
             # Add data for the endpoints having a standard model
             if route_method == {"GET"} and model_map:
-                reference[path]["description"] = getattr(
-                    route, "description", "No description available."
-                )
+                reference[path]["description"] = getattr(route, "description", "No description available.")
                 for provider in model_map:
                     if provider == "openbb":
                         # openbb provider is always present hence its the standard field
-                        reference[path]["parameters"]["standard"] = (
-                            cls._get_provider_field_params(
-                                standard_model, "QueryParams"
-                            )
+                        reference[path]["parameters"]["standard"] = cls._get_provider_field_params(
+                            standard_model, "QueryParams"
                         )
                         # Add `provider` parameter fields to the openbb provider
-                        provider_parameter_fields = cls._get_provider_parameter_info(
-                            standard_model
-                        )
+                        provider_parameter_fields = cls._get_provider_parameter_info(standard_model)
 
                         # Add endpoint data fields for standard provider
-                        reference[path]["data"]["standard"] = (
-                            cls._get_provider_field_params(standard_model, "Data")
-                        )
+                        reference[path]["data"]["standard"] = cls._get_provider_field_params(standard_model, "Data")
                         continue
 
                     # Adds provider specific parameter fields to the reference
-                    reference[path]["parameters"][provider] = (
-                        cls._get_provider_field_params(
-                            standard_model, "QueryParams", provider
-                        )
+                    reference[path]["parameters"][provider] = cls._get_provider_field_params(
+                        standard_model, "QueryParams", provider
                     )
 
                     # Adds provider specific data fields to the reference
-                    reference[path]["data"][provider] = cls._get_provider_field_params(
-                        standard_model, "Data", provider
-                    )
+                    reference[path]["data"][provider] = cls._get_provider_field_params(standard_model, "Data", provider)
 
                     # Remove choices from standard parameters if they exist in provider-specific parameters
-                    provider_param_names = {
-                        p["name"] for p in reference[path]["parameters"][provider]
-                    }
+                    provider_param_names = {p["name"] for p in reference[path]["parameters"][provider]}
 
-                    for i, param in enumerate(
-                        reference[path]["parameters"]["standard"]
-                    ):
+                    for i, param in enumerate(reference[path]["parameters"]["standard"]):
                         param_name = param.get("name")
-                        if (
-                            param_name in provider_param_names
-                            and param.get("choices") is not None
-                        ):
+                        if param_name in provider_param_names and param.get("choices") is not None:
                             # This parameter has a provider-specific version, so remove choices from standard
-                            reference[path]["parameters"]["standard"][i][
-                                "choices"
-                            ] = None
+                            reference[path]["parameters"]["standard"][i]["choices"] = None
 
                 # Add endpoint returns data
                 if validate_output is False:
@@ -2888,9 +2618,7 @@ class ReferenceGenerator:
                     }
                 else:
                     providers = provider_parameter_fields["type"]
-                    reference[path]["returns"]["OBBject"] = (
-                        cls._get_obbject_returns_fields(standard_model, providers)
-                    )
+                    reference[path]["returns"]["OBBject"] = cls._get_obbject_returns_fields(standard_model, providers)
             # Add data for the endpoints without a standard model (data processing endpoints)
             else:
                 # Get function signature information
@@ -2979,32 +2707,24 @@ class ReferenceGenerator:
                                             if field_name.startswith("_"):
                                                 continue
 
-                                            field_type = (
-                                                DocstringGenerator.get_field_type(
-                                                    field.annotation,
-                                                    not field.is_required(),
-                                                    "website",
-                                                )
+                                            field_type = DocstringGenerator.get_field_type(
+                                                field.annotation,
+                                                not field.is_required(),
+                                                "website",
                                             )
 
                                             model_fields.append(
                                                 {
                                                     "name": field_name,
-                                                    "type": ReferenceGenerator._clean_string_values(
-                                                        field_type
-                                                    ),
+                                                    "type": ReferenceGenerator._clean_string_values(field_type),
                                                     "description": (
-                                                        ReferenceGenerator._clean_string_values(
-                                                            field.description
-                                                        )
+                                                        ReferenceGenerator._clean_string_values(field.description)
                                                         if field.description
                                                         else ""
                                                     ),
                                                     "default": (
                                                         field.default
-                                                        if field.default
-                                                        and field.default
-                                                        != PydanticUndefined
+                                                        if field.default and field.default != PydanticUndefined
                                                         else ""
                                                     ),
                                                     "optional": not field.is_required(),
@@ -3012,24 +2732,13 @@ class ReferenceGenerator:
                                             )
 
                                         if model_fields:
-                                            list_match = re.search(
-                                                r"list\[(.*?)\]", returns_info
-                                            )
-                                            model_name = (
-                                                list_match.group(1)
-                                                if list_match
-                                                else returns_info
-                                            )
+                                            list_match = re.search(r"list\[(.*?)\]", returns_info)
+                                            model_name = list_match.group(1) if list_match else returns_info
 
-                                            reference[path]["data"][
-                                                model_name
-                                            ] = model_fields
+                                            reference[path]["data"][model_name] = model_fields
                                         break
                     # For Pydantic models, extract the fields
-                    elif (
-                        hasattr(return_annotation, "model_fields")
-                        and not is_generic_obbject
-                    ):
+                    elif hasattr(return_annotation, "model_fields") and not is_generic_obbject:
                         for field_name, field in return_annotation.model_fields.items():
                             # Skip private fields
                             if field_name.startswith("_"):
@@ -3043,16 +2752,9 @@ class ReferenceGenerator:
                                 {
                                     "name": field_name,
                                     "type": field_type,
-                                    "description": (
-                                        field.description.replace('"', "'")
-                                        if field.description
-                                        else ""
-                                    ),
+                                    "description": (field.description.replace('"', "'") if field.description else ""),
                                     "default": (
-                                        field.default
-                                        if field.default
-                                        and field.default != PydanticUndefined
-                                        else ""
+                                        field.default if field.default and field.default != PydanticUndefined else ""
                                     ),
                                     "optional": field.is_required(),
                                 }
@@ -3067,9 +2769,7 @@ class ReferenceGenerator:
                                 result_type = item["type"]
                                 # Extract model name from result type (e.g., "list[ModelName]" -> "ModelName")
                                 list_match = re.search(r"list\[(.*?)\]", result_type)
-                                model_name = (
-                                    list_match.group(1) if list_match else result_type
-                                )
+                                model_name = list_match.group(1) if list_match else result_type
 
                                 # Don't add data fields for generic types like "Data" or if already in parameters
                                 if model_name and model_name != "Data":
@@ -3100,12 +2800,10 @@ class ReferenceGenerator:
                                                         {
                                                             "name": field_name,
                                                             "type": field_type,
-                                                            "description": field.description
-                                                            or "",
+                                                            "description": field.description or "",
                                                             "default": (
                                                                 field.default
-                                                                if field.default
-                                                                != PydanticUndefined
+                                                                if field.default != PydanticUndefined
                                                                 else ""
                                                             ),
                                                             "optional": not field.is_required(),
@@ -3113,9 +2811,7 @@ class ReferenceGenerator:
                                                     )
 
                                                 if model_fields:
-                                                    reference[path]["data"][
-                                                        model_name
-                                                    ] = model_fields
+                                                    reference[path]["data"][model_name] = model_fields
                                                 break
                                 break
                     elif isinstance(returns_info, str):
@@ -3146,45 +2842,31 @@ class ReferenceGenerator:
                                             if field_name.startswith("_"):
                                                 continue
 
-                                            field_type = (
-                                                DocstringGenerator.get_field_type(
-                                                    field.annotation,
-                                                    not field.is_required(),
-                                                    "website",
-                                                )
+                                            field_type = DocstringGenerator.get_field_type(
+                                                field.annotation,
+                                                not field.is_required(),
+                                                "website",
                                             )
 
                                             model_fields.append(
                                                 {
                                                     "name": field_name,
                                                     "type": field_type,
-                                                    "description": field.description
-                                                    or "",
+                                                    "description": field.description or "",
                                                     "default": (
-                                                        field.default
-                                                        if field.default
-                                                        != PydanticUndefined
-                                                        else ""
+                                                        field.default if field.default != PydanticUndefined else ""
                                                     ),
                                                     "optional": not field.is_required(),
                                                 }
                                             )
 
                                         if model_fields:
-                                            reference[path]["data"][
-                                                model_name
-                                            ] = model_fields
+                                            reference[path]["data"][model_name] = model_fields
                                         break
                     else:
                         # For direct returns that aren't OBBject
-                        model_name = (
-                            return_annotation.__name__
-                            if hasattr(return_annotation, "__name__")
-                            else "Model"
-                        )
-                        reference[path]["data"] = (
-                            {model_name: model_fields} if model_fields else {}
-                        )
+                        model_name = return_annotation.__name__ if hasattr(return_annotation, "__name__") else "Model"
+                        reference[path]["data"] = {model_name: model_fields} if model_fields else {}
 
         return reference
 
@@ -3201,16 +2883,13 @@ class ReferenceGenerator:
         type_str = str(return_annotation)
 
         if "OBBject" in type_str or (
-            hasattr(return_annotation, "__name__")
-            and "OBBject" in return_annotation.__name__
+            hasattr(return_annotation, "__name__") and "OBBject" in return_annotation.__name__
         ):
             # Extract the model name from docstring or type annotation
             result_type = "list[Data]"  # Default fallback
 
             # Try to extract from type annotation first (more reliable)
-            if hasattr(return_annotation, "__origin__") and hasattr(
-                return_annotation, "__args__"
-            ):
+            if hasattr(return_annotation, "__origin__") and hasattr(return_annotation, "__args__"):
                 # For OBBject[SomeType]
                 inner_type = return_annotation.__args__[0]
                 if hasattr(inner_type, "__name__"):
@@ -3246,11 +2925,7 @@ class ReferenceGenerator:
                 "OBBject": [
                     {
                         "name": "results",
-                        "type": (
-                            result_type
-                            if "[" in result_type
-                            else f"list[{result_type}]"
-                        ),
+                        "type": (result_type if "[" in result_type else f"list[{result_type}]"),
                         "description": "Serializable results.",
                     },
                     {"name": "provider", "type": None, "description": "Provider name."},
@@ -3273,12 +2948,7 @@ class ReferenceGenerator:
             }
 
         # Clean up return type string
-        type_str = (
-            type_str.replace("<class '", "")
-            .replace("'>", "")
-            .replace("typing.", "")
-            .replace("NoneType", "None")
-        )
+        type_str = type_str.replace("<class '", "").replace("'>", "").replace("typing.", "").replace("NoneType", "None")
 
         # Basic types handling
         basic_types = ["int", "str", "dict", "bool", "float", "None", "Any"]
@@ -3291,15 +2961,11 @@ class ReferenceGenerator:
             container_type = container_match.group(1)
             inner_type = container_match.group(2)
 
-            inner_type_name = (
-                inner_type.split(".")[-1] if "." in inner_type else inner_type
-            )
+            inner_type_name = inner_type.split(".")[-1] if "." in inner_type else inner_type
 
             return f"{container_type}[{inner_type_name}]"
 
-        model_name = (
-            type_str.rsplit(".", maxsplit=1)[-1] if "." in type_str else type_str
-        )
+        model_name = type_str.rsplit(".", maxsplit=1)[-1] if "." in type_str else type_str
 
         return model_name
 

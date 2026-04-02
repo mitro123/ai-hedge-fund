@@ -1,18 +1,14 @@
 """Bond Trades Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Literal, Optional, Union
+
+from pydantic import Field, field_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class BondTradesQueryParams(QueryParams):
@@ -40,15 +36,13 @@ class BondTradesQueryParams(QueryParams):
     start_date: Optional[Union[dateType, str]] = Field(
         default=None,
         description=(
-            QUERY_DESCRIPTIONS.get("start_date", "")
-            + " YYYY-MM-DD or  ISO-8601 format. E.g. 2023-01-14T10:55:00Z"
+            QUERY_DESCRIPTIONS.get("start_date", "") + " YYYY-MM-DD or  ISO-8601 format. E.g. 2023-01-14T10:55:00Z"
         ),
     )
     end_date: Optional[Union[dateType, str]] = Field(
         default=None,
         description=(
-            QUERY_DESCRIPTIONS.get("end_date", "")
-            + " YYYY-MM-DD or  ISO-8601 format. E.g. 2023-01-14T10:55:00Z"
+            QUERY_DESCRIPTIONS.get("end_date", "") + " YYYY-MM-DD or  ISO-8601 format. E.g. 2023-01-14T10:55:00Z"
         ),
     )
 

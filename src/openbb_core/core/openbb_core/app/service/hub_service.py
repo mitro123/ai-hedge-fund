@@ -4,7 +4,8 @@ from typing import Optional, Tuple
 from warnings import warn
 
 from fastapi import HTTPException
-from jwt import ExpiredSignatureError, PyJWTError, decode, get_unverified_header
+from jwt import decode, ExpiredSignatureError, get_unverified_header, PyJWTError
+
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.app.model.credentials import Credentials
 from openbb_core.app.model.defaults import Defaults
@@ -77,22 +78,16 @@ class HubService:
             result = self._post_logout(self._session)
             self._session = None
             return result
-        raise OpenBBError(
-            "No session found. Login or provide a 'HubSession' on initialization."
-        )
+        raise OpenBBError("No session found. Login or provide a 'HubSession' on initialization.")
 
     def push(self, user_settings: UserSettings) -> bool:
         """Push user settings to Hub."""
         if self._session:
             if user_settings.credentials:
-                hub_user_settings = self.platform2hub(
-                    user_settings.credentials, user_settings.defaults
-                )
+                hub_user_settings = self.platform2hub(user_settings.credentials, user_settings.defaults)
                 return self._put_user_settings(self._session, hub_user_settings)
             return False
-        raise OpenBBError(
-            "No session found. Login or provide a 'HubSession' on initialization."
-        )
+        raise OpenBBError("No session found. Login or provide a 'HubSession' on initialization.")
 
     def pull(self) -> UserSettings:
         """Pull user settings from Hub."""
@@ -100,12 +95,8 @@ class HubService:
             self._hub_user_settings = self._get_user_settings(self._session)
             profile = Profile(hub_session=self._session)
             credentials, defaults = self.hub2platform(self._hub_user_settings)
-            return UserSettings(
-                profile=profile, credentials=credentials, defaults=defaults
-            )
-        raise OpenBBError(
-            "No session found. Login or provide a 'HubSession' on initialization."
-        )
+            return UserSettings(profile=profile, credentials=credentials, defaults=defaults)
+        raise OpenBBError("No session found. Login or provide a 'HubSession' on initialization.")
 
     def _get_session_from_email_password(self, email: str, password: str) -> HubSession:
         """Get session from email and password."""
@@ -210,9 +201,7 @@ class HubService:
         detail = response.json().get("detail", None)
         raise HTTPException(status_code, detail)
 
-    def _put_user_settings(
-        self, session: HubSession, settings: HubUserSettings
-    ) -> bool:
+    def _put_user_settings(self, session: HubSession, settings: HubUserSettings) -> bool:
         """Put user settings."""
         access_token = session.access_token.get_secret_value()
         token_type = session.token_type
@@ -231,9 +220,7 @@ class HubService:
 
     def hub2platform(self, settings: HubUserSettings) -> Tuple[Credentials, Defaults]:
         """Convert Hub user settings to Platform models."""
-        deprecated = {
-            k: v for k, v in self.V3TOV4.items() if k in settings.features_keys
-        }
+        deprecated = {k: v for k, v in self.V3TOV4.items() if k in settings.features_keys}
         if deprecated:
             msg = ""
             for k, v in deprecated.items():
@@ -251,23 +238,17 @@ class HubService:
         defaults = settings.features_settings.get("defaults", {})
         return Credentials(**hub_credentials), Defaults(**defaults)
 
-    def platform2hub(
-        self, credentials: Credentials, defaults: Defaults
-    ) -> HubUserSettings:
+    def platform2hub(self, credentials: Credentials, defaults: Defaults) -> HubUserSettings:
         """Convert Platform models to Hub user settings."""
         # Dump mode json ensures SecretStr values are serialized as strings
-        credentials = credentials.model_dump(
-            mode="json", exclude_none=True, exclude_defaults=True
-        )
+        credentials = credentials.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
         settings = self._hub_user_settings or HubUserSettings()
         for v4_k, v in sorted(credentials.items()):
             v3_k = self.V4TOV3.get(v4_k, None)
             # If v3 key was in the hub already, we keep it
             k = v3_k if v3_k in settings.features_keys else v4_k
             settings.features_keys[k] = v
-        defaults_ = defaults.model_dump(
-            mode="json", exclude_none=True, exclude_defaults=True
-        )
+        defaults_ = defaults.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
         settings.features_settings.update({"defaults": defaults_})
         return settings
 

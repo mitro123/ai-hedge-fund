@@ -10,15 +10,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from jwt import encode
-from openbb_core.app.model.defaults import Defaults
-from openbb_core.app.service.hub_service import (
-    Credentials,
-    HubService,
-    HubSession,
-    HubUserSettings,
-    OpenBBError,
-)
 from pydantic import SecretStr
+
+from openbb_core.app.model.defaults import Defaults
+from openbb_core.app.service.hub_service import Credentials, HubService, HubSession, HubUserSettings, OpenBBError
 
 
 @pytest.fixture
@@ -90,12 +85,13 @@ def test_v3tov4_map():
 def test_connect_with_email_password():
     """Test connect with email and password."""
     mock_hub_session = MagicMock(spec=HubSession)
-    with patch(
-        "requests.post", return_value=MagicMock(status_code=200, json=lambda: {})
-    ), patch.object(
-        HubService,
-        "_get_session_from_email_password",
-        return_value=mock_hub_session,
+    with (
+        patch("requests.post", return_value=MagicMock(status_code=200, json=lambda: {})),
+        patch.object(
+            HubService,
+            "_get_session_from_email_password",
+            return_value=mock_hub_session,
+        ),
     ):
         hub_service = HubService()
         result = hub_service.connect(email="test@example.com", password="password")
@@ -107,10 +103,9 @@ def test_connect_with_email_password():
 def test_connect_with_sdk_token():
     """Test connect with Platform personal access token."""
     mock_hub_session = MagicMock(spec=HubSession)
-    with patch(
-        "requests.post", return_value=MagicMock(status_code=200, json=lambda: {})
-    ), patch.object(
-        HubService, "_get_session_from_platform_token", return_value=mock_hub_session
+    with (
+        patch("requests.post", return_value=MagicMock(status_code=200, json=lambda: {})),
+        patch.object(HubService, "_get_session_from_platform_token", return_value=mock_hub_session),
     ):
         hub_service = HubService()
         result = hub_service.connect(pat="pat")
@@ -122,32 +117,33 @@ def test_connect_with_sdk_token():
 def test_connect_without_credentials():
     """Test connect without credentials."""
     hub_service = HubService()
-    with pytest.raises(
-        OpenBBError, match="Please provide 'email' and 'password' or 'pat'"
-    ):
+    with pytest.raises(OpenBBError, match="Please provide 'email' and 'password' or 'pat'"):
         hub_service.connect()
 
 
 def test_get_session_from_email_password():
     """Test get session from email and password."""
     mock_hub_session = MagicMock(spec=HubSession)
-    with patch(
-        "requests.post",
-        return_value=MagicMock(
-            status_code=200,
-            json=lambda: {
-                "access_token": "token",
-                "token_type": "Bearer",
-                "uuid": "uuid",
-                "email": "email",
-                "username": "username",
-                "primary_usage": "primary_usage",
-            },
+    with (
+        patch(
+            "requests.post",
+            return_value=MagicMock(
+                status_code=200,
+                json=lambda: {
+                    "access_token": "token",
+                    "token_type": "Bearer",
+                    "uuid": "uuid",
+                    "email": "email",
+                    "username": "username",
+                    "primary_usage": "primary_usage",
+                },
+            ),
         ),
-    ), patch.object(
-        HubService,
-        "_get_session_from_email_password",
-        return_value=mock_hub_session,
+        patch.object(
+            HubService,
+            "_get_session_from_email_password",
+            return_value=mock_hub_session,
+        ),
     ):
         hub_service = HubService()
         result = hub_service._get_session_from_email_password("email", "password")
@@ -157,23 +153,26 @@ def test_get_session_from_email_password():
 def test_get_session_from_platform_token():
     """Test get session from Platform personal access token."""
     mock_hub_session = MagicMock(spec=HubSession)
-    with patch(
-        "requests.post",
-        return_value=MagicMock(
-            status_code=200,
-            json=lambda: {
-                "access_token": "token",
-                "token_type": "Bearer",
-                "uuid": "uuid",
-                "username": "username",
-                "email": "email",
-                "primary_usage": "primary_usage",
-            },
+    with (
+        patch(
+            "requests.post",
+            return_value=MagicMock(
+                status_code=200,
+                json=lambda: {
+                    "access_token": "token",
+                    "token_type": "Bearer",
+                    "uuid": "uuid",
+                    "username": "username",
+                    "email": "email",
+                    "primary_usage": "primary_usage",
+                },
+            ),
         ),
-    ), patch.object(
-        HubService,
-        "_get_session_from_platform_token",
-        return_value=mock_hub_session,
+        patch.object(
+            HubService,
+            "_get_session_from_platform_token",
+            return_value=mock_hub_session,
+        ),
     ):
         mock_token = (
             "eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiIsImtpZCI6ImRiMjEyZDdhZj"
@@ -190,20 +189,21 @@ def test_get_session_from_platform_token():
 
 def test_disconnect():
     """Test disconnect."""
-    with patch(
-        "requests.get",
-        return_value=MagicMock(
-            status_code=200,
-            json=lambda: {"success": True},
+    with (
+        patch(
+            "requests.get",
+            return_value=MagicMock(
+                status_code=200,
+                json=lambda: {"success": True},
+            ),
         ),
-    ), patch.object(
-        HubService,
-        "_post_logout",
-        return_value=True,
+        patch.object(
+            HubService,
+            "_post_logout",
+            return_value=True,
+        ),
     ):
-        mock_hub_session = MagicMock(
-            spec=HubSession, access_token=SecretStr("token"), token_type="Bearer"
-        )
+        mock_hub_session = MagicMock(spec=HubSession, access_token=SecretStr("token"), token_type="Bearer")
         hub_service = HubService(mock_hub_session)
 
         assert hub_service.disconnect() is True
@@ -212,20 +212,21 @@ def test_disconnect():
 
 def test_get_user_settings():
     """Test get user settings."""
-    with patch(
-        "requests.get",
-        return_value=MagicMock(
-            status_code=200,
-            json=lambda: {},
+    with (
+        patch(
+            "requests.get",
+            return_value=MagicMock(
+                status_code=200,
+                json=lambda: {},
+            ),
         ),
-    ), patch.object(
-        HubService,
-        "_get_user_settings",
-        return_value=MagicMock(spec=HubUserSettings),
+        patch.object(
+            HubService,
+            "_get_user_settings",
+            return_value=MagicMock(spec=HubUserSettings),
+        ),
     ):
-        mock_hub_session = MagicMock(
-            spec=HubSession, access_token=SecretStr("token"), token_type="Bearer"
-        )
+        mock_hub_session = MagicMock(spec=HubSession, access_token=SecretStr("token"), token_type="Bearer")
         hub_service = HubService(mock_hub_session)
         user_settings = hub_service._get_user_settings()
         assert isinstance(user_settings, HubUserSettings)
@@ -234,25 +235,24 @@ def test_get_user_settings():
 def test_put_user_settings():
     """Test put user settings."""
 
-    with patch(
-        "requests.put",
-        return_value=MagicMock(
-            status_code=200,
+    with (
+        patch(
+            "requests.put",
+            return_value=MagicMock(
+                status_code=200,
+            ),
         ),
-    ), patch.object(
-        HubService,
-        "_put_user_settings",
-        return_value=True,
+        patch.object(
+            HubService,
+            "_put_user_settings",
+            return_value=True,
+        ),
     ):
-        mock_hub_session = MagicMock(
-            spec=HubSession, access_token=SecretStr("token"), token_type="Bearer"
-        )
+        mock_hub_session = MagicMock(spec=HubSession, access_token=SecretStr("token"), token_type="Bearer")
         mock_user_settings = MagicMock(spec=HubUserSettings)
 
         hub_service = HubService(mock_hub_session)
-        assert (
-            hub_service._put_user_settings(mock_hub_session, mock_user_settings) is True
-        )
+        assert hub_service._put_user_settings(mock_hub_session, mock_user_settings) is True
 
 
 def test_hub2platform_v4_only():

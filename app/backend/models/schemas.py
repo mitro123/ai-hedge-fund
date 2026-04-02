@@ -312,7 +312,7 @@ class ApiKeyBulkUpdateRequest(BaseModel):
 # Backtest API schemas pro frontend komponenty
 class TradeHistoryItem(BaseModel):
     """Individual trade item for trade history viewer"""
-    
+
     id: str
     date: str
     ticker: str
@@ -327,7 +327,7 @@ class TradeHistoryItem(BaseModel):
 
 class ChartDataPoint(BaseModel):
     """Data point for charts"""
-    
+
     date: str
     value: float
     label: Optional[str] = None
@@ -335,7 +335,7 @@ class ChartDataPoint(BaseModel):
 
 class BacktestChartData(BaseModel):
     """Chart data for interactive charts"""
-    
+
     portfolio_value: List[ChartDataPoint]
     daily_returns: List[ChartDataPoint]
     drawdown: List[ChartDataPoint]
@@ -346,7 +346,7 @@ class BacktestChartData(BaseModel):
 
 class BacktestAdvancedMetrics(BaseModel):
     """Advanced performance metrics for frontend"""
-    
+
     # Returns metrics
     total_return: Optional[float] = None
     annualized_return: Optional[float] = None
@@ -354,27 +354,27 @@ class BacktestAdvancedMetrics(BaseModel):
     sharpe_ratio: Optional[float] = None
     sortino_ratio: Optional[float] = None
     calmar_ratio: Optional[float] = None
-    
+
     # Risk metrics
     max_drawdown: Optional[float] = None
     max_drawdown_duration: Optional[int] = None
     var_95: Optional[float] = None
     cvar_95: Optional[float] = None
     beta: Optional[float] = None
-    
+
     # Efficiency metrics
     information_ratio: Optional[float] = None
     treynor_ratio: Optional[float] = None
     jensen_alpha: Optional[float] = None
     tracking_error: Optional[float] = None
-    
+
     # Trading metrics
     win_rate: Optional[float] = None
     profit_factor: Optional[float] = None
     avg_win: Optional[float] = None
     avg_loss: Optional[float] = None
     total_trades: Optional[int] = None
-    
+
     # Exposure metrics
     avg_gross_exposure: Optional[float] = None
     avg_net_exposure: Optional[float] = None
@@ -384,38 +384,38 @@ class BacktestAdvancedMetrics(BaseModel):
 
 class BacktestResultsResponse(BaseModel):
     """Complete backtest results for frontend"""
-    
+
     id: str
     name: str
     status: str
     created_at: datetime
     completed_at: Optional[datetime] = None
-    
+
     # Configuration
     tickers: List[str]
     start_date: str
     end_date: str
     initial_capital: float
-    
+
     # Results summary
     final_value: Optional[float] = None
     total_return: Optional[float] = None
     total_trades: Optional[int] = None
-    
+
     # Performance metrics
     performance_metrics: Optional[BacktestPerformanceMetrics] = None
     advanced_metrics: Optional[BacktestAdvancedMetrics] = None
-    
+
     # Chart data
     chart_data: Optional[BacktestChartData] = None
-    
+
     # Trade history
     trade_history: Optional[List[TradeHistoryItem]] = None
 
 
 class BacktestListResponse(BaseModel):
     """Lightweight backtest list item"""
-    
+
     id: str
     name: str
     status: str
@@ -428,35 +428,36 @@ class BacktestListResponse(BaseModel):
 
 class BacktestCreateRequest(BaseModel):
     """Request to create a new backtest"""
-    
+
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    
+
     # Backtest configuration
     tickers: List[str]
-    
+
     @field_validator("tickers")
     @classmethod
     def validate_tickers(cls, v: List[str]) -> List[str]:
         if len(v) < 1:
             raise ValueError("At least one ticker must be provided")
         return v
+
     start_date: str
     end_date: str
     initial_capital: float = Field(default=100000.0, gt=0)
-    
+
     # Graph configuration
     graph_nodes: List[GraphNode]
     graph_edges: List[GraphEdge]
     agent_models: Optional[List[AgentModelConfig]] = None
-    
+
     # Model settings
     model_name: Optional[str] = "gpt-4.1"
     model_provider: Optional[ModelProvider] = ModelProvider.OPENROUTER
-    
+
     # Portfolio settings
     margin_requirement: float = Field(default=0.0, ge=0.0, le=1.0)
     portfolio_positions: Optional[List[PortfolioPosition]] = None
-    
+
     # API keys
     api_keys: Optional[Dict[str, str]] = None

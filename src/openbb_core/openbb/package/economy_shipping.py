@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_economy_shipping(Container):
@@ -32,7 +33,7 @@ class ROUTER_economy_shipping(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get general metadata and statistics for all maritime chokepoint locations from a given provider.
 
@@ -105,7 +106,7 @@ class ROUTER_economy_shipping(Container):
                 standard_params={},
                 extra_params=kwargs,
                 info={"theme": {"imf": {"x-widget_config": {"show": False}}}},
-            )
+            ),
         )
 
     @exception_handler
@@ -126,7 +127,7 @@ class ROUTER_economy_shipping(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Daily transit calls and estimates of transit trade volumes for shipping lane chokepoints around the world.
 
@@ -308,7 +309,7 @@ class ROUTER_economy_shipping(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -321,7 +322,7 @@ class ROUTER_economy_shipping(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get general metadata and statistics for all ports from a given provider.
 
@@ -645,7 +646,7 @@ class ROUTER_economy_shipping(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -666,7 +667,7 @@ class ROUTER_economy_shipping(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: econdb, imf."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Daily port calls and estimates of trading volumes for ports around the world.
 
@@ -785,11 +786,7 @@ class ROUTER_economy_shipping(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "start_date": {
-                        "imf": {
-                            "x-widget_config": {"type": "date", "value": "2019-01-01"}
-                        }
-                    },
+                    "start_date": {"imf": {"x-widget_config": {"type": "date", "value": "2019-01-01"}}},
                     "port_code": {
                         "imf": {
                             "multiple_items_allowed": True,
@@ -5658,5 +5655,5 @@ class ROUTER_economy_shipping(Container):
                         }
                     },
                 },
-            )
+            ),
         )

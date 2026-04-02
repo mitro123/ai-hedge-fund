@@ -4,10 +4,11 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from pandas.testing import assert_frame_equal
+
 from openbb_core.app.model.obbject import Chart, OBBject, OpenBBError
 from openbb_core.app.utils import basemodel_to_df
 from openbb_core.provider.abstract.data import Data
-from pandas.testing import assert_frame_equal
 
 
 def test_OBBject():
@@ -83,9 +84,7 @@ class MockDataFrame(Data):
                 MockData(x=3, y=1),
                 MockData(x=4, y=6),
             ],
-            pd.DataFrame(
-                {"x": [0, 1, 2, 3, 4], "y": [2, 3, 0, 1, 6]}, columns=["x", "y"]
-            ),
+            pd.DataFrame({"x": [0, 1, 2, 3, 4], "y": [2, 3, 0, 1, 6]}, columns=["x", "y"]),
         ),
         # Test case 4: List of dict
         (
@@ -96,9 +95,7 @@ class MockDataFrame(Data):
                 {"a": 3, "y": 1},
                 {"a": 4, "y": 6},
             ],
-            pd.DataFrame(
-                {"a": [1, 1, 2, 3, 4], "y": [2, 3, 0, 1, 6]}, columns=["a", "y"]
-            ),
+            pd.DataFrame({"a": [1, 1, 2, 3, 4], "y": [2, 3, 0, 1, 6]}, columns=["a", "y"]),
         ),
         # Test case 5: List of Lists
         (
@@ -153,26 +150,14 @@ class MockDataFrame(Data):
             [
                 {
                     "df1": [
-                        MockMultiData(
-                            date="1956-01-01", another_date="2023-09-01", value=0.0
-                        ),
-                        MockMultiData(
-                            date="1956-02-01", another_date="2023-09-01", value=0.0
-                        ),
-                        MockMultiData(
-                            date="1956-03-01", another_date="2023-09-01", value=0.0
-                        ),
+                        MockMultiData(date="1956-01-01", another_date="2023-09-01", value=0.0),
+                        MockMultiData(date="1956-02-01", another_date="2023-09-01", value=0.0),
+                        MockMultiData(date="1956-03-01", another_date="2023-09-01", value=0.0),
                     ],
                     "df2": [
-                        MockMultiData(
-                            date="1955-03-01", another_date="2023-09-01", value=0.0
-                        ),
-                        MockMultiData(
-                            date="1955-04-01", another_date="2023-09-01", value=0.0
-                        ),
-                        MockMultiData(
-                            date="1955-05-01", another_date="2023-09-01", value=0.0
-                        ),
+                        MockMultiData(date="1955-03-01", another_date="2023-09-01", value=0.0),
+                        MockMultiData(date="1955-04-01", another_date="2023-09-01", value=0.0),
+                        MockMultiData(date="1955-05-01", another_date="2023-09-01", value=0.0),
                     ],
                 }
             ],

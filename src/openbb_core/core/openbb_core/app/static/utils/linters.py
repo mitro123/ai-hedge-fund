@@ -3,11 +3,7 @@
 import shutil
 import subprocess
 from pathlib import Path
-from typing import (
-    List,
-    Literal,
-    Optional,
-)
+from typing import List, Literal, Optional
 
 from openbb_core.app.static.utils.console import Console
 from openbb_core.env import Env
@@ -39,9 +35,7 @@ class Linters:
             command = [linter]
             if flags:
                 command.extend(flags)  # type: ignore
-            subprocess.run(  # noqa: S603
-                command + list(self.directory.glob("*.py")), check=False
-            )
+            subprocess.run(command + list(self.directory.glob("*.py")), check=False)  # noqa: S603
 
             self.print_separator("-")
         else:

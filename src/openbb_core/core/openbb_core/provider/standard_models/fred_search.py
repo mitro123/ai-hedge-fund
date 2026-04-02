@@ -1,14 +1,13 @@
 """FRED Search Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Optional
+
+from pydantic import Field
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from pydantic import Field
 
 
 class SearchQueryParams(QueryParams):
@@ -94,9 +93,7 @@ class SearchData(Data):
         default=None,
         description="The realtime end date of the series.",
     )
-    notes: Optional[str] = Field(
-        default=None, description="Description of the release."
-    )
+    notes: Optional[str] = Field(default=None, description="Description of the release.")
     press_release: Optional[bool] = Field(
         description="If the release is a press release.",
         default=None,

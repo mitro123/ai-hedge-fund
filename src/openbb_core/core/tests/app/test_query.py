@@ -6,14 +6,11 @@ from dataclasses import dataclass
 from unittest.mock import MagicMock, patch
 
 import pytest
-from openbb_core.app.model.command_context import CommandContext
-from openbb_core.app.provider_interface import (
-    ExtraParams,
-    ProviderChoices,
-    StandardParams,
-)
-from openbb_core.app.query import Query
 from pydantic import BaseModel, ConfigDict
+
+from openbb_core.app.model.command_context import CommandContext
+from openbb_core.app.provider_interface import ExtraParams, ProviderChoices, StandardParams
+from openbb_core.app.query import Query
 
 
 class MockBaseModel(BaseModel):
@@ -66,13 +63,9 @@ def test_init(query):
 @pytest.fixture
 def mock_registry():
     """Mock registry."""
-    with patch(
-        "openbb_core.app.provider_interface.ProviderInterface"
-    ) as mock_get_provider_interface:
+    with patch("openbb_core.app.provider_interface.ProviderInterface") as mock_get_provider_interface:
         mock_registry = MagicMock()
-        mock_get_provider_interface.return_value.build_registry.return_value = (
-            mock_registry
-        )
+        mock_get_provider_interface.return_value.build_registry.return_value = mock_registry
         yield mock_registry
 
 
@@ -83,9 +76,7 @@ def query_instance():
     extra_params = create_mock_extra_params()
 
     cc = CommandContext()
-    setattr(
-        cc.user_settings.credentials, "fmp_api_key", "1234"  # pylint: disable=no-member
-    )
+    setattr(cc.user_settings.credentials, "fmp_api_key", "1234")  # pylint: disable=no-member
 
     return Query(
         cc=cc,

@@ -14,9 +14,7 @@ class Preferences(BaseModel):
     data_directory: str = str(Path.home() / "OpenBBUserData")
     export_directory: str = str(Path.home() / "OpenBBUserData" / "exports")
     metadata: bool = True
-    output_type: Literal[
-        "OBBject", "dataframe", "polars", "numpy", "dict", "chart", "llm"
-    ] = Field(
+    output_type: Literal["OBBject", "dataframe", "polars", "numpy", "dict", "chart", "llm"] = Field(
         default="OBBject",
         description="Python default output type.",
         validate_default=True,
@@ -30,6 +28,4 @@ class Preferences(BaseModel):
 
     def __repr__(self) -> str:
         """Return a string representation of the model."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())

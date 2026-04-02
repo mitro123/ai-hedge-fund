@@ -3,13 +3,11 @@
 from datetime import date as dateType
 from typing import Optional
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class MoneyMeasuresQueryParams(QueryParams):
@@ -23,9 +21,7 @@ class MoneyMeasuresQueryParams(QueryParams):
         default=None,
         description=QUERY_DESCRIPTIONS.get("end_date", ""),
     )
-    adjusted: Optional[bool] = Field(
-        default=True, description="Whether to return seasonally adjusted data."
-    )
+    adjusted: Optional[bool] = Field(default=True, description="Whether to return seasonally adjusted data.")
 
 
 class MoneyMeasuresData(Data):
@@ -34,12 +30,8 @@ class MoneyMeasuresData(Data):
     month: dateType = Field(description=DATA_DESCRIPTIONS.get("date", ""))
     M1: float = Field(description="Value of the M1 money supply in billions.")
     M2: float = Field(description="Value of the M2 money supply in billions.")
-    currency: Optional[float] = Field(
-        description="Value of currency in circulation in billions.", default=None
-    )
-    demand_deposits: Optional[float] = Field(
-        description="Value of demand deposits in billions.", default=None
-    )
+    currency: Optional[float] = Field(description="Value of currency in circulation in billions.", default=None)
+    demand_deposits: Optional[float] = Field(description="Value of demand deposits in billions.", default=None)
     retail_money_market_funds: Optional[float] = Field(
         description="Value of retail money market funds in billions.", default=None
     )

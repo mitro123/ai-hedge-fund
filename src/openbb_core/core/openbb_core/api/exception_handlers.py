@@ -9,10 +9,11 @@ from typing import Any, Union
 from fastapi import Request
 from fastapi.exceptions import ResponseValidationError
 from fastapi.responses import JSONResponse, Response
+from pydantic import ValidationError
+
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.env import Env
 from openbb_core.provider.utils.errors import EmptyDataError, UnauthorizedError
-from pydantic import ValidationError
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -61,9 +62,7 @@ class ExceptionHandlers:
         )
 
     @staticmethod
-    async def validation(
-        request: Request, error: Union[ValidationError, ResponseValidationError]
-    ):
+    async def validation(request: Request, error: Union[ValidationError, ResponseValidationError]):
         """Exception handler for ValidationError."""
         # Some validation is performed at Fetcher level.
         # So we check if the validation error comes from a QueryParams class.
@@ -85,16 +84,10 @@ class ExceptionHandlers:
                 detail=detail,
             )
         try:
-            errors = (
-                error.errors(include_url=False)
-                if hasattr(error, "errors")
-                else error.errors
-            )
+            errors = error.errors(include_url=False) if hasattr(error, "errors") else error.errors
         except Exception:
             errors = error.errors if hasattr(error, "errors") else error
-        all_in_query = all(
-            loc in query_params for err in errors for loc in err.get("loc", ())
-        )
+        all_in_query = all(loc in query_params for err in errors for loc in err.get("loc", ()))
         if "QueryParams" in error.title and all_in_query:
             detail = [
                 {

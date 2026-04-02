@@ -3,13 +3,11 @@
 from datetime import date, datetime
 from typing import List, Set, Union
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class HistoricalEmployeesQueryParams(QueryParams):
@@ -29,21 +27,13 @@ class HistoricalEmployeesData(Data):
 
     symbol: str = Field(description=DATA_DESCRIPTIONS.get("symbol", ""))
     cik: int = Field(description=DATA_DESCRIPTIONS.get("cik", ""))
-    acceptance_time: datetime = Field(
-        description="Time of acceptance of the company employee."
-    )
-    period_of_report: date = Field(
-        description="Date of reporting of the company employee."
-    )
-    company_name: str = Field(
-        description="Registered name of the company to retrieve the historical employees of."
-    )
+    acceptance_time: datetime = Field(description="Time of acceptance of the company employee.")
+    period_of_report: date = Field(description="Date of reporting of the company employee.")
+    company_name: str = Field(description="Registered name of the company to retrieve the historical employees of.")
     form_type: str = Field(description="Form type of the company employee.")
     filing_date: date = Field(description="Filing date of the company employee")
     employee_count: int = Field(description="Count of employees of the company.")
-    source: str = Field(
-        description="Source URL which retrieves this data for the company."
-    )
+    source: str = Field(description="Source URL which retrieves this data for the company.")
 
     @field_validator("acceptance_time", mode="before", check_fields=False)
     @classmethod

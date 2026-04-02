@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_regulators_cftc(Container):
@@ -32,9 +33,7 @@ class ROUTER_regulators_cftc(Container):
         ] = "045601",
         start_date: Annotated[
             Union[datetime.date, None, str],
-            OpenBBField(
-                description="Start date of the data, in YYYY-MM-DD format. Default is the most recent report."
-            ),
+            OpenBBField(description="Start date of the data, in YYYY-MM-DD format. Default is the most recent report."),
         ] = None,
         end_date: Annotated[
             Union[datetime.date, None, str],
@@ -46,7 +45,7 @@ class ROUTER_regulators_cftc(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: cftc."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Commitment of Traders Reports.
 
@@ -164,7 +163,7 @@ class ROUTER_regulators_cftc(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -178,7 +177,7 @@ class ROUTER_regulators_cftc(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: cftc."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the current Commitment of Traders Reports.
 
@@ -244,5 +243,5 @@ class ROUTER_regulators_cftc(Container):
                     "query": query,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

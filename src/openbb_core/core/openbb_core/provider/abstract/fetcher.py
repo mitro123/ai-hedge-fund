@@ -3,16 +3,7 @@
 # ruff: noqa: S101, E501
 # pylint: disable=E1101, C0301
 
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    Optional,
-    TypeVar,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import Any, Dict, Generic, get_args, get_origin, Optional, TypeVar, Union
 
 from openbb_core.provider.abstract.annotated_result import AnnotatedResult
 from openbb_core.provider.abstract.data import Data
@@ -82,9 +73,7 @@ class Fetcher(Generic[Q, R]):
     ) -> Union[R, AnnotatedResult[R]]:
         """Fetch data from a provider."""
         query = cls.transform_query(params=params)
-        data = await maybe_coroutine(
-            cls.extract_data, query=query, credentials=credentials, **kwargs
-        )
+        data = await maybe_coroutine(cls.extract_data, query=query, credentials=credentials, **kwargs)
         return cls.transform_data(query=query, data=data, **kwargs)
 
     @classproperty
@@ -139,15 +128,11 @@ class Fetcher(Generic[Q, R]):
         from pandas import DataFrame
 
         query = cls.transform_query(params=params)
-        data = run_async(
-            cls.extract_data, query=query, credentials=credentials, **kwargs
-        )
+        data = run_async(cls.extract_data, query=query, credentials=credentials, **kwargs)
         result = cls.transform_data(query=query, data=data, **kwargs)
 
         # Class Assertions
-        assert isinstance(
-            cls.require_credentials, bool
-        ), "require_credentials must be a boolean."
+        assert isinstance(cls.require_credentials, bool), "require_credentials must be a boolean."
 
         # Query Assertions
         assert query, "Query must not be None."
@@ -166,9 +151,7 @@ class Fetcher(Generic[Q, R]):
         is_list = isinstance(data, list)
         if is_list:
             assert all(
-                field in data[0]
-                for field in cls.data_type.model_fields
-                if field in data[0]
+                field in data[0] for field in cls.data_type.model_fields if field in data[0]
             ), f"Data must have the correct fields. Expected: {cls.data_type.model_fields} Got: {data[0].__dict__}"
             # This makes sure that the data is not transformed yet so that the
             # pipeline is implemented correctly. We can remove this assertion if we
@@ -187,22 +170,15 @@ class Fetcher(Generic[Q, R]):
         assert len(data) > 0, "Data must not be empty."
 
         # Transformed Data Assertions
-        transformed_data = (
-            result.result if isinstance(result, AnnotatedResult) else result
-        )
+        transformed_data = result.result if isinstance(result, AnnotatedResult) else result
 
         assert transformed_data, "Transformed data must not be None."
 
         if isinstance(transformed_data, list):
             return_type_args = cls.return_type.__args__[0]
-            return_type_is_dict = (
-                hasattr(return_type_args, "__origin__")
-                and return_type_args.__origin__ is dict
-            )
+            return_type_is_dict = hasattr(return_type_args, "__origin__") and return_type_args.__origin__ is dict
             if return_type_is_dict:
-                return_type_fields = (
-                    return_type_args.__args__[1].__args__[0].model_fields
-                )
+                return_type_fields = return_type_args.__args__[1].__args__[0].model_fields
                 return_type = return_type_args.__args__[1].__args__[0]
             else:
                 return_type_fields = return_type_args.model_fields
@@ -221,8 +197,7 @@ class Fetcher(Generic[Q, R]):
             ), f"Transformed data must be of the correct type. Expected: {return_type} Got: {type(transformed_data[0])}"  # type: ignore
         else:
             assert all(
-                field in transformed_data.__dict__
-                for field in cls.return_type.model_fields
+                field in transformed_data.__dict__ for field in cls.return_type.model_fields
             ), f"Transformed data must have the correct fields. Expected: {cls.return_type.model_fields} Got: {transformed_data.__dict__}"
             assert issubclass(
                 type(transformed_data), cls.data_type

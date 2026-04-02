@@ -5,12 +5,13 @@ from typing import Optional
 from unittest.mock import patch
 
 import pytest
+from pydantic import BaseModel, SecretStr
+
 from openbb_core.app.command_runner import CommandRunner
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.app.model.defaults import Defaults
 from openbb_core.app.model.user_settings import UserSettings
 from openbb_core.app.static.container import Container
-from pydantic import BaseModel, SecretStr
 
 # pylint: disable=redefined-outer-name,protected-access
 
@@ -95,9 +96,7 @@ def test_container__check_credentials(container):
         ),
     ],
 )
-def test_container__get_provider(
-    choice, command, default_priority, expected, error_msg, container
-):
+def test_container__get_provider(choice, command, default_priority, expected, error_msg, container):
     """Test container _get_provider method."""
     if expected is OpenBBError:
         with pytest.raises(expected, match=error_msg):

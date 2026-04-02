@@ -3,21 +3,17 @@
 from datetime import date as dateType
 from typing import Literal, Optional
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
 
 
 class Form13FHRQueryParams(QueryParams):
     """Form 13F-HR Query."""
 
-    symbol: str = Field(
-        description=QUERY_DESCRIPTIONS.get("symbol", "")
-        + " A CIK or Symbol can be used."
-    )
+    symbol: str = Field(description=QUERY_DESCRIPTIONS.get("symbol", "") + " A CIK or Symbol can be used.")
     date: Optional[dateType] = Field(
         default=None,
         description=QUERY_DESCRIPTIONS.get("date", "")
@@ -49,14 +45,10 @@ class Form13FHRData(Data):
     https://www.sec.gov/pdf/form13f.pdf
     """
 
-    period_ending: dateType = Field(
-        description="The end-of-quarter date of the filing."
-    )
+    period_ending: dateType = Field(description="The end-of-quarter date of the filing.")
     issuer: str = Field(description="The name of the issuer.")
     cusip: str = Field(description="The CUSIP of the security.")
-    asset_class: str = Field(
-        description="The title of the asset class for the security."
-    )
+    asset_class: str = Field(description="The title of the asset class for the security.")
     security_type: Optional[Literal["SH", "PRN"]] = Field(
         default=None,
         description="Whether the principal amount represents the number of shares"
@@ -76,18 +68,15 @@ class Form13FHRData(Data):
     )
     voting_authority_sole: Optional[int] = Field(
         default=None,
-        description="The number of shares for which the Manager"
-        + " exercises sole voting authority.",
+        description="The number of shares for which the Manager" + " exercises sole voting authority.",
     )
     voting_authority_shared: Optional[int] = Field(
         default=None,
-        description="The number of shares for which the Manager"
-        + " exercises a defined shared voting authority.",
+        description="The number of shares for which the Manager" + " exercises a defined shared voting authority.",
     )
     voting_authority_none: Optional[int] = Field(
         default=None,
-        description="The number of shares for which the Manager"
-        + " exercises no voting authority.",
+        description="The number of shares for which the Manager" + " exercises no voting authority.",
     )
     principal_amount: int = Field(
         description="The total number of shares of the class of security"

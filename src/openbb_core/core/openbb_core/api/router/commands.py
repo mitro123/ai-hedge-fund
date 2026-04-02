@@ -7,6 +7,9 @@ from typing import Any, Callable, Dict, Optional, Tuple, TypeVar
 
 from fastapi import APIRouter, Depends, Header
 from fastapi.routing import APIRoute
+from pydantic import BaseModel
+from typing_extensions import Annotated, ParamSpec
+
 from openbb_core.app.command_runner import CommandRunner
 from openbb_core.app.model.command_context import CommandContext
 from openbb_core.app.model.obbject import OBBject
@@ -16,8 +19,6 @@ from openbb_core.app.service.auth_service import AuthService
 from openbb_core.app.service.system_service import SystemService
 from openbb_core.app.service.user_service import UserService
 from openbb_core.env import Env
-from pydantic import BaseModel
-from typing_extensions import Annotated, ParamSpec
 
 try:
     from openbb_charting import Charting
@@ -90,9 +91,7 @@ def build_new_signature(path: str, func: Callable) -> Signature:
                     name.replace("-", "_"),
                     kind=Parameter.POSITIONAL_OR_KEYWORD,
                     default=default,
-                    annotation=Annotated[
-                        Optional[str], Header(include_in_schema=False)
-                    ],
+                    annotation=Annotated[Optional[str], Header(include_in_schema=False)],
                 ),
             )
             var_kw_pos += 1
@@ -104,9 +103,7 @@ def build_new_signature(path: str, func: Callable) -> Signature:
                 "__authenticated_user_settings",
                 kind=Parameter.POSITIONAL_OR_KEYWORD,
                 default=UserSettings(),
-                annotation=Annotated[
-                    UserSettings, Depends(AuthService().user_settings_hook)
-                ],
+                annotation=Annotated[UserSettings, Depends(AuthService().user_settings_hook)],
             ),
         )
         var_kw_pos += 1
@@ -156,11 +153,7 @@ def validate_output(c_out: OBBject) -> OBBject:
         elif is_model(type_):
             for field_name, field in type_.model_fields.items():
                 extra = getattr(field, "json_schema_extra", None)
-                if (
-                    extra
-                    and isinstance(extra, dict)
-                    and extra.get("exclude_from_api", None)
-                ):
+                if extra and isinstance(extra, dict) and extra.get("exclude_from_api", None):
                     delattr(value, field_name)
 
                 # if it's a yet a nested model we need to go deeper in the recursion
@@ -185,11 +178,7 @@ def build_api_wrapper(
     func: Callable = route.endpoint  # type: ignore
     path: str = route.path  # type: ignore
 
-    no_validate = (
-        openapi_extra.get("no_validate")
-        if (openapi_extra := getattr(route, "openapi_extra", None))
-        else None
-    )
+    no_validate = openapi_extra.get("no_validate") if (openapi_extra := getattr(route, "openapi_extra", None)) else None
     new_signature = build_new_signature(path=path, func=func)
     new_annotations_map = build_new_annotation_map(sig=new_signature)
     func.__signature__ = new_signature  # type: ignore
@@ -207,17 +196,11 @@ def build_api_wrapper(
             )
         )
         p = path.strip("/").replace("/", ".")
-        defaults = (
-            getattr(user_settings.defaults, "__dict__", {})
-            .get("commands", {})
-            .get(p, {})
-        )
+        defaults = getattr(user_settings.defaults, "__dict__", {}).get("commands", {}).get(p, {})
 
         if defaults:
             _provider = defaults.pop("provider", None)
-            standard_params = getattr(
-                kwargs.pop("standard_params", None), "__dict__", {}
-            )
+            standard_params = getattr(kwargs.pop("standard_params", None), "__dict__", {})
             extra_params = getattr(kwargs.pop("extra_params", None), "__dict__", {})
 
             if "chart" in defaults:
@@ -233,9 +216,7 @@ def build_api_wrapper(
                     k in extra_params and extra_params[k] is not None
                 ):
                     continue
-                elif k not in extra_params or (
-                    k in extra_params and extra_params[k] is None
-                ):
+                elif k not in extra_params or (k in extra_params and extra_params[k] is None):
                     extra_params[k] = v
 
             kwargs["standard_params"] = standard_params

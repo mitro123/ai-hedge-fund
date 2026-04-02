@@ -2,13 +2,11 @@
 
 from datetime import date as dateType
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class ShortInterestQueryParams(QueryParams):
@@ -74,6 +72,4 @@ class ShortInterestData(Data):
             "between the current cycle and the previous cycle."
         )
     )
-    change_pct: float = Field(
-        description="Change in Shares Short from Previous Cycle as a percent."
-    )
+    change_pct: float = Field(description="Change in Shares Short from Previous Cycle as a percent.")

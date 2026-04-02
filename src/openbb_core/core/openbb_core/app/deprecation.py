@@ -6,7 +6,7 @@ This implementation was inspired from Pydantic's specific warnings and modified 
 
 from typing import Optional, Tuple
 
-from openbb_core.app.version import VERSION, get_major_minor
+from openbb_core.app.version import get_major_minor, VERSION
 
 
 class DeprecationSummary(str):

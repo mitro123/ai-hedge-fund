@@ -1,6 +1,7 @@
 """Test the provider helpers."""
 
 import pytest
+
 from openbb_core.provider.utils.client import ClientSession
 from openbb_core.provider.utils.helpers import (
     amake_request,
@@ -138,6 +139,4 @@ async def test_amake_requests(monkeypatch):
     assert multi_response == [{"test": "test"}, {"test": "test"}]
 
     with pytest.raises(ValueError):
-        await amake_requests(
-            ["http://mock.url", "http://mock.url"], method="PUT", raise_for_status=True
-        )
+        await amake_requests(["http://mock.url", "http://mock.url"], method="PUT", raise_for_status=True)

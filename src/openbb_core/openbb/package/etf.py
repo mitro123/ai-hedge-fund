@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_etf(Container):
@@ -43,7 +44,7 @@ class ROUTER_etf(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """ETF Country weighting.
 
@@ -93,10 +94,8 @@ class ROUTER_etf(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -115,7 +114,7 @@ class ROUTER_etf(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the exposure to ETFs for a specific stock.
 
@@ -175,10 +174,8 @@ class ROUTER_etf(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -205,7 +202,7 @@ class ROUTER_etf(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon, tiingo, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """ETF Historical Market Price.
 
@@ -405,23 +402,21 @@ class ROUTER_etf(Container):
                         },
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
     @validate
     def holdings(
         self,
-        symbol: Annotated[
-            str, OpenBBField(description="Symbol to get data for. (ETF)")
-        ],
+        symbol: Annotated[str, OpenBBField(description="Symbol to get data for. (ETF)")],
         provider: Annotated[
             Optional[Literal["fmp", "intrinio", "sec"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the holdings for an individual ETF.
 
@@ -663,23 +658,21 @@ class ROUTER_etf(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
     @validate
     def holdings_date(
         self,
-        symbol: Annotated[
-            str, OpenBBField(description="Symbol to get data for. (ETF)")
-        ],
+        symbol: Annotated[str, OpenBBField(description="Symbol to get data for. (ETF)")],
         provider: Annotated[
             Optional[Literal["fmp"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Use this function to get the holdings dates, if available.
 
@@ -731,7 +724,7 @@ class ROUTER_etf(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -750,7 +743,7 @@ class ROUTER_etf(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """ETF Information Overview.
 
@@ -1123,7 +1116,7 @@ class ROUTER_etf(Container):
                         "yfinance": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1142,7 +1135,7 @@ class ROUTER_etf(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Price performance as a return, over different periods.
 
@@ -1265,7 +1258,7 @@ class ROUTER_etf(Container):
                         "intrinio": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -1279,7 +1272,7 @@ class ROUTER_etf(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search for ETFs.
 
@@ -1389,23 +1382,21 @@ class ROUTER_etf(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
     @validate
     def sectors(
         self,
-        symbol: Annotated[
-            str, OpenBBField(description="Symbol to get data for. (ETF)")
-        ],
+        symbol: Annotated[str, OpenBBField(description="Symbol to get data for. (ETF)")],
         provider: Annotated[
             Optional[Literal["fmp"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """ETF Sector weighting.
 
@@ -1457,5 +1448,5 @@ class ROUTER_etf(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

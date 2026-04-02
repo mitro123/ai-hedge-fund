@@ -3,13 +3,11 @@
 from datetime import date as dateType
 from typing import Literal, Optional
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class HousePriceIndexQueryParams(QueryParams):
@@ -30,20 +28,14 @@ class HousePriceIndexQueryParams(QueryParams):
         default="index",
         json_schema_extra={"choices": ["index", "yoy", "period"]},
     )
-    start_date: Optional[dateType] = Field(
-        default=None, description=QUERY_DESCRIPTIONS.get("start_date")
-    )
-    end_date: Optional[dateType] = Field(
-        default=None, description=QUERY_DESCRIPTIONS.get("end_date")
-    )
+    start_date: Optional[dateType] = Field(default=None, description=QUERY_DESCRIPTIONS.get("start_date"))
+    end_date: Optional[dateType] = Field(default=None, description=QUERY_DESCRIPTIONS.get("end_date"))
 
 
 class HousePriceIndexData(Data):
     """House Price Index Data."""
 
-    date: Optional[dateType] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("date")
-    )
+    date: Optional[dateType] = Field(default=None, description=DATA_DESCRIPTIONS.get("date"))
     country: Optional[str] = Field(
         default=None,
         description=DATA_DESCRIPTIONS.get("country", ""),

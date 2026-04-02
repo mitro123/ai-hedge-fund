@@ -296,9 +296,7 @@ def analyze_growth(financial_line_items: List[Any]) -> Dict[str, Any]:
 
     # Revenue CAGR Analysis
     revenues = [
-        getattr(item, "revenue", None)
-        for item in financial_line_items
-        if getattr(item, "revenue", None) is not None
+        getattr(item, "revenue", None) for item in financial_line_items if getattr(item, "revenue", None) is not None
     ]
     # Filter out None and non-positive values with type guard
     revenues = [rev for rev in revenues if rev is not None and rev > 0]
@@ -308,12 +306,7 @@ def analyze_growth(financial_line_items: List[Any]) -> Dict[str, Any]:
         final_revenue = revenues[0]  # Latest
         years = len(revenues) - 1
 
-        if (
-            initial_revenue is not None
-            and final_revenue is not None
-            and initial_revenue > 0
-            and final_revenue > 0
-        ):
+        if initial_revenue is not None and final_revenue is not None and initial_revenue > 0 and final_revenue > 0:
             revenue_cagr = ((final_revenue / initial_revenue) ** (1 / years) - 1) * 100
 
             if revenue_cagr > 20:  # High growth
@@ -376,11 +369,7 @@ def analyze_growth(financial_line_items: List[Any]) -> Dict[str, Any]:
         declining_years = sum(
             1
             for i in range(1, len(revenues))
-            if (
-                revenues[i - 1] is not None
-                and revenues[i] is not None
-                and revenues[i - 1] > revenues[i]
-            )
+            if (revenues[i - 1] is not None and revenues[i] is not None and revenues[i - 1] > revenues[i])
         )
         consistency_ratio = 1 - (declining_years / (len(revenues) - 1))
 

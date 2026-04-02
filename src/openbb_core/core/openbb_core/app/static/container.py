@@ -1,6 +1,6 @@
 """Container class."""
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from openbb_core.app.model.abstract.error import OpenBBError
 
@@ -26,20 +26,15 @@ class Container:
         defaults = self._command_runner.user_settings.defaults.commands
 
         if endpoint and defaults and defaults.get(endpoint):
-            default_params = {
-                k: v for k, v in defaults[endpoint].items() if k != "provider"
-            }
+            default_params = {k: v for k, v in defaults[endpoint].items() if k != "provider"}
             for k, v in default_params.items():
                 if k == "chart" and v is True:
                     kwargs["chart"] = True
-                elif (
-                    k in kwargs["standard_params"]
-                    and kwargs["standard_params"][k] is None
-                ):
+                elif k in kwargs["standard_params"] and kwargs["standard_params"][k] is None:
                     kwargs["standard_params"][k] = v
-                elif (
-                    k in kwargs["extra_params"] and kwargs["extra_params"][k] is None
-                ) or k not in kwargs["extra_params"]:
+                elif (k in kwargs["extra_params"] and kwargs["extra_params"][k] is None) or k not in kwargs[
+                    "extra_params"
+                ]:
                     kwargs["extra_params"][k] = v
 
         obbject = self._command_runner.sync_run(*args, **kwargs)
@@ -56,9 +51,7 @@ class Container:
         required = credentials.origins.get(provider)
         return all(getattr(credentials, r, None) for r in required)
 
-    def _get_provider(
-        self, choice: Optional[str], command: str, default_priority: tuple[str, ...]
-    ) -> str:
+    def _get_provider(self, choice: Optional[str], command: str, default_priority: tuple[str, ...]) -> str:
         """Get the provider to use in execution.
 
         If no choice is specified, the configured priority list is used. A provider is used
@@ -85,9 +78,7 @@ class Container:
         """
         if choice is None:
             commands = self._command_runner.user_settings.defaults.commands
-            providers = (
-                commands.get(command, {}).get("provider", []) or default_priority
-            )
+            providers = commands.get(command, {}).get("provider", []) or default_priority
             tries = []
             if len(providers) == 1:
                 return providers[0]

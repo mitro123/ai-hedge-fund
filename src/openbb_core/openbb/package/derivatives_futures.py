@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_derivatives_futures(Container):
@@ -37,7 +38,7 @@ class ROUTER_derivatives_futures(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Futures Term Structure, current or historical.
 
@@ -94,12 +95,8 @@ class ROUTER_derivatives_futures(Container):
                     "date": date,
                 },
                 extra_params=kwargs,
-                info={
-                    "date": {
-                        "yfinance": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"date": {"yfinance": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -130,7 +127,7 @@ class ROUTER_derivatives_futures(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Historical futures prices.
 
@@ -205,10 +202,6 @@ class ROUTER_derivatives_futures(Container):
                     "expiration": expiration,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {
-                        "yfinance": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"symbol": {"yfinance": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )

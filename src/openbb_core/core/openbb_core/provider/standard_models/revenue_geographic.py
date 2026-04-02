@@ -3,10 +3,11 @@
 from datetime import date as dateType
 from typing import Optional, Union
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
-from pydantic import Field, field_validator
 
 
 class RevenueGeographicQueryParams(QueryParams):
@@ -25,15 +26,9 @@ class RevenueGeographicData(Data):
     """Revenue by Geographic Segments Data."""
 
     period_ending: dateType = Field(description="The end date of the reporting period.")
-    fiscal_period: Optional[str] = Field(
-        default=None, description="The fiscal period of the reporting period."
-    )
-    fiscal_year: Optional[int] = Field(
-        default=None, description="The fiscal year of the reporting period."
-    )
-    filing_date: Optional[dateType] = Field(
-        default=None, description="The filing date of the report."
-    )
+    fiscal_period: Optional[str] = Field(default=None, description="The fiscal period of the reporting period.")
+    fiscal_year: Optional[int] = Field(default=None, description="The fiscal year of the reporting period.")
+    filing_date: Optional[dateType] = Field(default=None, description="The filing date of the report.")
     region: Optional[str] = Field(
         default=None,
         description="The region represented by the revenue data.",

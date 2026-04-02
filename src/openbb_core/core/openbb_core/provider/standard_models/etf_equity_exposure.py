@@ -2,10 +2,11 @@
 
 from typing import Optional, Union
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
-from pydantic import Field, field_validator
 
 
 class EtfEquityExposureQueryParams(QueryParams):
@@ -24,9 +25,7 @@ class EtfEquityExposureData(Data):
     """ETF Equity Exposure Data."""
 
     equity_symbol: str = Field(description="The symbol of the equity requested.")
-    etf_symbol: str = Field(
-        description="The symbol of the ETF with exposure to the requested equity."
-    )
+    etf_symbol: str = Field(description="The symbol of the ETF with exposure to the requested equity.")
     shares: Optional[float] = Field(
         default=None,
         description="The number of shares held in the ETF.",

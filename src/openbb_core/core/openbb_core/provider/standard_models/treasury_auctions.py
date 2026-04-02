@@ -1,16 +1,14 @@
 """US Treasury Auctions Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-    timedelta,
-)
+from datetime import date as dateType
+from datetime import datetime, timedelta
 from typing import Literal, Optional
+
+from pydantic import Field, model_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
-from pydantic import Field, model_validator
 
 
 class USTreasuryAuctionsQueryParams(QueryParams):
@@ -22,11 +20,9 @@ class USTreasuryAuctionsQueryParams(QueryParams):
         }
     }
 
-    security_type: Optional[Literal["bill", "note", "bond", "cmb", "tips", "frn"]] = (
-        Field(
-            default=None,
-            description="Used to only return securities of a particular type.",
-        )
+    security_type: Optional[Literal["bill", "note", "bond", "cmb", "tips", "frn"]] = Field(
+        default=None,
+        description="Used to only return securities of a particular type.",
     )
     cusip: Optional[str] = Field(
         default=None,
@@ -42,8 +38,7 @@ class USTreasuryAuctionsQueryParams(QueryParams):
     )
     start_date: Optional[dateType] = Field(
         default=None,
-        description=QUERY_DESCRIPTIONS.get("start_date", "")
-        + " The default is 90 days ago.",
+        description=QUERY_DESCRIPTIONS.get("start_date", "") + " The default is 90 days ago.",
     )
     end_date: Optional[dateType] = Field(
         default=None,
@@ -58,9 +53,7 @@ class USTreasuryAuctionsQueryParams(QueryParams):
             return values
 
         if values.get("start_date") is None:
-            values["start_date"] = (datetime.now() - timedelta(days=90)).strftime(
-                "%Y-%m-%d"
-            )
+            values["start_date"] = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
         if values.get("end_date") is None:
             values["end_date"] = datetime.now().strftime("%Y-%m-%d")
         return values

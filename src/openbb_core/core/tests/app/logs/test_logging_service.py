@@ -5,9 +5,10 @@ from typing import Optional
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from pydantic import BaseModel
+
 from openbb_core.app.logs.logging_service import LoggingService
 from openbb_core.app.model.abstract.error import OpenBBError
-from pydantic import BaseModel
 
 # ruff: noqa: S106
 # pylint: disable=redefined-outer-name, protected-access
@@ -49,15 +50,19 @@ def logging_service():
     mock_setup_handlers = Mock()
     mock_log_startup = Mock()
 
-    with patch(
-        "openbb_core.app.logs.logging_service.LoggingSettings",
-        MockLoggingSettings,
-    ), patch(
-        "openbb_core.app.logs.logging_service.LoggingService._setup_handlers",
-        mock_setup_handlers,
-    ), patch(
-        "openbb_core.app.logs.logging_service.LoggingService._log_startup",
-        mock_log_startup,
+    with (
+        patch(
+            "openbb_core.app.logs.logging_service.LoggingSettings",
+            MockLoggingSettings,
+        ),
+        patch(
+            "openbb_core.app.logs.logging_service.LoggingService._setup_handlers",
+            mock_setup_handlers,
+        ),
+        patch(
+            "openbb_core.app.logs.logging_service.LoggingService._log_startup",
+            mock_log_startup,
+        ),
     ):
         _logging_service = LoggingService(
             system_settings=mock_system_settings,  # type: ignore
@@ -77,15 +82,19 @@ def test_correctly_initialized():
     mock_setup_handlers = Mock()
     mock_log_startup = Mock()
 
-    with patch(
-        "openbb_core.app.logs.logging_service.LoggingSettings",
-        MockLoggingSettings,
-    ), patch(
-        "openbb_core.app.logs.logging_service.LoggingService._setup_handlers",
-        mock_setup_handlers,
-    ), patch(
-        "openbb_core.app.logs.logging_service.LoggingService._log_startup",
-        mock_log_startup,
+    with (
+        patch(
+            "openbb_core.app.logs.logging_service.LoggingSettings",
+            MockLoggingSettings,
+        ),
+        patch(
+            "openbb_core.app.logs.logging_service.LoggingService._setup_handlers",
+            mock_setup_handlers,
+        ),
+        patch(
+            "openbb_core.app.logs.logging_service.LoggingService._log_startup",
+            mock_log_startup,
+        ),
     ):
         _ = LoggingService(
             system_settings=mock_system_settings,
@@ -128,9 +137,7 @@ def test_log_startup(logging_service):
     )
     logging_service._system_settings = "your_system_settings"
 
-    logging_service._log_startup(
-        route="test_route", custom_headers={"X-OpenBB-Test": "test"}
-    )
+    logging_service._log_startup(route="test_route", custom_headers={"X-OpenBB-Test": "test"})
 
     expected_log_data = {
         "route": "test_route",
@@ -205,9 +212,7 @@ def test_log(
         MockLoggingSettings,
     ):
         if route == "login":
-            with patch(
-                "openbb_core.app.logs.logging_service.LoggingService._log_startup"
-            ) as mock_log_startup:
+            with patch("openbb_core.app.logs.logging_service.LoggingService._log_startup") as mock_log_startup:
                 logging_service.log(
                     user_settings=user_settings,
                     system_settings=system_settings,

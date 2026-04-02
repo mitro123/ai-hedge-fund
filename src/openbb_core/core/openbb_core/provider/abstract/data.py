@@ -2,14 +2,7 @@
 
 from typing import Dict
 
-from pydantic import (
-    AliasGenerator,
-    BaseModel,
-    BeforeValidator,
-    ConfigDict,
-    alias_generators,
-    model_validator,
-)
+from pydantic import alias_generators, AliasGenerator, BaseModel, BeforeValidator, ConfigDict, model_validator
 from typing_extensions import Annotated
 
 
