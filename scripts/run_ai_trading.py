@@ -14,7 +14,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Tuple
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -581,42 +581,147 @@ def run_risk_management(
 
 
 # ============================================================
-# PORTFOLIO MANAGEMENT (rule-based signal aggregation)
+# AGENT GROUPS - Different investing perspectives at the table
 # ============================================================
-def run_portfolio_management(
+AGENT_GROUPS = {
+    "value_investors": {
+        "agents": ["warren_buffett_agent", "ben_graham_agent", "charlie_munger_agent", "bill_ackman_agent"],
+        "perspective": "Value & Quality",
+        "weight": 1.0,  # Base weight
+        "veto_power": True,  # Can veto if unanimous against
+    },
+    "growth_investors": {
+        "agents": ["cathie_wood_agent", "peter_lynch_agent", "phil_fisher_agent", "rakesh_jhunjhunwala_agent"],
+        "perspective": "Growth & Innovation",
+        "weight": 1.0,
+        "veto_power": True,
+    },
+    "macro_strategists": {
+        "agents": ["stanley_druckenmiller_agent", "michael_burry_agent"],
+        "perspective": "Macro & Contrarian",
+        "weight": 0.8,  # Slightly lower - fewer members
+        "veto_power": False,
+    },
+    "quant_analysts": {
+        "agents": ["technical_analyst_agent", "fundamentals_analyst_agent", "sentiment_analyst_agent",
+                    "valuation_analyst_agent", "aswath_damodaran_agent"],
+        "perspective": "Quantitative Analysis",
+        "weight": 1.0,
+        "veto_power": False,
+    },
+}
+
+
+# ============================================================
+# INVESTMENT COMMITTEE (collaborative decision making)
+# ============================================================
+def run_investment_committee(
     tickers: List[str],
     analyst_signals: Dict[str, Dict],
     risk_analysis: Dict[str, Dict],
     portfolio: Dict[str, Any],
-) -> Dict[str, Dict]:
-    """Aggregate all agent signals and make buy/sell/hold decisions."""
+    show_debate: bool = False,
+) -> Tuple[Dict[str, Dict], Dict[str, str]]:
+    """
+    Investment committee meeting - all agents discuss each ticker together.
+
+    Process:
+    1. Each group presents their consensus view
+    2. Groups debate - conflicting views are examined
+    3. Risk manager presents position limits
+    4. Portfolio manager synthesizes and decides
+    5. Conviction sizing - position size reflects consensus strength
+
+    Returns (decisions, debate_summaries) tuple.
+    """
     decisions = {}
+    debate_summaries = {}
 
     for ticker in tickers:
-        # Collect signals for this ticker
-        bullish_weight = 0.0
-        bearish_weight = 0.0
-        neutral_count = 0
-        total_agents = 0
+        # ── Phase 1: Each group forms their internal consensus ──
+        group_views = {}
+        for group_name, group_config in AGENT_GROUPS.items():
+            bullish = 0
+            bearish = 0
+            neutral = 0
+            total_conf = 0
+            reasons = []
 
-        for agent_name, signals in analyst_signals.items():
-            if agent_name.startswith("risk_management"):
+            for agent_id in group_config["agents"]:
+                if agent_id not in analyst_signals or ticker not in analyst_signals[agent_id]:
+                    continue
+                sig = analyst_signals[agent_id][ticker]
+                agent_name = AGENTS[agent_id][0] if agent_id in AGENTS else agent_id
+
+                if sig["signal"] == "bullish":
+                    bullish += sig["confidence"]
+                elif sig["signal"] == "bearish":
+                    bearish += sig["confidence"]
+                else:
+                    neutral += sig["confidence"]
+                total_conf += sig["confidence"]
+                if sig.get("reasoning"):
+                    reasons.append(f"{agent_name}: {sig['reasoning'][:80]}")
+
+            total_votes = len(group_config["agents"])
+            if total_conf == 0:
+                group_views[group_name] = {"view": "neutral", "strength": 0, "reasons": reasons, "unanimous": False}
                 continue
-            if ticker not in signals:
-                continue
 
-            sig = signals[ticker]
-            weight = sig["confidence"] / 100.0
-            total_agents += 1
-
-            if sig["signal"] == "bullish":
-                bullish_weight += weight
-            elif sig["signal"] == "bearish":
-                bearish_weight += weight
+            # Group consensus
+            if bullish > bearish and bullish > neutral:
+                view = "bullish"
+                strength = bullish / total_conf
+            elif bearish > bullish and bearish > neutral:
+                view = "bearish"
+                strength = bearish / total_conf
             else:
-                neutral_count += 1
+                view = "neutral"
+                strength = neutral / total_conf if total_conf > 0 else 0
 
-        # Decision logic
+            # Check unanimity (all members agree)
+            unanimous = (bullish > 0 and bearish == 0 and neutral == 0) or \
+                        (bearish > 0 and bullish == 0 and neutral == 0)
+
+            group_views[group_name] = {
+                "view": view,
+                "strength": round(strength, 2),
+                "bullish_pct": round(bullish / total_conf * 100, 1) if total_conf > 0 else 0,
+                "bearish_pct": round(bearish / total_conf * 100, 1) if total_conf > 0 else 0,
+                "reasons": reasons,
+                "unanimous": unanimous,
+                "weight": group_config["weight"],
+                "veto_power": group_config["veto_power"],
+            }
+
+        # ── Phase 2: Committee debate & conflict resolution ──
+        bullish_groups = [g for g, v in group_views.items() if v["view"] == "bullish"]
+        bearish_groups = [g for g, v in group_views.items() if v["view"] == "bearish"]
+
+        # Calculate weighted group scores
+        weighted_bullish = sum(group_views[g]["strength"] * group_views[g]["weight"]
+                               for g in bullish_groups)
+        weighted_bearish = sum(group_views[g]["strength"] * group_views[g]["weight"]
+                               for g in bearish_groups)
+
+        # Check for veto conditions
+        veto_against_buy = any(
+            group_views[g]["unanimous"] and group_views[g]["veto_power"] and group_views[g]["view"] == "bearish"
+            for g in group_views
+        )
+        veto_against_short = any(
+            group_views[g]["unanimous"] and group_views[g]["veto_power"] and group_views[g]["view"] == "bullish"
+            for g in group_views
+        )
+
+        # Build debate narrative
+        debate = []
+        for group_name, view in group_views.items():
+            perspective = AGENT_GROUPS[group_name]["perspective"]
+            emoji = {"bullish": "BULLISH", "bearish": "BEARISH", "neutral": "NEUTRAL"}[view["view"]]
+            debate.append(f"{perspective} desk ({emoji}, strength {view['strength']:.0%})")
+
+        # ── Phase 3: Portfolio manager's final decision ──
         risk = risk_analysis.get(ticker, {})
         max_position_value = risk.get("remaining_position_limit", 0)
         price = risk.get("current_price", 0)
@@ -626,46 +731,84 @@ def run_portfolio_management(
         long_shares = position.get("long", 0)
         short_shares = position.get("short", 0)
 
-        net_score = bullish_weight - bearish_weight
-        confidence = min(95, max(20, abs(net_score) / max(total_agents, 1) * 100 + 30))
+        # Conviction score: how strongly groups agree
+        net_conviction = weighted_bullish - weighted_bearish
+        agreement = len(bullish_groups) + len(bearish_groups)
+        total_groups = len(group_views)
 
-        if net_score > 2.0 and max_shares > 0:
-            # Strong bullish consensus
-            quantity = min(max_shares, max(1, int(max_shares * min(confidence / 100, 0.8))))
+        # Consensus level determines position sizing
+        # 4/4 groups agree = high conviction (80% of max)
+        # 3/4 groups agree = moderate conviction (50% of max)
+        # 2/4 = low conviction (25% of max)
+        # split = no trade
+        if len(bullish_groups) >= 3:
+            consensus = "strong_bullish"
+            sizing_pct = 0.70 + (len(bullish_groups) - 3) * 0.10
+        elif len(bullish_groups) >= 2 and len(bearish_groups) <= 1:
+            consensus = "moderate_bullish"
+            sizing_pct = 0.40
+        elif len(bearish_groups) >= 3:
+            consensus = "strong_bearish"
+            sizing_pct = 0.70 + (len(bearish_groups) - 3) * 0.10
+        elif len(bearish_groups) >= 2 and len(bullish_groups) <= 1:
+            consensus = "moderate_bearish"
+            sizing_pct = 0.40
+        else:
+            consensus = "no_consensus"
+            sizing_pct = 0.0
+
+        # Apply veto
+        if veto_against_buy and consensus in ("strong_bullish", "moderate_bullish"):
+            debate.append(f"VETO: Value/Growth group unanimously against - reducing to HOLD")
+            consensus = "vetoed_bullish"
+            sizing_pct = 0.0
+        if veto_against_short and consensus in ("strong_bearish", "moderate_bearish"):
+            debate.append(f"VETO: Value/Growth group unanimously bullish - blocking SHORT")
+            consensus = "vetoed_bearish"
+            sizing_pct = 0.0
+
+        # Final decision
+        confidence = min(95, max(20, abs(net_conviction) * 60 + len(max(bullish_groups, bearish_groups, key=len) if bullish_groups and bearish_groups else bullish_groups or bearish_groups or [""]) * 5 + 25))
+
+        if consensus in ("strong_bullish", "moderate_bullish") and max_shares > 0:
+            quantity = max(1, int(max_shares * sizing_pct))
             action = "buy"
-            reasoning = f"Strong bullish consensus: {bullish_weight:.1f} bullish vs {bearish_weight:.1f} bearish weight across {total_agents} agents"
-        elif net_score > 0.5 and max_shares > 0:
-            # Moderate bullish
-            quantity = min(max_shares, max(1, int(max_shares * 0.4)))
-            action = "buy"
-            reasoning = f"Moderate bullish signal: {bullish_weight:.1f} bullish vs {bearish_weight:.1f} bearish weight"
-        elif net_score < -2.0:
-            # Strong bearish consensus
+            reasoning = (f"Committee {consensus.replace('_', ' ')}: "
+                        f"{len(bullish_groups)}/{total_groups} groups bullish, "
+                        f"{len(bearish_groups)} bearish. "
+                        f"Conviction sizing: {sizing_pct:.0%} of max position.")
+        elif consensus in ("strong_bearish", "moderate_bearish"):
             if long_shares > 0:
-                quantity = long_shares  # Sell all
+                # Sell existing long position
+                sell_pct = 1.0 if consensus == "strong_bearish" else 0.5
+                quantity = max(1, int(long_shares * sell_pct))
                 action = "sell"
-                reasoning = f"Strong bearish consensus: selling {long_shares} shares"
-            elif max_shares > 0:
-                quantity = min(max_shares, max(1, int(max_shares * 0.3)))
+                reasoning = (f"Committee {consensus.replace('_', ' ')}: "
+                            f"{len(bearish_groups)}/{total_groups} groups bearish. "
+                            f"Reducing long position by {sell_pct:.0%}.")
+            elif max_shares > 0 and consensus == "strong_bearish":
+                # Only short with STRONG bearish + no veto
+                quantity = max(1, int(max_shares * sizing_pct * 0.5))  # Half size for shorts
                 action = "short"
-                reasoning = f"Strong bearish: {bearish_weight:.1f} bearish vs {bullish_weight:.1f} bullish - opening short"
+                reasoning = (f"Committee strong bearish: "
+                            f"{len(bearish_groups)}/{total_groups} groups bearish. "
+                            f"Conservative short at {sizing_pct*0.5:.0%} of max.")
             else:
                 quantity = 0
                 action = "hold"
-                reasoning = "Bearish but no position limit available"
-        elif net_score < -0.5:
-            if long_shares > 0:
-                quantity = max(1, int(long_shares * 0.5))
-                action = "sell"
-                reasoning = f"Moderate bearish - reducing long position"
-            else:
-                quantity = 0
-                action = "hold"
-                reasoning = "Moderate bearish but no long position to sell"
+                reasoning = f"Moderate bearish but no position to sell and insufficient conviction to short."
         else:
             quantity = 0
             action = "hold"
-            reasoning = f"Mixed signals: {bullish_weight:.1f} bullish vs {bearish_weight:.1f} bearish - holding"
+            if consensus == "no_consensus":
+                reasoning = (f"No committee consensus: {len(bullish_groups)} groups bullish, "
+                            f"{len(bearish_groups)} bearish. "
+                            f"Portfolio manager says: when the table is split, we wait.")
+            elif "vetoed" in consensus:
+                reasoning = (f"Proposal vetoed by committee member with strong opposing view. "
+                            f"Risk-off: holding position.")
+            else:
+                reasoning = f"Insufficient conviction to act."
 
         decisions[ticker] = {
             "action": action,
@@ -673,7 +816,19 @@ def run_portfolio_management(
             "confidence": round(confidence, 1),
             "reasoning": reasoning,
         }
+        debate_summaries[ticker] = " | ".join(debate)
 
+    return decisions, debate_summaries
+
+
+def run_portfolio_management(
+    tickers: List[str],
+    analyst_signals: Dict[str, Dict],
+    risk_analysis: Dict[str, Dict],
+    portfolio: Dict[str, Any],
+) -> Dict[str, Dict]:
+    """Backward-compatible wrapper for backtest script."""
+    decisions, _ = run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio)
     return decisions
 
 
@@ -761,11 +916,29 @@ def run_ai_trading(
             f"(max {max_shares} shares @ ${risk['current_price']:.2f})"
         )
 
-    # ── Step 3: Portfolio Decisions ──
-    print(f"\n{Fore.WHITE}{Style.BRIGHT}STEP 3: Portfolio Management Decisions{Style.RESET_ALL}")
+    # ── Step 3: Investment Committee Meeting ──
+    print(f"\n{Fore.WHITE}{Style.BRIGHT}STEP 3: Investment Committee Meeting{Style.RESET_ALL}")
     print(f"{'-'*50}")
+    print(f"  {Fore.CYAN}4 groups at the table:{Style.RESET_ALL}")
+    for gname, gconfig in AGENT_GROUPS.items():
+        agents_str = ", ".join(AGENTS[a][0] for a in gconfig["agents"] if a in AGENTS)
+        veto = f" {Fore.RED}[VETO POWER]{Style.RESET_ALL}" if gconfig["veto_power"] else ""
+        print(f"    {Fore.WHITE}{gconfig['perspective']:25s}{Style.RESET_ALL}: {agents_str}{veto}")
+    print()
 
-    decisions = run_portfolio_management(tickers, analyst_signals, risk_analysis, portfolio)
+    decisions, debate_summaries = run_investment_committee(
+        tickers, analyst_signals, risk_analysis, portfolio, show_reasoning
+    )
+
+    # Show committee debate per ticker
+    for ticker in tickers:
+        debate = debate_summaries.get(ticker, "")
+        dec = decisions[ticker]
+        action_color = {"buy": Fore.GREEN, "sell": Fore.RED, "short": Fore.RED, "hold": Fore.YELLOW}.get(dec["action"], Fore.WHITE)
+        print(f"  {Fore.CYAN}{ticker}{Style.RESET_ALL}: {debate}")
+        print(f"    -> {action_color}{dec['action'].upper()} {dec['quantity']} shares{Style.RESET_ALL} ({dec['confidence']:.0f}% conf)")
+        print(f"       {Fore.WHITE}{dec['reasoning']}{Style.RESET_ALL}")
+        print()
 
     # ── Step 4: Display results using existing display infrastructure ──
     result = {
