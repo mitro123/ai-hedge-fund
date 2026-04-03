@@ -725,6 +725,83 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
                 action = "hold"
                 reasoning = f"Split: {n_bull} bull, {n_bear} bear. Holding."
 
+        # STRONG BUY OVERRIDE: If stock has strong_buy from analysts AND good fundamentals, ensure allocation
+        sd = stock_data.get(ticker, {})
+        if sd:
+            a_score = sd.get("analyst_score", 3.0)
+            upside = sd.get("upside_to_target", 0)
+            cash_available = portfolio.get("cash", 0)
+            cash_buy_shares = int(cash_available * 0.40 / price) if price > 0 else 0
+            can_buy = max(max_shares, cash_buy_shares)  # Use either risk limit OR direct cash
+            if a_score <= 1.5 and upside > 0.25 and action == "hold" and can_buy > 0:
+                # Analysts strongly bullish with big upside - override hold to buy
+                quantity = max(1, min(can_buy, int(cash_available * 0.40 / price)))
+                action = "buy"
+                confidence = 85.0
+                reasoning = f"STRONG BUY OVERRIDE: Analysts score {a_score:.1f} with {upside*100:.0f}% upside to target. Overriding committee hold."
+            elif a_score <= 2.0 and upside > 0.15 and action == "hold" and can_buy > 0 and long_shares == 0:
+                # Moderate analyst buy with no position - at least get some exposure
+                quantity = max(1, min(can_buy, int(cash_available * 0.25 / price)))
+                action = "buy"
+                confidence = 75.0
+                reasoning = f"ANALYST BUY OVERRIDE: Score {a_score:.1f}, {upside*100:.0f}% upside, no position yet. Initiating."
+
+        # REBALANCING RULES for existing positions
+        if action == "hold" and long_shares > 0:
+            # Compute portfolio-level values for rebalancing
+            pos_value = long_shares * price
+            portfolio_value = sum(
+                portfolio.get("positions", {}).get(t, {}).get("long", 0) * risk_analysis.get(t, {}).get("current_price", 0)
+                for t in tickers
+            ) + portfolio["cash"]
+            pos_pct = pos_value / portfolio_value if portfolio_value > 0 else 0
+            target_pct = 1.0 / len(tickers)  # equal weight target
+
+            # PROFIT TAKING / TRIM OVERWEIGHT: Free up cash for rebalancing
+            # Trim positions that are significantly overweight OR have large gains
+            if long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
+                gain_pct = (price / pos["long_cost_basis"] - 1)
+                # Trim if: (a) big gain + weakening signals, or (b) very overweight
+                if gain_pct > 0.30 and n_bull < 2:
+                    sell_qty = max(1, int(long_shares * 0.25))
+                    quantity = sell_qty
+                    action = "sell"
+                    reasoning = f"PROFIT TAKING: Position up {gain_pct:.0%}, signals weakening. Trimming 25%."
+                elif pos_pct > target_pct * 1.5 and gain_pct > 0.20:
+                    # Overweight winner - trim back toward target
+                    excess_shares = int((pos_value - portfolio_value * target_pct) / price * 0.5)
+                    if excess_shares > 0:
+                        quantity = excess_shares
+                        action = "sell"
+                        reasoning = f"REBALANCE TRIM: {pos_pct:.0%} of portfolio (target {target_pct:.0%}), up {gain_pct:.0%}. Trimming {excess_shares} shares."
+
+            # If still holding and this is a strong bullish stock but underweight, add to it
+            if action == "hold":
+                cash_available = portfolio.get("cash", 0)
+                cash_shares = int(cash_available / price) if price > 0 else 0
+                if n_bull >= 3 and pos_pct < target_pct * 0.75 and cash_shares > 0:
+                    target_value = portfolio_value * target_pct
+                    deficit = target_value - pos_value
+                    add_qty = max(1, min(cash_shares, int(deficit / price * 0.5)))
+                    quantity = add_qty
+                    action = "buy"
+                    reasoning = f"REBALANCE: Strong bullish but only {pos_pct:.0%} of portfolio (target {target_pct:.0%}). Adding {add_qty} shares."
+
+        # DEPLOY IDLE CASH: If sitting on >10% cash and this stock is bullish, buy more
+        if action == "hold" and portfolio.get("cash", 0) > 0 and price > 0:
+            portfolio_value = sum(
+                portfolio.get("positions", {}).get(t, {}).get("long", 0) * risk_analysis.get(t, {}).get("current_price", 0)
+                for t in tickers
+            ) + portfolio["cash"]
+            cash_pct = portfolio["cash"] / portfolio_value if portfolio_value > 0 else 0
+            if cash_pct > 0.10 and n_bull >= 2:
+                deploy = portfolio["cash"] * 0.25 / price
+                deploy_qty = max(1, int(deploy))
+                if deploy_qty > 0:
+                    quantity = deploy_qty
+                    action = "buy"
+                    reasoning = f"DEPLOY CASH: {cash_pct:.0%} idle cash, {n_bull} groups bullish. Deploying."
+
         decisions[ticker] = {
             "action": action, "quantity": quantity,
             "confidence": round(confidence, 1), "reasoning": reasoning,
