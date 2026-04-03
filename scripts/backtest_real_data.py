@@ -298,7 +298,7 @@ def run_backtest(tickers, initial_cash=100000.0, months=18):
         analyst_signals["risk_management_agent"] = risk
 
         # Committee decision
-        decisions, _ = run_investment_committee(valid_tickers, analyst_signals, risk, portfolio)
+        decisions, _ = run_investment_committee(valid_tickers, analyst_signals, risk, portfolio, stock_data=stock_metrics)
 
         # Execute trades
         period_trades = []

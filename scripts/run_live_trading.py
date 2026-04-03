@@ -181,31 +181,34 @@ def cathie_wood_analyze(ticker: str, d: dict) -> dict:
 
 
 def michael_burry_analyze(ticker: str, d: dict) -> dict:
-    """Michael Burry: Contrarian value. Bearish on bubbles, bullish on deep value."""
+    """Michael Burry: Contrarian value. Only bearish when BOTH fundamentals AND Street agree."""
     score = 0
     reasons = []
 
-    # Bubble detection
-    if d["pe"] > 100:
-        score -= 3; reasons.append(f"P/E {d['pe']:.0f} - extreme bubble")
-    elif d["pe"] > 50:
-        score -= 2; reasons.append(f"P/E {d['pe']:.0f} - overvalued")
-
-    # Earnings declining while PE high = danger
-    if d["earnings_growth"] < -0.10 and d["pe"] > 30:
-        score -= 2; reasons.append("Earnings falling while market prices growth - disconnect")
+    # Bubble detection - but RESPECT analyst consensus
+    analyst_score = d.get("analyst_score", 3.0)
+    if d["pe"] > 100 and analyst_score > 3.0:
+        score -= 3; reasons.append(f"P/E {d['pe']:.0f} AND analysts skeptical (score {analyst_score:.1f})")
+    elif d["pe"] > 100 and analyst_score <= 2.5:
+        score -= 1; reasons.append(f"P/E {d['pe']:.0f} extreme but analysts say BUY - respecting Street")
+    elif d["pe"] > 50 and d["earnings_growth"] < -0.20:
+        score -= 2; reasons.append(f"P/E {d['pe']:.0f} with collapsing earnings - disconnect")
 
     # Deep value detection
     if d["pe"] > 0 and d["pe"] < 12 and d["fcf_yield"] > 0.06:
         score += 3; reasons.append(f"Deep value: P/E {d['pe']:.0f} with {d['fcf_yield']*100:.1f}% FCF yield")
 
-    # Short squeeze risk
-    if d["short_pct_float"] > 0.05:
-        score -= 0.5; reasons.append(f"Short interest {d['short_pct_float']*100:.1f}% - already crowded short")
+    # Momentum check - don't fight the tape
+    if d.get("momentum_3m", 0) > 0.15:
+        score += 1; reasons.append(f"Strong momentum {d['momentum_3m']*100:+.0f}% - don't fight the tape")
+    elif d.get("momentum_3m", 0) < -0.20 and d["pe"] > 40:
+        score -= 1; reasons.append("Falling knife with high PE")
 
-    # Insider selling
-    if d["insider_ownership"] < 0.01 and d["pe"] > 40:
-        score -= 1; reasons.append("Low insider ownership at high valuations")
+    # Analyst consensus is a REAL signal from people with billions at stake
+    if analyst_score <= 1.5:
+        score += 1; reasons.append(f"Street consensus STRONG BUY - respect the money")
+    elif analyst_score >= 4.0:
+        score -= 1; reasons.append("Street consensus negative")
 
     signal = "bearish" if score <= -2 else ("bullish" if score >= 2 else "neutral")
     conf = min(90, max(25, 35 + abs(score) * 10))
@@ -264,38 +267,47 @@ def phil_fisher_analyze(ticker: str, d: dict) -> dict:
 
 
 def stanley_druckenmiller_analyze(ticker: str, d: dict) -> dict:
-    """Druckenmiller: Macro + momentum + sector rotation."""
+    """Druckenmiller: Macro + momentum + sector rotation. Respects Street consensus."""
     score = 0
     reasons = []
 
-    # Momentum is king for Druckenmiller
-    if d.get("momentum_3m", 0) > 0.10:
-        score += 2; reasons.append(f"Strong 3m momentum {d['momentum_3m']*100:+.1f}%")
-    elif d.get("momentum_3m", 0) < -0.15:
-        score -= 2; reasons.append(f"Weak momentum {d['momentum_3m']*100:+.1f}% - capital rotating out")
+    # Momentum - but use 6m (more reliable than 3m noise)
+    m6 = d.get("momentum_6m", 0)
+    m12 = d.get("momentum_12m", 0)
+    if m12 > 0.30:
+        score += 2; reasons.append(f"Strong 12m momentum {m12*100:+.0f}% - trend is your friend")
+    elif m6 > 0.10:
+        score += 1; reasons.append(f"Positive 6m momentum {m6*100:+.0f}%")
+    elif m6 < -0.20 and m12 < -0.10:
+        score -= 1; reasons.append(f"Sustained downtrend (6m {m6*100:+.0f}%, 12m {m12*100:+.0f}%)")
+    # DON'T penalize short-term dips if long-term trend is up
+    elif d.get("momentum_3m", 0) < -0.10 and m12 > 0.10:
+        score += 0.5; reasons.append(f"Short-term pullback in long-term uptrend - potential entry")
 
-    # Price above SMA = uptrend
-    if d.get("price_above_sma50", False) and d.get("golden_cross", False):
-        score += 1; reasons.append("Golden cross + above SMA50 - strong uptrend")
-    elif not d.get("price_above_sma200", True):
-        score -= 1; reasons.append("Below SMA200 - downtrend")
+    # Price trend
+    if d.get("golden_cross", False):
+        score += 1; reasons.append("Golden cross - long-term bullish")
 
     # Revenue acceleration
     if d["revenue_growth"] > 0.20:
-        score += 2; reasons.append(f"Revenue momentum {d['revenue_growth']*100:.0f}%")
-    elif d["revenue_growth"] < 0:
-        score -= 1; reasons.append("Revenue declining - rotate away")
+        score += 1; reasons.append(f"Revenue momentum {d['revenue_growth']*100:.0f}%")
 
-    # Macro: high rates hurt growth
-    if d.get("interest_rate", 0) > 0.05 and d.get("beta", 1) > 1.5:
-        score -= 1; reasons.append("High rates + high beta = headwind")
+    # ANALYST CONSENSUS - biggest signal for macro trader
+    analyst_score = d.get("analyst_score", 3.0)
+    upside = d.get("upside_to_target", 0)
+    if analyst_score <= 1.5 and upside > 0.20:
+        score += 2; reasons.append(f"Street STRONG BUY with {upside*100:.0f}% upside - follow the smart money")
+    elif analyst_score <= 2.0:
+        score += 1; reasons.append(f"Street says BUY (score {analyst_score:.1f})")
+    elif analyst_score >= 4.0:
+        score -= 1; reasons.append("Street negative")
 
     # Market regime
     regime = d.get("market_regime", "unknown")
-    if regime in ("bear", "correction"):
-        score -= 1; reasons.append(f"Market regime: {regime} - defensive posture")
+    if regime == "bear":
+        score -= 1; reasons.append(f"Bear market - defensive")
 
-    signal = "bullish" if score >= 2 else ("bearish" if score <= -1 else "neutral")
+    signal = "bullish" if score >= 2 else ("bearish" if score <= -2 else "neutral")
     conf = min(90, max(25, 40 + abs(score) * 9))
     return {"signal": signal, "confidence": round(conf, 1), "reasoning": ". ".join(reasons)}
 
@@ -370,57 +382,52 @@ def aswath_damodaran_analyze(ticker: str, d: dict) -> dict:
 
 
 def technical_analyst_analyze(ticker: str, d: dict) -> dict:
-    """Technical Analyst: REAL RSI, MACD, SMA, Bollinger from actual price data."""
+    """Technical Analyst: REAL RSI, MACD, SMA, Bollinger. Oversold = opportunity when fundamentals OK."""
     score = 0
     reasons = []
 
-    # RSI - REAL computed from price history
     rsi = d.get("rsi", 50)
+    analyst_score = d.get("analyst_score", 3.0)
+    upside = d.get("upside_to_target", 0)
+
+    # RSI with context: oversold + good fundamentals = BUY opportunity
     if rsi < 30:
-        score += 2; reasons.append(f"RSI {rsi:.0f} - OVERSOLD")
-    elif rsi < 40:
-        score += 1; reasons.append(f"RSI {rsi:.0f} - approaching oversold")
-    elif rsi > 70:
-        score -= 2; reasons.append(f"RSI {rsi:.0f} - OVERBOUGHT")
-    elif rsi > 60:
-        score -= 0.5; reasons.append(f"RSI {rsi:.0f} - elevated")
+        score += 2; reasons.append(f"RSI {rsi:.0f} - OVERSOLD - reversal opportunity")
+        if upside > 0.20:
+            score += 1; reasons.append(f"Oversold + {upside*100:.0f}% upside to target = strong buy signal")
+    elif rsi < 40 and upside > 0.15:
+        score += 1; reasons.append(f"RSI {rsi:.0f} near oversold with {upside*100:.0f}% upside - accumulate")
+    elif rsi > 75:
+        score -= 1; reasons.append(f"RSI {rsi:.0f} - overbought, possible pullback")
     else:
         reasons.append(f"RSI {rsi:.0f} - neutral")
 
-    # MACD - REAL
+    # MACD
     macd = d.get("macd", {})
     if macd.get("bullish_cross", False):
         score += 1; reasons.append("MACD bullish crossover")
-    elif macd.get("histogram", 0) < 0:
-        score -= 1; reasons.append("MACD bearish")
+    elif macd.get("histogram", 0) < -1:
+        score -= 0.5; reasons.append("MACD bearish momentum")
 
-    # Moving averages - REAL
+    # Moving averages
     if d.get("golden_cross", False):
         score += 1; reasons.append("Golden cross (SMA50 > SMA200)")
-    elif d.get("price_above_sma200", True) is False:
+
+    # KEY FIX: Below SMA50 is a DIP BUY when analysts say strong_buy
+    if not d.get("price_above_sma50", True) and analyst_score <= 1.5 and upside > 0.25:
+        score += 2; reasons.append(f"Below SMA50 but Street says STRONG BUY with {upside*100:.0f}% upside - BUY THE DIP")
+    elif not d.get("price_above_sma50", True) and d.get("golden_cross", False):
+        score += 0.5; reasons.append("Below SMA50 but golden cross intact - pullback in uptrend")
+    elif not d.get("price_above_sma200", True):
         score -= 1; reasons.append("Below SMA200 - long-term downtrend")
 
-    if d.get("price_above_sma50", True):
-        score += 0.5; reasons.append("Above SMA50 - short-term uptrend")
-    else:
-        score -= 0.5; reasons.append("Below SMA50 - short-term weakness")
-
-    # Distance from 52w high
-    dist = d.get("distance_from_52w_high", 0)
-    if dist > -0.05:
-        score += 1; reasons.append(f"Near 52-week high ({dist*100:+.1f}%) - momentum")
-    elif dist < -0.30:
-        score -= 1; reasons.append(f"Far from 52-week high ({dist*100:+.1f}%)")
-
-    # Bollinger
+    # Bollinger - oversold near lower band with good fundamentals
     bb = d.get("bollinger", {})
     pct_b = bb.get("pct_b", 0.5)
-    if pct_b < 0.1:
-        score += 1; reasons.append("At lower Bollinger Band - potential bounce")
-    elif pct_b > 0.9:
-        score -= 0.5; reasons.append("At upper Bollinger Band")
+    if pct_b < 0.15 and analyst_score <= 2.0:
+        score += 1; reasons.append("Lower Bollinger Band + analyst BUY = mean reversion setup")
 
-    signal = "bullish" if score >= 2 else ("bearish" if score <= -1 else "neutral")
+    signal = "bullish" if score >= 2 else ("bearish" if score <= -1.5 else "neutral")
     conf = min(85, max(25, 35 + abs(score) * 8))
     return {"signal": signal, "confidence": round(conf, 1), "reasoning": ". ".join(reasons)}
 
@@ -614,10 +621,11 @@ def run_risk_management(tickers, portfolio, current_prices):
 # ============================================================
 # INVESTMENT COMMITTEE (enhanced)
 # ============================================================
-def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio, show_debate=False):
+def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio, show_debate=False, stock_data=None):
     """Investment committee with momentum-based sizing and min investment rule."""
     decisions = {}
     debate_summaries = {}
+    stock_data = stock_data or {}
 
     for ticker in tickers:
         group_views = {}
@@ -689,9 +697,19 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
                 action = "sell"
                 reasoning = f"Strong bearish: {n_bear}/{total_groups} groups bearish. Selling all."
             else:
-                quantity = max(1, int(max_shares * 0.30)) if max_shares > 0 else 0
-                action = "short" if quantity > 0 else "hold"
-                reasoning = f"Strong bearish: {n_bear}/{total_groups} bearish."
+                # CRITICAL FIX: Only short if Wall Street ANALYSTS also agree
+                # Never short a stock where analysts say BUY
+                sd = stock_data.get(ticker, {})
+                stock_analyst_score = sd.get("analyst_score", 3.0) if sd else 3.0
+
+                if stock_analyst_score > 3.0 and max_shares > 0:
+                    quantity = max(1, int(max_shares * 0.20))
+                    action = "short"
+                    reasoning = f"Strong bearish + analysts agree: shorting conservatively."
+                else:
+                    quantity = 0
+                    action = "hold"
+                    reasoning = f"Bearish signals but Wall Street analysts disagree - NOT SHORTING. When the Street has skin in the game and says buy, we listen."
         elif n_bear >= 2 and long_shares > 0:
             quantity = max(1, int(long_shares * 0.5))
             action = "sell"
@@ -805,7 +823,7 @@ def main():
     # Step 4: Investment Committee
     print(f"\n{Style.BRIGHT}STEP 4: Investment Committee Meeting{Style.RESET_ALL}")
     print(f"{'-'*50}")
-    decisions, debates = run_investment_committee(valid_tickers, analyst_signals, risk, portfolio)
+    decisions, debates = run_investment_committee(valid_tickers, analyst_signals, risk, portfolio, stock_data=stock_data)
 
     for t in valid_tickers:
         d = decisions[t]
