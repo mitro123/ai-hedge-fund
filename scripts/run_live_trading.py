@@ -693,7 +693,9 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
     max_rank = max(rankings.values()) if rankings else 1
     min_rank = min(rankings.values()) if rankings else 0
 
-    for ticker in tickers:
+    # CRITICAL: Iterate by RANKING ORDER, not alphabetical!
+    # This ensures top-ranked stocks get capital first.
+    for ticker in sorted_tickers:
         group_views = {}
         for gname, gcfg in AGENT_GROUPS.items():
             bullish = bearish = neutral = 0.0
@@ -994,10 +996,11 @@ def main():
     result = {"decisions": decisions, "analyst_signals": analyst_signals}
     print_trading_output(result)
 
-    # Step 6: Execute
-    print(f"\n{Style.BRIGHT}STEP 6: Trade Execution{Style.RESET_ALL}")
+    # Step 6: Execute - in RANKING ORDER (best stocks get capital first)
+    print(f"\n{Style.BRIGHT}STEP 6: Trade Execution (by ranking priority){Style.RESET_ALL}")
     print(f"{'-'*50}")
-    for t in valid_tickers:
+    exec_order = sorted(valid_tickers, key=lambda t: rankings.get(t, 0), reverse=True)
+    for t in exec_order:
         dec = decisions[t]
         price = current_prices[t]
         qty = dec["quantity"]
