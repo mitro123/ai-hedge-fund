@@ -21,20 +21,51 @@ class MarketDataProvider:
     # S&P 500 ETF for benchmark comparison
     BENCHMARK = "SPY"
 
-    # FRED-like macro data (updated periodically)
-    # In production, fetch from FRED API or similar
-    MACRO = {
-        "fed_funds_rate": 0.0450,
-        "inflation_cpi_yoy": 0.028,
-        "us_10y_yield": 0.042,
-        "market_regime": "late_bull",  # Determined from SPY trend
-    }
-
     def __init__(self, cache_ttl_minutes: int = 15):
         self._cache: Dict[str, Any] = {}
         self._cache_time: Dict[str, datetime] = {}
         self._cache_ttl = timedelta(minutes=cache_ttl_minutes)
         self._benchmark_data: Optional[pd.DataFrame] = None
+        self._macro_data: Optional[Dict[str, Any]] = None
+
+    def get_macro_data(self) -> Dict[str, Any]:
+        """Fetch REAL macro data from market ETFs/indices via Yahoo Finance."""
+        if self._macro_data is not None:
+            return self._macro_data
+
+        macro = {"fed_funds_rate": 0.045, "inflation_cpi_yoy": 0.028}
+        try:
+            # VIX - Fear/Volatility index
+            vix = yf.Ticker("^VIX").history(period="5d")
+            if not vix.empty:
+                macro["vix"] = round(float(vix["Close"].iloc[-1]), 2)
+
+            # 10-Year Treasury Yield
+            tny = yf.Ticker("^TNX").history(period="5d")
+            if not tny.empty:
+                macro["us_10y_yield"] = round(float(tny["Close"].iloc[-1]) / 100, 4)
+
+            # Dollar strength (UUP ETF)
+            uup = yf.Ticker("UUP").history(period="1y")
+            if not uup.empty and len(uup) > 200:
+                macro["dollar_12m_change"] = round(float(uup["Close"].iloc[-1] / uup["Close"].iloc[0] - 1), 4)
+
+            # Market regime from SPY
+            macro["market_regime"] = self._determine_market_regime()
+
+        except Exception as e:
+            logger.warning(f"Error fetching macro data: {e}")
+            macro.setdefault("vix", 20)
+            macro.setdefault("us_10y_yield", 0.042)
+            macro.setdefault("market_regime", "unknown")
+
+        self._macro_data = macro
+        return macro
+
+    @property
+    def MACRO(self) -> Dict[str, Any]:
+        """Backward-compatible property for macro data."""
+        return self.get_macro_data()
 
     def _is_cached(self, key: str) -> bool:
         if key in self._cache and key in self._cache_time:
