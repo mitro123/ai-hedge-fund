@@ -621,11 +621,77 @@ def run_risk_management(tickers, portfolio, current_prices):
 # ============================================================
 # INVESTMENT COMMITTEE (enhanced)
 # ============================================================
+def _rank_tickers(tickers, stock_data, analyst_signals):
+    """
+    Cross-sectional ranking: compare stocks AGAINST EACH OTHER.
+    Returns dict of ticker -> rank_score (higher = more attractive).
+    This solves the problem of absolute thresholds treating all mega-cap tech the same.
+    """
+    scores = {}
+    for t in tickers:
+        sd = stock_data.get(t, {})
+        if not sd:
+            scores[t] = 0
+            continue
+
+        rank = 0.0
+
+        # Momentum rank - stocks with best momentum get allocated more
+        m6 = sd.get("momentum_6m", 0)
+        m12 = sd.get("momentum_12m", 0)
+        rank += m12 * 30  # 30% return = +30 points
+
+        # Analyst conviction rank
+        a_score = sd.get("analyst_score", 3.0)
+        upside = sd.get("upside_to_target", 0)
+        rank += (3.0 - a_score) * 10  # strong_buy (1.3) = +17 points
+        rank += upside * 20  # 50% upside = +10 points
+
+        # Fundamental quality rank (relative, not absolute!)
+        rank += sd.get("roe", 0) / 10  # ROE 35% = +3.5 points
+        rank += sd.get("revenue_growth", 0) * 15  # 20% growth = +3 points
+        rank += sd.get("earnings_growth", 0) * 10  # 30% growth = +3 points
+
+        # Valuation relative rank (lower PE relative to growth = better)
+        pe = sd.get("pe", 30)
+        eg = max(sd.get("earnings_growth", 0.01), 0.01)
+        if pe > 0 and eg > 0:
+            effective_peg = pe / (eg * 100)
+            rank -= effective_peg * 3  # Lower PEG = better
+
+        # Technical health
+        if sd.get("price_above_sma50", False):
+            rank += 3
+        if sd.get("golden_cross", False):
+            rank += 3
+
+        # Penalize: declining earnings + high PE = danger
+        if sd.get("earnings_growth", 0) < -0.10 and pe > 50:
+            rank -= 15
+
+        # Agent consensus rank
+        bullish_count = sum(1 for aid in analyst_signals
+                          if aid != "risk_management_agent"
+                          and t in analyst_signals.get(aid, {})
+                          and analyst_signals[aid][t].get("signal") == "bullish")
+        rank += bullish_count * 2
+
+        scores[t] = round(rank, 1)
+
+    return scores
+
+
 def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio, show_debate=False, stock_data=None):
-    """Investment committee with momentum-based sizing and min investment rule."""
+    """Investment committee with cross-sectional ranking and dynamic sizing."""
     decisions = {}
     debate_summaries = {}
     stock_data = stock_data or {}
+
+    # CROSS-SECTIONAL RANKING: compare stocks against each other
+    rankings = _rank_tickers(tickers, stock_data, analyst_signals)
+    sorted_tickers = sorted(tickers, key=lambda t: rankings.get(t, 0), reverse=True)
+    max_rank = max(rankings.values()) if rankings else 1
+    min_rank = min(rankings.values()) if rankings else 0
 
     for ticker in tickers:
         group_views = {}
@@ -678,19 +744,24 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
             parts.append(f"{AGENT_GROUPS[gn]['perspective']}: {gv['view'].upper()} ({gv['strength']:.0%})")
         debate_summaries[ticker] = " | ".join(parts)
 
+        # CROSS-SECTIONAL SIZING: top-ranked stocks get more capital
+        rank = rankings.get(ticker, 0)
+        rank_pct = (rank - min_rank) / (max_rank - min_rank) if max_rank != min_rank else 0.5
+        rank_boost = 0.8 + rank_pct * 0.4  # Range: 0.8x to 1.2x sizing
+
         # Decision logic - more aggressive, min investment rule
         confidence = min(95, max(20, abs(net) * 50 + n_bull * 5 + 25))
 
         if n_bull >= 3 and max_shares > 0:
-            sizing = 0.75 + (n_bull - 3) * 0.10  # 75-85%
-            quantity = max(1, int(max_shares * sizing))
+            sizing = (0.75 + (n_bull - 3) * 0.10) * rank_boost
+            quantity = max(1, int(max_shares * min(sizing, 1.0)))
             action = "buy"
-            reasoning = f"Strong consensus: {n_bull}/{total_groups} groups bullish. Sizing {sizing:.0%}."
+            reasoning = f"Strong consensus: {n_bull}/{total_groups} bullish. Rank #{sorted_tickers.index(ticker)+1}/{len(tickers)} (score {rank:.0f}). Sizing {sizing:.0%}."
         elif n_bull >= 2 and n_bear <= 1 and max_shares > 0:
-            sizing = 0.50
-            quantity = max(1, int(max_shares * sizing))
+            sizing = 0.50 * rank_boost
+            quantity = max(1, int(max_shares * min(sizing, 1.0)))
             action = "buy"
-            reasoning = f"Moderate consensus: {n_bull}/{total_groups} bullish. Sizing {sizing:.0%}."
+            reasoning = f"Moderate consensus: {n_bull}/{total_groups} bullish. Rank #{sorted_tickers.index(ticker)+1}/{len(tickers)}. Sizing {sizing:.0%}."
         elif n_bear >= 3:
             if long_shares > 0:
                 quantity = long_shares
@@ -901,6 +972,16 @@ def main():
     print(f"\n{Style.BRIGHT}STEP 4: Investment Committee Meeting{Style.RESET_ALL}")
     print(f"{'-'*50}")
     decisions, debates = run_investment_committee(valid_tickers, analyst_signals, risk, portfolio, stock_data=stock_data)
+
+    # Show cross-sectional ranking
+    rankings = _rank_tickers(valid_tickers, stock_data, analyst_signals)
+    sorted_t = sorted(valid_tickers, key=lambda t: rankings.get(t, 0), reverse=True)
+    print(f"\n  {Style.BRIGHT}Cross-Sectional Ranking (relative comparison):{Style.RESET_ALL}")
+    for i, t in enumerate(sorted_t):
+        bar = "#" * int(max(0, rankings[t]) / 2)
+        c = Fore.GREEN if i < 3 else (Fore.RED if i >= len(sorted_t) - 1 else Fore.YELLOW)
+        print(f"    #{i+1} {c}{t:5s}{Style.RESET_ALL} score={rankings[t]:>6.1f}  {Fore.CYAN}{bar}{Style.RESET_ALL}")
+    print()
 
     for t in valid_tickers:
         d = decisions[t]
