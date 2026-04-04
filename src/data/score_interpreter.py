@@ -101,6 +101,20 @@ def interpret_scores(
         regime = world_context.get("market_regime", {}).get("regime", "unknown")
     regime_adjustments = REGIME_WEIGHT_ADJUSTMENTS.get(regime, {})
 
+    # === PHASE 0: Detect stock type for agent weight adjustment ===
+    # Value agents are useless on pre-profit/high-PE growth stocks
+    pe = live_data.get("pe", 0)
+    rg = live_data.get("revenue_growth", 0)
+    is_speculative = (pe > 50 or pe <= 0) and rg > 0.15
+    if is_speculative:
+        # Reduce value agents, boost growth agents
+        regime_adjustments = dict(regime_adjustments)  # copy
+        regime_adjustments["buffett_dcf"] = 0.1
+        regime_adjustments["graham_valuation"] = 0.1
+        regime_adjustments["graham_strength"] = 0.5
+        regime_adjustments["burry_value"] = 0.2
+        regime_adjustments["burry_balance"] = 0.4
+
     # === PHASE 1: Process original agent scores ===
     for agent_key, score_data in original_scores.items():
         if not score_data or not isinstance(score_data, dict):
@@ -307,6 +321,16 @@ def interpret_scores(
     # === PHASE 5: Anti-short rule ===
     # NEVER recommend shorting when analysts say buy
     net_signal = weighted_bull - weighted_bear
+
+    # === CONFIDENCE DAMPENING: Extreme consensus on growth stocks ===
+    # If >80% agents bearish on a growing stock, they're outside their
+    # circle of competence, not genuinely bearish
+    if is_speculative and weighted_bear > weighted_bull * 2:
+        if rg > 0.20:
+            # Growing revenue + unanimous bearish = value agents don't understand this stock
+            damping = 0.5
+            weighted_bear *= damping
+            reasons.append(f"Dampened:value_agents_OOC({rg:+.0%}growth)")
 
     # === FINAL DECISION ===
     if total_weight > 0:
