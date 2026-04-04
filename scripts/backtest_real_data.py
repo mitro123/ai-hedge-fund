@@ -24,6 +24,7 @@ init(autoreset=True)
 from scripts.run_live_trading import (
     AGENTS, run_risk_management, run_investment_committee
 )
+from src.data.dynamic_fundamentals import DynamicFundamentals
 
 
 def fetch_all_history(tickers, period="3y"):
@@ -41,7 +42,7 @@ def fetch_all_history(tickers, period="3y"):
     return data
 
 
-def compute_metrics_at_date(ticker, hist, spy_hist, date_idx, info_cache):
+def compute_metrics_at_date(ticker, hist, spy_hist, date_idx, info_cache, dynamic_fund=None):
     """Compute all agent metrics using only data available up to date_idx."""
     # Slice history up to this date
     h = hist.iloc[:date_idx + 1]
@@ -118,28 +119,51 @@ def compute_metrics_at_date(ticker, hist, spy_hist, date_idx, info_cache):
         else:
             regime = "sideways"
 
-    # Use cached fundamental info (doesn't change daily)
+    # DYNAMIC FUNDAMENTALS: compute PE, growth, margins as known at this date
+    as_of = hist.index[date_idx].to_pydatetime()
+    if hasattr(as_of, 'tz') and as_of.tzinfo is not None:
+        as_of = as_of.replace(tzinfo=None)
+
+    if dynamic_fund is not None:
+        dyn = dynamic_fund.compute_metrics_at_date(ticker, as_of, current)
+    else:
+        dyn = {}
+
+    # Fallback to static info_cache for fields dynamic doesn't cover
     info = info_cache.get(ticker, {})
+
+    # Use dynamic values when available, fall back to static
+    pe = dyn.get("pe") or (info.get("trailingPE", 0) or 0)
+    fwd_pe = dyn.get("forward_pe") or (info.get("forwardPE", 0) or 0)
+    pb = dyn.get("pb") or (info.get("priceToBook", 0) or 0)
+    roe = dyn.get("roe") or ((info.get("returnOnEquity", 0) or 0) * 100)
+    rev_growth = dyn.get("revenue_growth") or (info.get("revenueGrowth", 0) or 0)
+    eps_growth = dyn.get("earnings_growth") or (info.get("earningsGrowth", 0) or 0)
+    gross_margin = dyn.get("gross_margin") or (info.get("grossMargins", 0) or 0)
+    op_margin = dyn.get("operating_margin") or (info.get("operatingMargins", 0) or 0)
+    ev_ebitda = dyn.get("ev_ebitda") or (info.get("enterpriseToEbitda", 0) or 0)
+    debt_eq = dyn.get("debt_equity") or ((info.get("debtToEquity", 0) or 0) / 100)
+    fcf_yield = dyn.get("fcf_yield") or ((info.get("freeCashflow", 0) or 0) / max(info.get("marketCap", 1), 1))
 
     return {
         "symbol": ticker, "price": current,
-        "pe": info.get("trailingPE", 0) or 0,
-        "forward_pe": info.get("forwardPE", 0) or 0,
-        "pb": info.get("priceToBook", 0) or 0,
-        "roe": (info.get("returnOnEquity", 0) or 0) * 100,
-        "roa": (info.get("returnOnAssets", 0) or 0) * 100,
-        "roic": (info.get("returnOnEquity", 0) or 0) * 100 * 0.7,
-        "debt_equity": (info.get("debtToEquity", 0) or 0) / 100,
-        "revenue_growth": info.get("revenueGrowth", 0) or 0,
-        "earnings_growth": info.get("earningsGrowth", 0) or 0,
-        "earnings_quarterly_growth": info.get("earningsQuarterlyGrowth", 0) or 0,
-        "gross_margin": info.get("grossMargins", 0) or 0,
-        "operating_margin": info.get("operatingMargins", 0) or 0,
-        "profit_margin": info.get("profitMargins", 0) or 0,
-        "ev_ebitda": info.get("enterpriseToEbitda", 0) or 0,
-        "market_cap_b": (info.get("marketCap", 0) or 0) / 1e9,
-        "fcf_yield": ((info.get("freeCashflow", 0) or 0) / max(info.get("marketCap", 1), 1)),
-        "peg": info.get("pegRatio", 0) or 0,
+        "pe": pe,
+        "forward_pe": fwd_pe,
+        "pb": pb,
+        "roe": roe,
+        "roa": dyn.get("roa") or ((info.get("returnOnAssets", 0) or 0) * 100),
+        "roic": dyn.get("roic") or (roe * 0.7),
+        "debt_equity": debt_eq,
+        "revenue_growth": rev_growth,
+        "earnings_growth": eps_growth,
+        "earnings_quarterly_growth": dyn.get("earnings_quarterly_growth") or eps_growth,
+        "gross_margin": gross_margin,
+        "operating_margin": op_margin,
+        "profit_margin": dyn.get("profit_margin") or (info.get("profitMargins", 0) or 0),
+        "ev_ebitda": ev_ebitda,
+        "market_cap_b": dyn.get("market_cap_b") or ((info.get("marketCap", 0) or 0) / 1e9),
+        "fcf_yield": fcf_yield,
+        "peg": dyn.get("peg") or (info.get("pegRatio", 0) or 0),
         "dividend_yield": info.get("dividendYield", 0) or 0,
         "beta": info.get("beta", 1.0) or 1.0,
         "rnd_ratio": 0.10 if info.get("sector") == "Technology" else 0.05,
@@ -188,13 +212,17 @@ def run_backtest(tickers, initial_cash=100000.0, months=18):
     all_hist = fetch_all_history(tickers, "3y")
     spy_hist = all_hist.get("SPY")
 
-    # Get fundamental info (cached - doesn't change per period)
-    print(f"  Fetching fundamental data...")
+    # Dynamic fundamentals engine - computes PE, growth etc. at each point in time
+    print(f"  Loading dynamic fundamental data (quarterly earnings)...")
+    dyn_fund = DynamicFundamentals()
     info_cache = {}
     for t in tickers:
         if t in all_hist:
-            info_cache[t] = yf.Ticker(t).info
-            print(f"    {t}: PE={info_cache[t].get('trailingPE', 'N/A')}, ROE={info_cache[t].get('returnOnEquity', 'N/A')}")
+            # Pre-fetch to cache
+            dyn_fund._fetch_quarterly_data(t)
+            info_cache[t] = yf.Ticker(t).info  # Static fallback
+            print(f"    {t}: sector={info_cache[t].get('sector', 'N/A')}")
+    print(f"  Dynamic fundamentals loaded - PE, growth, margins change each period.")
     print()
 
     # Find common trading dates (monthly rebalancing)
@@ -277,7 +305,7 @@ def run_backtest(tickers, initial_cash=100000.0, months=18):
         valid_tickers = []
         for t in tickers:
             if t in all_hist:
-                metrics = compute_metrics_at_date(t, all_hist[t], spy_hist, idx, info_cache)
+                metrics = compute_metrics_at_date(t, all_hist[t], spy_hist, idx, info_cache, dyn_fund)
                 if metrics:
                     stock_metrics[t] = metrics
                     valid_tickers.append(t)
