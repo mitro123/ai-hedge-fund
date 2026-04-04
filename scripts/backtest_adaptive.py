@@ -125,6 +125,10 @@ def compute_live_metrics(ticker, hist, idx, dyn_fund, info_cache):
 def _check_technical_exit(ticker, all_hist, idx, cost_basis):
     """Check exit triggers using only historically-available technical data.
     Returns (should_exit, list_of_trigger_reasons).
+
+    KEY PRINCIPLE: Be STRICT about exiting profitable positions.
+    A stock that's up 50%+ needs MUCH stronger evidence to sell than
+    one that's in loss. Don't sell winners on temporary weakness.
     """
     if ticker not in all_hist:
         return False, []
@@ -138,30 +142,44 @@ def _check_technical_exit(ticker, all_hist, idx, cost_basis):
     sma50 = float(close.rolling(50).mean().iloc[-1]) if len(close) >= 50 else float(close.mean())
     sma200 = float(close.rolling(200).mean().iloc[-1]) if len(close) >= 200 else float(close.mean())
     m6 = (current / float(close.iloc[-126]) - 1) if len(close) > 126 else 0.0
+    m3 = (current / float(close.iloc[-63]) - 1) if len(close) > 63 else 0.0
     cost = cost_basis if cost_basis > 0 else current
-    loss = (current / cost - 1) if cost > 0 else 0.0
+    gain = (current / cost - 1) if cost > 0 else 0.0
 
     triggers = []
 
-    # TRIGGER 1: Death cross + negative 6-month momentum
-    if sma50 < sma200 and m6 < -0.15:
-        triggers.append(f"death_cross+neg_momentum(6m={m6*100:+.0f}%)")
+    # For PROFITABLE positions (gain > 20%): require MUCH stronger signals
+    if gain > 0.20:
+        # Only exit if ALL of these are true:
+        # 1. Below SMA200 (long-term trend broken)
+        # 2. 6-month momentum deeply negative (< -25%)
+        # 3. 3-month momentum also negative (< -15%)
+        if current < sma200 and m6 < -0.25 and m3 < -0.15:
+            triggers.append(f"profitable_exit: below_SMA200 + m6={m6*100:+.0f}% + m3={m3*100:+.0f}%")
 
-    # TRIGGER 2: Stop loss - position down >25% from cost basis
-    if loss < -0.25:
-        triggers.append(f"stop_loss({loss*100:+.0f}%)")
+        # Or: catastrophic drop from cost (> 30% loss from peak despite being up from cost)
+        # This means the stock peaked and is now crashing
+        if gain > 0 and m3 < -0.30:
+            triggers.append(f"crash_from_peak: m3={m3*100:+.0f}%")
 
-    # TRIGGER 3: Severe momentum collapse
-    if m6 < -0.25:
-        triggers.append(f"momentum_collapse(6m={m6*100:+.0f}%)")
+        should_exit = len(triggers) >= 1  # Even 1 strong trigger for profitable positions
 
-    # TRIGGER 4: Short-term breakdown - 3-month momentum deeply negative
-    m3 = (current / float(close.iloc[-63]) - 1) if len(close) > 63 else 0.0
-    if m3 < -0.20 and current < sma50:
-        triggers.append(f"short_term_breakdown(3m={m3*100:+.0f}%)")
+    else:
+        # For LOSING positions: standard triggers
+        # TRIGGER 1: Stop loss - position down >25% from cost
+        if gain < -0.25:
+            triggers.append(f"stop_loss({gain*100:+.0f}%)")
 
-    # Need 2+ triggers OR 1 severe trigger (stop loss)
-    should_exit = len(triggers) >= 2 or loss < -0.25
+        # TRIGGER 2: Death cross + persistent negative momentum
+        if sma50 < sma200 and m6 < -0.15 and m3 < -0.10:
+            triggers.append(f"death_cross + persistent_decline")
+
+        # TRIGGER 3: Momentum collapse
+        if m6 < -0.30:
+            triggers.append(f"momentum_collapse(6m={m6*100:+.0f}%)")
+
+        # Need 2+ triggers for losing positions, or stop loss alone
+        should_exit = len(triggers) >= 2 or gain < -0.25
     return should_exit, triggers
 
 
