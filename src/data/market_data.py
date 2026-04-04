@@ -13,8 +13,6 @@ import pandas as pd
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
-
-
 class MarketDataProvider:
     """Fetches and computes all metrics agents need from real market data."""
 
@@ -362,6 +360,12 @@ class MarketDataProvider:
                 # Earnings
                 "earnings_surprise": round(earnings_surprise, 4),
                 "buyback_yield": buyback_yield,
+
+                # === NEW: Earnings Intelligence ===
+                "earnings_beat_history": self._get_earnings_beats(symbol),
+                "forward_growth_estimate": self._get_growth_estimates(symbol),
+                "earnings_estimate_next_q": self._get_earnings_estimate(symbol),
+                "analyst_target_spread": self._get_target_spread(symbol, current_price),
             }
 
         except Exception as e:
@@ -375,6 +379,86 @@ class MarketDataProvider:
             logger.info(f"Fetching real data for {symbol}...")
             results[symbol] = self.get_full_analysis(symbol)
         return results
+
+    def print_data_summary(self, data: Dict[str, Any]):
+        """Print a summary of fetched data for debugging."""
+        if "error" in data:
+            print(f"  ERROR: {data['error']}")
+            return
+
+    def _get_earnings_beats(self, symbol: str) -> Dict:
+        """Get earnings beat/miss history - shows management quality."""
+        try:
+            t = yf.Ticker(symbol)
+            eh = t.earnings_history
+            if eh is None or eh.empty:
+                return {"beats": 0, "total": 0, "avg_surprise": 0}
+            beats = sum(1 for _, r in eh.iterrows() if (r.get("surprisePercent", 0) or 0) > 0)
+            total = len(eh)
+            avg_surp = eh["surprisePercent"].mean() if "surprisePercent" in eh.columns else 0
+            return {"beats": beats, "total": total, "avg_surprise": round(float(avg_surp or 0), 3),
+                    "beat_rate": round(beats / max(total, 1), 2)}
+        except Exception:
+            return {"beats": 0, "total": 0, "avg_surprise": 0, "beat_rate": 0}
+
+    def _get_growth_estimates(self, symbol: str) -> Dict:
+        """Get forward growth estimates from analysts."""
+        try:
+            t = yf.Ticker(symbol)
+            
+            ge = t.growth_estimates
+            if ge is None or ge.empty:
+                return {}
+            result = {}
+            for period in ge.index:
+                val = ge.loc[period, "stockTrend"] if "stockTrend" in ge.columns else None
+                if val is not None and not (isinstance(val, float) and val != val):
+                    result[str(period)] = round(float(val), 4)
+            return result
+        except Exception:
+            return {}
+
+    def _get_earnings_estimate(self, symbol: str) -> Dict:
+        """Get next quarter earnings estimate."""
+        try:
+            t = yf.Ticker(symbol)
+            
+            ee = t.earnings_estimate
+            if ee is None or ee.empty:
+                return {}
+            first = ee.iloc[0]
+            return {
+                "eps_estimate": float(first.get("avg", 0) or 0),
+                "eps_low": float(first.get("low", 0) or 0),
+                "eps_high": float(first.get("high", 0) or 0),
+                "year_ago_eps": float(first.get("yearAgoEps", 0) or 0),
+                "num_analysts": int(first.get("numberOfAnalysts", 0) or 0),
+            }
+        except Exception:
+            return {}
+
+    def _get_target_spread(self, symbol: str, current_price: float) -> Dict:
+        """Get analyst price target spread - shows conviction/uncertainty."""
+        try:
+            t = yf.Ticker(symbol)
+            
+            targets = t.analyst_price_targets
+            if not targets:
+                return {}
+            high = targets.get("high", 0) or 0
+            low = targets.get("low", 0) or 0
+            mean = targets.get("mean", 0) or 0
+            spread = (high - low) / current_price if current_price > 0 else 0
+            return {
+                "target_high": round(high, 2),
+                "target_low": round(low, 2),
+                "target_mean": round(mean, 2),
+                "target_median": round(targets.get("median", 0) or 0, 2),
+                "spread_pct": round(spread, 4),  # Wide = high uncertainty
+                "upside_to_mean": round((mean / current_price - 1), 4) if current_price > 0 and mean > 0 else 0,
+            }
+        except Exception:
+            return {}
 
     def print_data_summary(self, data: Dict[str, Any]):
         """Print a summary of fetched data for debugging."""
