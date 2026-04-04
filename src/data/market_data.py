@@ -367,6 +367,9 @@ class MarketDataProvider:
                 "earnings_estimate_next_q": self._get_earnings_estimate(symbol),
                 "analyst_target_spread": self._get_target_spread(symbol, current_price),
 
+                # === NEW: Options Market Intelligence (smart money) ===
+                "options_sentiment": self._get_options_sentiment(symbol),
+
                 # === NEW: EPS Revision Momentum (strongest alpha signal) ===
                 "eps_revisions": self._get_eps_revisions(symbol),
             }
@@ -459,6 +462,33 @@ class MarketDataProvider:
                 "target_median": round(targets.get("median", 0) or 0, 2),
                 "spread_pct": round(spread, 4),  # Wide = high uncertainty
                 "upside_to_mean": round((mean / current_price - 1), 4) if current_price > 0 and mean > 0 else 0,
+            }
+        except Exception:
+            return {}
+
+    def _get_options_sentiment(self, symbol: str) -> Dict:
+        """Get options market put/call ratio and IV skew - smart money signal."""
+        try:
+            t = yf.Ticker(symbol)
+            opts = t.options
+            if not opts:
+                return {}
+            chain = t.option_chain(opts[0])  # Nearest expiry
+            calls_vol = float(chain.calls["volume"].sum()) if "volume" in chain.calls else 0
+            puts_vol = float(chain.puts["volume"].sum()) if "volume" in chain.puts else 0
+            pc_ratio = puts_vol / calls_vol if calls_vol > 0 else 1.0
+
+            calls_iv = float(chain.calls["impliedVolatility"].mean()) if "impliedVolatility" in chain.calls else 0
+            puts_iv = float(chain.puts["impliedVolatility"].mean()) if "impliedVolatility" in chain.puts else 0
+
+            return {
+                "put_call_ratio": round(pc_ratio, 3),
+                "calls_volume": int(calls_vol),
+                "puts_volume": int(puts_vol),
+                "avg_call_iv": round(calls_iv, 4),
+                "avg_put_iv": round(puts_iv, 4),
+                "iv_skew": round(puts_iv - calls_iv, 4),
+                "sentiment": "bearish" if pc_ratio > 1.2 else ("bullish" if pc_ratio < 0.7 else "neutral"),
             }
         except Exception:
             return {}

@@ -291,7 +291,18 @@ def interpret_scores(
         weighted_bear += 0.3
         reasons.append(f"HighUncertainty({spread_pct:.0%})")
 
-    # === PHASE 4b: EPS Revision Momentum (strongest quant alpha signal) ===
+    # === PHASE 4b: Options Market Intelligence (smart money) ===
+    opts = live_data.get("options_sentiment", {})
+    pc_ratio = opts.get("put_call_ratio", 1.0)
+    if pc_ratio > 1.5:
+        # Very high put/call = extreme fear - CONTRARIAN bullish
+        weighted_bull += 0.8
+        reasons.append(f"Options:FEAR(P/C={pc_ratio:.1f})")
+    elif pc_ratio < 0.5:
+        # Very low put/call = extreme greed - caution
+        weighted_bear += 0.3
+
+    # === PHASE 4c: EPS Revision Momentum (strongest quant alpha signal) ===
     eps_rev = live_data.get("eps_revisions", {})
     rev_momentum = eps_rev.get("revision_momentum", "flat")
     if rev_momentum == "strong_up":
