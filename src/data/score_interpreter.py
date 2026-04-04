@@ -211,7 +211,33 @@ def interpret_scores(
                 reasons.append(f"Sector_Leader:{sec_name}")
                 break
 
-    # === PHASE 4: Unicorn bonus ===
+    # === PHASE 4: Earnings Intelligence ===
+    beats = live_data.get("earnings_beat_history", {})
+    beat_rate = beats.get("beat_rate", 0)
+    if beat_rate >= 0.75:
+        weighted_bull += 1.0  # Consistent beater = reliable management
+        reasons.append(f"Beats:{beat_rate:.0%}")
+    elif beat_rate <= 0.25 and beats.get("total", 0) >= 3:
+        weighted_bear += 0.5  # Consistent misser
+
+    # Forward growth estimates from analysts
+    fwd_growth = live_data.get("forward_growth_estimate", {})
+    next_q_growth = fwd_growth.get("0q", 0)
+    if next_q_growth > 0.50:
+        weighted_bull += 1.0  # Expected >50% growth next quarter
+        reasons.append(f"FwdGrowth:{next_q_growth:+.0%}")
+    elif next_q_growth > 0.20:
+        weighted_bull += 0.5
+
+    # Target spread = uncertainty measure
+    spread = live_data.get("analyst_target_spread", {})
+    spread_pct = spread.get("spread_pct", 0)
+    if spread_pct > 1.5:
+        # Very wide spread = high uncertainty, reduce conviction
+        weighted_bear += 0.3
+        reasons.append(f"HighUncertainty({spread_pct:.0%})")
+
+    # === PHASE 5: Unicorn bonus ===
     if category == "unicorn":
         mcap = live_data.get("market_cap_b", 0)
         rg = live_data.get("revenue_growth", 0)
