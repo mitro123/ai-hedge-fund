@@ -847,29 +847,29 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
             pos_pct = pos_value / portfolio_value if portfolio_value > 0 else 0
             target_pct = 1.0 / len(tickers)  # equal weight target
 
-            # LOSER ROTATION: Sell losing positions that rank in bottom half
-            # This is a general rule: cut losers, ride winners
+            # DATA-DRIVEN SELL: Only sell when data says PROBLEM, not just "time to rebalance"
+            # Every sell must have a specific data reason
             if long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
                 gain_pct = (price / pos["long_cost_basis"] - 1)
                 rank_position = sorted_tickers.index(ticker) if ticker in sorted_tickers else len(sorted_tickers)
-                is_bottom_half = rank_position >= len(sorted_tickers) / 2
 
-                # Sell if: in loss AND ranked in bottom half AND bearish signals
-                if gain_pct < -0.10 and is_bottom_half and n_bear >= 2:
-                    sell_qty = long_shares  # Sell all
-                    quantity = sell_qty
+                # SELL TRIGGER 1: Loss + bottom ranked + bearish consensus
+                # Reason: fundamentals deteriorated AND market confirms
+                if gain_pct < -0.10 and rank_position >= len(sorted_tickers) * 0.7 and n_bear >= 2:
+                    quantity = long_shares
                     action = "sell"
-                    reasoning = f"LOSER ROTATION: Down {gain_pct:.0%}, ranked #{rank_position+1}/{len(sorted_tickers)}, {n_bear} groups bearish. Rotating to better opportunities."
+                    reasoning = f"DATA EXIT: Down {gain_pct:.0%}, ranked #{rank_position+1}/{len(sorted_tickers)}, {n_bear} groups bearish."
 
-            # PROFIT TAKING / TRIM OVERWEIGHT: Free up cash for rebalancing
+            # SELL TRIGGER 2: Big gain + STRONG bearish (3+ groups) = take profit
+            # This is different from "weakening" - this is active deterioration
             if action == "hold" and long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
                 gain_pct = (price / pos["long_cost_basis"] - 1)
-                # Trim if: (a) big gain + weakening signals, or (b) very overweight
-                if gain_pct > 0.30 and n_bull < 2:
-                    sell_qty = max(1, int(long_shares * 0.25))
+                if gain_pct > 0.40 and n_bear >= 3:
+                    # 40%+ gain AND 3+ groups turned bearish = genuine deterioration
+                    sell_qty = max(1, int(long_shares * 0.30))
                     quantity = sell_qty
                     action = "sell"
-                    reasoning = f"PROFIT TAKING: Position up {gain_pct:.0%}, signals weakening. Trimming 25%."
+                    reasoning = f"PROFIT PROTECT: Up {gain_pct:.0%} but {n_bear}/{total_groups} groups NOW BEARISH. Protecting gains."
                 elif pos_pct > target_pct * 1.5 and gain_pct > 0.20:
                     # Overweight winner - trim back toward target
                     excess_shares = int((pos_value - portfolio_value * target_pct) / price * 0.5)
