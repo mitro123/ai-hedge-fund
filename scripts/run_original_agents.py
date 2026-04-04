@@ -196,6 +196,70 @@ def run_original_fundamentals(ticker: str, adapter: YFinanceAdapter) -> dict:
     return {"signal": signal, "confidence": round(max(conf, 20), 1), "reasoning": ". ".join(reasons)}
 
 
+def run_original_lynch(ticker: str, adapter: YFinanceAdapter) -> dict:
+    """Peter Lynch - ORIGINAL growth + PEG + fundamentals scoring."""
+    from src.agents.peter_lynch import analyze_lynch_growth, analyze_lynch_fundamentals, analyze_lynch_valuation
+    li = adapter.get_line_items(ticker)
+    mc = adapter.get_market_cap(ticker)
+    if not li: return {"signal": "neutral", "confidence": 20, "reasoning": "No data"}
+
+    lg = analyze_lynch_growth(li)
+    lf = analyze_lynch_fundamentals(li)
+    lv = analyze_lynch_valuation(li, mc)
+    score = lg["score"]*0.30 + lf["score"]*0.20 + lv["score"]*0.25
+    max_s = 7.5
+    pct = score / max_s if max_s > 0 else 0
+
+    signal = "bullish" if pct >= 0.65 else ("bearish" if pct <= 0.30 else "neutral")
+    conf = min(95, max(20, pct * 100))
+    return {"signal": signal, "confidence": round(conf, 1),
+            "reasoning": f"Lynch score {score:.1f}/{max_s:.1f} ({pct:.0%}). Growth={lg['score']:.0f}/10, Funds={lf['score']:.0f}/10, Val={lv['score']:.0f}/10"}
+
+
+def run_original_fisher(ticker: str, adapter: YFinanceAdapter) -> dict:
+    """Phil Fisher - ORIGINAL R&D + margins + management scoring."""
+    from src.agents.phil_fisher import analyze_fisher_growth_quality, analyze_margins_stability, analyze_management_efficiency_leverage, analyze_fisher_valuation
+    li = adapter.get_line_items(ticker)
+    mc = adapter.get_market_cap(ticker)
+    if not li: return {"signal": "neutral", "confidence": 20, "reasoning": "No data"}
+
+    fg = analyze_fisher_growth_quality(li)
+    fm = analyze_margins_stability(li)
+    fmg = analyze_management_efficiency_leverage(li)
+    fv = analyze_fisher_valuation(li, mc)
+    score = fg["score"]*0.30 + fm["score"]*0.25 + fmg["score"]*0.20 + fv["score"]*0.15
+    max_s = 9.0
+    pct = score / max_s if max_s > 0 else 0
+
+    signal = "bullish" if pct >= 0.65 else ("bearish" if pct <= 0.30 else "neutral")
+    conf = min(95, max(20, pct * 100))
+    return {"signal": signal, "confidence": round(conf, 1),
+            "reasoning": f"Fisher score {score:.1f}/{max_s:.1f} ({pct:.0%}). Growth={fg['score']:.0f}/10, Margins={fm['score']:.0f}/10, Mgmt={fmg['score']:.0f}/10"}
+
+
+def run_original_ackman(ticker: str, adapter: YFinanceAdapter) -> dict:
+    """Bill Ackman - ORIGINAL business quality + DCF + activism scoring."""
+    from src.agents.bill_ackman import analyze_business_quality, analyze_financial_discipline, analyze_activism_potential, analyze_valuation as ackman_val
+    m = adapter.get_financial_metrics(ticker, limit=5)
+    li = adapter.get_line_items(ticker)
+    mc = adapter.get_market_cap(ticker)
+    if not li: return {"signal": "neutral", "confidence": 20, "reasoning": "No data"}
+
+    aq = analyze_business_quality(m, li)
+    ad = analyze_financial_discipline(m, li)
+    aa = analyze_activism_potential(li)
+    av = ackman_val(li, mc)
+    total = aq["score"] + ad["score"] + aa["score"] + av["score"]
+    max_s = 20
+    pct = total / max_s if max_s > 0 else 0
+
+    signal = "bullish" if total >= 14 else ("bearish" if total <= 6 else "neutral")
+    conf = min(95, max(20, pct * 100))
+    ms = av.get("details", "")
+    return {"signal": signal, "confidence": round(conf, 1),
+            "reasoning": f"Ackman score {total}/{max_s}. Quality={aq['score']}/7, Discipline={ad['score']}/4, Activism={aa['score']}/2, DCF={av['score']}/3"}
+
+
 # For agents that don't have complex pre-analysis, use the live trading versions
 from scripts.run_live_trading import (
     ben_graham_analyze, charlie_munger_analyze, cathie_wood_analyze,
@@ -254,30 +318,57 @@ def main():
 
     analyst_signals = {}
 
-    # 3 agents use ORIGINAL functions directly
+    # 10 agents use ORIGINAL analysis functions directly
+    original_agents = {
+        "warren_buffett_agent": ("Warren Buffett [ORIG]", run_original_buffett),
+        "technical_analyst_agent": ("Technical [ORIG 5-strat]", run_original_technical),
+        "fundamentals_analyst_agent": ("Fundamentals [ORIG 4-cat]", run_original_fundamentals),
+        "peter_lynch_agent": ("Peter Lynch [ORIG PEG]", run_original_lynch),
+        "phil_fisher_agent": ("Phil Fisher [ORIG R&D]", run_original_fisher),
+        "bill_ackman_agent": ("Bill Ackman [ORIG DCF]", run_original_ackman),
+        "michael_burry_agent": ("Michael Burry [ORIG]", lambda t, a: (
+            lambda m, li, mc: {
+                "signal": "bullish" if (
+                    from_agents := __import__('src.agents.michael_burry', fromlist=['_analyze_value', '_analyze_balance_sheet']),
+                    val := from_agents._analyze_value(m, li, mc),
+                    bs := from_agents._analyze_balance_sheet(m, li),
+                    total := val["score"] + bs["score"],
+                    max_s := val["max_score"] + bs["max_score"],
+                )[3] >= max_s * 0.7 else ("bearish" if total <= max_s * 0.3 else "neutral"),
+                "confidence": round(min(95, max(20, total / max_s * 100)), 1) if max_s > 0 else 20,
+                "reasoning": f"Burry {total}/{max_s}. {val['details'][:60]}. {bs['details'][:60]}"
+            }
+        )(a.get_financial_metrics(t, 5), a.get_line_items(t), a.get_market_cap(t))),
+    }
+
+    # Complex lambdas are ugly - simplify Burry
+    def run_original_burry(ticker, adapter):
+        from src.agents.michael_burry import _analyze_value, _analyze_balance_sheet
+        m = adapter.get_financial_metrics(ticker, 5)
+        li = adapter.get_line_items(ticker)
+        mc = adapter.get_market_cap(ticker)
+        val = _analyze_value(m, li, mc)
+        bs = _analyze_balance_sheet(m, li)
+        total = val["score"] + bs["score"]
+        max_s = val["max_score"] + bs["max_score"]
+        pct = total / max_s if max_s > 0 else 0
+        signal = "bullish" if pct >= 0.7 else ("bearish" if pct <= 0.3 else "neutral")
+        return {"signal": signal, "confidence": round(min(95, max(20, pct*100)), 1),
+                "reasoning": f"Burry {total}/{max_s}. {val['details'][:60]}. {bs['details'][:60]}"}
+
+    original_agents["michael_burry_agent"] = ("Michael Burry [ORIG FCF]", run_original_burry)
+
     for t in valid_tickers:
-        # Buffett - original DCF + moat + consistency
-        sig = run_original_buffett(t, adapter)
-        analyst_signals.setdefault("warren_buffett_agent", {})[t] = sig
+        for agent_id, (name, func) in original_agents.items():
+            sig = func(t, adapter)
+            analyst_signals.setdefault(agent_id, {})[t] = sig
 
-        # Technical - original 5-strategy ensemble
-        sig = run_original_technical(t, adapter)
-        analyst_signals.setdefault("technical_analyst_agent", {})[t] = sig
-
-        # Fundamentals - original 4-category scoring
-        sig = run_original_fundamentals(t, adapter)
-        analyst_signals.setdefault("fundamentals_analyst_agent", {})[t] = sig
-
-    # Other agents use live trading versions (still real data, just rule-based)
+    # 5 agents use live trading rule-based versions (still real data)
     other_agents = {
         "ben_graham_agent": ("Ben Graham", ben_graham_analyze),
         "charlie_munger_agent": ("Charlie Munger", charlie_munger_analyze),
         "cathie_wood_agent": ("Cathie Wood", cathie_wood_analyze),
-        "michael_burry_agent": ("Michael Burry", michael_burry_analyze),
-        "peter_lynch_agent": ("Peter Lynch", peter_lynch_analyze),
-        "phil_fisher_agent": ("Phil Fisher", phil_fisher_analyze),
         "stanley_druckenmiller_agent": ("Stanley Druckenmiller", stanley_druckenmiller_analyze),
-        "bill_ackman_agent": ("Bill Ackman", bill_ackman_analyze),
         "rakesh_jhunjhunwala_agent": ("Rakesh Jhunjhunwala", rakesh_jhunjhunwala_analyze),
         "aswath_damodaran_agent": ("Aswath Damodaran", aswath_damodaran_analyze),
         "sentiment_analyst_agent": ("Sentiment Analyst", sentiment_analyst_analyze),
@@ -291,9 +382,7 @@ def main():
 
     # Print all signals
     all_agents = {
-        "warren_buffett_agent": "Warren Buffett [ORIGINAL]",
-        "technical_analyst_agent": "Technical [ORIGINAL 5-strat]",
-        "fundamentals_analyst_agent": "Fundamentals [ORIGINAL 4-cat]",
+        **{k: v[0] for k, v in original_agents.items()},
         **{k: v[0] for k, v in other_agents.items()},
     }
 
