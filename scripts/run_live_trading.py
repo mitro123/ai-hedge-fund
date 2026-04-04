@@ -746,24 +746,26 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
             parts.append(f"{AGENT_GROUPS[gn]['perspective']}: {gv['view'].upper()} ({gv['strength']:.0%})")
         debate_summaries[ticker] = " | ".join(parts)
 
-        # CROSS-SECTIONAL SIZING: top-ranked stocks get more capital
+        # CONVICTION-WEIGHTED SIZING (Kelly-inspired)
+        # Top-ranked stocks get up to 1.5x allocation, bottom get 0.5x
         rank = rankings.get(ticker, 0)
         rank_pct = (rank - min_rank) / (max_rank - min_rank) if max_rank != min_rank else 0.5
-        rank_boost = 0.8 + rank_pct * 0.4  # Range: 0.8x to 1.2x sizing
+        rank_boost = 0.8 + rank_pct * 0.4  # Range: 0.8x to 1.2x sizing (balanced)
+        rank_pos = sorted_tickers.index(ticker) + 1
 
-        # Decision logic - more aggressive, min investment rule
+        # Decision logic - conviction-weighted
         confidence = min(95, max(20, abs(net) * 50 + n_bull * 5 + 25))
 
         if n_bull >= 3 and max_shares > 0:
             sizing = (0.75 + (n_bull - 3) * 0.10) * rank_boost
             quantity = max(1, int(max_shares * min(sizing, 1.0)))
             action = "buy"
-            reasoning = f"Strong consensus: {n_bull}/{total_groups} bullish. Rank #{sorted_tickers.index(ticker)+1}/{len(tickers)} (score {rank:.0f}). Sizing {sizing:.0%}."
+            reasoning = f"Strong consensus: {n_bull}/{total_groups} bullish. Rank #{rank_pos}/{len(tickers)} (score {rank:.0f}). Conviction {sizing:.0%}."
         elif n_bull >= 2 and n_bear <= 1 and max_shares > 0:
             sizing = 0.50 * rank_boost
             quantity = max(1, int(max_shares * min(sizing, 1.0)))
             action = "buy"
-            reasoning = f"Moderate consensus: {n_bull}/{total_groups} bullish. Rank #{sorted_tickers.index(ticker)+1}/{len(tickers)}. Sizing {sizing:.0%}."
+            reasoning = f"Moderate consensus: {n_bull}/{total_groups} bullish. Rank #{rank_pos}/{len(tickers)}. Conviction {sizing:.0%}."
         elif n_bear >= 3:
             if long_shares > 0:
                 quantity = long_shares
