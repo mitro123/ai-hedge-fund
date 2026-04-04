@@ -202,13 +202,46 @@ class YFinanceAdapter:
                         period="quarterly" if fin_data is q_fin else "annual",
                         currency="USD",
                     )
-                    # Dynamically set financial fields
+                    # Pre-initialize ALL fields agents might access (avoid AttributeError)
+                    for field in [
+                        "net_income", "revenue", "gross_profit", "operating_income",
+                        "depreciation_and_amortization", "capital_expenditure",
+                        "ebit", "ebitda", "operating_expense", "research_and_development",
+                        "interest_expense", "earnings_per_share", "free_cash_flow",
+                        "total_assets", "total_liabilities", "shareholders_equity",
+                        "outstanding_shares", "total_debt", "cash_and_equivalents",
+                        "current_assets", "current_liabilities", "working_capital",
+                        "gross_margin", "operating_margin", "debt_to_equity",
+                        "book_value_per_share", "free_cash_flow_per_share",
+                        "dividends_and_other_cash_distributions",
+                        "issuance_or_purchase_of_equity_shares",
+                    ]:
+                        setattr(item, field, None)
+
+                    # Set financial fields from data
                     item.net_income = safe_get(fin_data, "Net Income", col)
                     item.revenue = safe_get(fin_data, "Total Revenue", col)
                     item.gross_profit = safe_get(fin_data, "Gross Profit", col)
                     item.operating_income = safe_get(fin_data, "Operating Income", col)
                     item.depreciation_and_amortization = safe_get(fin_data, "Reconciled Depreciation", col)
                     item.capital_expenditure = safe_get(fin_data, "Capital Expenditure", col) if "Capital Expenditure" in fin_data.index else None
+                    item.ebit = safe_get(fin_data, "EBIT", col)
+                    item.ebitda = safe_get(fin_data, "EBITDA", col) or safe_get(fin_data, "Normalized EBITDA", col)
+                    item.operating_expense = safe_get(fin_data, "Operating Expense", col) or safe_get(fin_data, "Total Operating Expenses", col)
+                    item.research_and_development = safe_get(fin_data, "Research And Development", col) or safe_get(fin_data, "Research Development", col)
+                    item.interest_expense = safe_get(fin_data, "Interest Expense", col)
+                    item.earnings_per_share = safe_get(fin_data, "Diluted EPS", col) or safe_get(fin_data, "Basic EPS", col)
+
+                    # Compute free_cash_flow from components
+                    ni = item.net_income
+                    da = item.depreciation_and_amortization
+                    ce = item.capital_expenditure
+                    if ni is not None and da is not None and ce is not None:
+                        item.free_cash_flow = ni + da + ce  # capex is negative
+                    elif ni is not None:
+                        item.free_cash_flow = ni * 0.8  # rough proxy
+                    else:
+                        item.free_cash_flow = None
 
                     # Balance sheet items
                     if q_bal is not None and not q_bal.empty:
@@ -218,6 +251,23 @@ class YFinanceAdapter:
                                 item.total_liabilities = safe_get(q_bal, "Total Liabilities Net Minority Interest", bc)
                                 item.shareholders_equity = safe_get(q_bal, "Stockholders Equity", bc)
                                 item.outstanding_shares = safe_get(q_bal, "Ordinary Shares Number", bc) or safe_get(q_bal, "Share Issued", bc)
+                                item.total_debt = safe_get(q_bal, "Total Debt", bc)
+                                item.cash_and_equivalents = safe_get(q_bal, "Cash And Cash Equivalents", bc) or safe_get(q_bal, "Cash Cash Equivalents And Short Term Investments", bc)
+                                item.current_assets = safe_get(q_bal, "Current Assets", bc)
+                                item.current_liabilities = safe_get(q_bal, "Current Liabilities", bc)
+                                item.working_capital = (item.current_assets or 0) - (item.current_liabilities or 0) if item.current_assets else None
+                                item.gross_margin = (item.gross_profit / item.revenue) if (item.gross_profit and item.revenue and item.revenue > 0) else None
+                                item.operating_margin = (item.operating_income / item.revenue) if (item.operating_income and item.revenue and item.revenue > 0) else None
+                                item.debt_to_equity = (item.total_debt / item.shareholders_equity) if (item.total_debt and item.shareholders_equity and item.shareholders_equity > 0) else None
+                                # Computed per-share metrics
+                                shares = item.outstanding_shares or 1
+                                item.book_value_per_share = (item.shareholders_equity / shares) if item.shareholders_equity else None
+                                if not getattr(item, 'earnings_per_share', None) and item.net_income:
+                                    item.earnings_per_share = item.net_income / shares
+                                item.free_cash_flow_per_share = (getattr(item, 'free_cash_flow', None) or 0) / shares if shares > 0 else None
+                                # Dividends
+                                item.dividends_and_other_cash_distributions = None
+                                item.issuance_or_purchase_of_equity_shares = None
                                 break
 
                     items.append(item)
