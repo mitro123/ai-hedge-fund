@@ -237,6 +237,25 @@ def interpret_scores(
         weighted_bear += 0.3
         reasons.append(f"HighUncertainty({spread_pct:.0%})")
 
+    # === PHASE 4b: EPS Revision Momentum (strongest quant alpha signal) ===
+    eps_rev = live_data.get("eps_revisions", {})
+    rev_momentum = eps_rev.get("revision_momentum", "flat")
+    if rev_momentum == "strong_up":
+        weighted_bull += 1.5  # Strong upward revisions = analysts getting more bullish
+        reasons.append(f"EPS_Revisions:STRONG_UP({eps_rev.get('up_30d',0)}up/{eps_rev.get('down_30d',0)}down)")
+    elif rev_momentum == "up":
+        weighted_bull += 0.7
+    elif rev_momentum == "down":
+        weighted_bear += 0.7
+        reasons.append(f"EPS_Revisions:DOWN")
+
+    # Estimate change (how much has EPS estimate moved in 90 days)
+    est_change = eps_rev.get("estimate_change_90d", 0)
+    if est_change > 0.10:
+        weighted_bull += 0.5  # Estimates rising >10% in 90 days
+    elif est_change < -0.10:
+        weighted_bear += 0.5
+
     # === PHASE 5: Unicorn bonus ===
     if category == "unicorn":
         mcap = live_data.get("market_cap_b", 0)

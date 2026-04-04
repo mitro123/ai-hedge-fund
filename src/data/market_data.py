@@ -366,6 +366,9 @@ class MarketDataProvider:
                 "forward_growth_estimate": self._get_growth_estimates(symbol),
                 "earnings_estimate_next_q": self._get_earnings_estimate(symbol),
                 "analyst_target_spread": self._get_target_spread(symbol, current_price),
+
+                # === NEW: EPS Revision Momentum (strongest alpha signal) ===
+                "eps_revisions": self._get_eps_revisions(symbol),
             }
 
         except Exception as e:
@@ -456,6 +459,41 @@ class MarketDataProvider:
                 "target_median": round(targets.get("median", 0) or 0, 2),
                 "spread_pct": round(spread, 4),  # Wide = high uncertainty
                 "upside_to_mean": round((mean / current_price - 1), 4) if current_price > 0 and mean > 0 else 0,
+            }
+        except Exception:
+            return {}
+
+    def _get_eps_revisions(self, symbol: str) -> Dict:
+        """Get EPS revision momentum - one of strongest alpha predictors."""
+        try:
+            t = yf.Ticker(symbol)
+            rev = t.eps_revisions
+            trend = t.eps_trend
+            if rev is None or rev.empty:
+                return {}
+
+            first = rev.iloc[0]
+            up_30d = int(first.get("upLast30days", 0) or 0)
+            down_30d = int(first.get("downLast30days", 0) or 0)
+            total = up_30d + down_30d
+
+            # EPS trend: how much has estimate changed?
+            est_change = 0
+            if trend is not None and not trend.empty:
+                current = float(trend.iloc[0].get("current", 0) or 0)
+                ago_90d = float(trend.iloc[0].get("90daysAgo", 0) or 0)
+                if ago_90d > 0:
+                    est_change = (current / ago_90d - 1)
+
+            return {
+                "up_30d": up_30d,
+                "down_30d": down_30d,
+                "net_revisions": up_30d - down_30d,
+                "revision_ratio": round(up_30d / max(total, 1), 2),
+                "estimate_change_90d": round(est_change, 4),
+                "revision_momentum": "strong_up" if up_30d > 5 and down_30d <= 1 else (
+                    "up" if up_30d > down_30d else (
+                    "down" if down_30d > up_30d else "flat")),
             }
         except Exception:
             return {}
