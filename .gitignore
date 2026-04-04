@@ -68,3 +68,5 @@ app/backend/alembic/versions/__pycache__/
 
 # Paper trading logs
 logs/paper_trading/
+.coverage
+coverage.xml
