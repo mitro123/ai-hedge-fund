@@ -170,18 +170,44 @@ def interpret_scores(
 
         # Bear market: reduce aggression
         if regime == "bear":
-            weighted_bear += 1.0
+            weighted_bear += 1.5
             if category in ("unicorn", "special"):
-                weighted_bear += 1.0  # Extra penalty for risky stocks in bear
+                weighted_bear += 1.5  # Extra penalty for risky stocks in bear
+        elif regime == "strong_bull":
+            weighted_bull += 0.5  # Tailwind in strong bull
 
-        # High VIX: reduce sizes (handled in conviction, not signal)
+        # High VIX: penalize risky stocks, boost defensive
+        vix = world_context.get("fear_greed", {}).get("vix", 20)
+        if vix > 30:
+            if category in ("unicorn", "growth", "special"):
+                weighted_bear += 1.0
+                reasons.append(f"VIX={vix:.0f}_FEAR")
+            elif category == "defensive":
+                weighted_bull += 0.5  # Flight to safety
 
-        # Sector rotation: boost stocks in leading sectors
+        # Yield curve inversion = recession signal
+        yc = world_context.get("yield_curve", {})
+        if yc.get("inverted", False):
+            weighted_bear += 0.5
+            if category in ("cyclical", "unicorn"):
+                weighted_bear += 0.5
+                reasons.append("Yield_INVERTED")
+
+        # Sector rotation: follow the money flow between sectors
         sectors = world_context.get("sectors", {})
         stock_sector = live_data.get("sector", "")
         for sec_name, sec_data in sectors.items():
-            if sec_name.lower() in stock_sector.lower() and sec_data.get("trend") == "bullish":
-                weighted_bull += 0.5
+            if sec_name.lower() in stock_sector.lower():
+                sec_ret_3m = sec_data.get("return_3m", 0)
+                if sec_data.get("trend") == "bullish" and sec_ret_3m > 0.10:
+                    weighted_bull += 1.5  # Strong sector tailwind
+                    reasons.append(f"Sector_Leader:{sec_name}({sec_ret_3m:+.0%})")
+                elif sec_data.get("trend") == "bullish":
+                    weighted_bull += 0.7
+                elif sec_data.get("trend") == "bearish" and sec_ret_3m < -0.05:
+                    weighted_bear += 1.0  # Sector headwind
+                    reasons.append(f"Sector_Lagging:{sec_name}({sec_ret_3m:+.0%})")
+                break  # Only match one sector
                 reasons.append(f"Sector_Leader:{sec_name}")
                 break
 
