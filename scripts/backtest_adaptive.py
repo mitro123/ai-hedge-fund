@@ -122,13 +122,58 @@ def compute_live_metrics(ticker, hist, idx, dyn_fund, info_cache):
     }
 
 
+def _check_technical_exit(ticker, all_hist, idx, cost_basis):
+    """Check exit triggers using only historically-available technical data.
+    Returns (should_exit, list_of_trigger_reasons).
+    """
+    if ticker not in all_hist:
+        return False, []
+
+    h = all_hist[ticker].iloc[:idx + 1]
+    close = h["Close"]
+    if len(close) < 20:
+        return False, []
+
+    current = float(close.iloc[-1])
+    sma50 = float(close.rolling(50).mean().iloc[-1]) if len(close) >= 50 else float(close.mean())
+    sma200 = float(close.rolling(200).mean().iloc[-1]) if len(close) >= 200 else float(close.mean())
+    m6 = (current / float(close.iloc[-126]) - 1) if len(close) > 126 else 0.0
+    cost = cost_basis if cost_basis > 0 else current
+    loss = (current / cost - 1) if cost > 0 else 0.0
+
+    triggers = []
+
+    # TRIGGER 1: Death cross + negative 6-month momentum
+    if sma50 < sma200 and m6 < -0.15:
+        triggers.append(f"death_cross+neg_momentum(6m={m6*100:+.0f}%)")
+
+    # TRIGGER 2: Stop loss - position down >25% from cost basis
+    if loss < -0.25:
+        triggers.append(f"stop_loss({loss*100:+.0f}%)")
+
+    # TRIGGER 3: Severe momentum collapse
+    if m6 < -0.25:
+        triggers.append(f"momentum_collapse(6m={m6*100:+.0f}%)")
+
+    # TRIGGER 4: Short-term breakdown - 3-month momentum deeply negative
+    m3 = (current / float(close.iloc[-63]) - 1) if len(close) > 63 else 0.0
+    if m3 < -0.20 and current < sma50:
+        triggers.append(f"short_term_breakdown(3m={m3*100:+.0f}%)")
+
+    # Need 2+ triggers OR 1 severe trigger (stop loss)
+    should_exit = len(triggers) >= 2 or loss < -0.25
+    return should_exit, triggers
+
+
 def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positions=8):
-    """Adaptive backtest: each month, score all stocks, pick best, rotate if data says."""
+    """Event-driven backtest: buy at start, then only sell on exit triggers, replace if cash available."""
     print(f"\n{Fore.CYAN}{Style.BRIGHT}{'='*80}")
-    print(f"  ADAPTIVE FUND BACKTEST - MONTHLY ROTATION")
+    print(f"  ADAPTIVE FUND BACKTEST - EVENT-DRIVEN (no forced rotation)")
     print(f"{'='*80}{Style.RESET_ALL}")
     print(f"  Universe: {len(universe_tickers)} stocks | Max positions: {max_positions}")
     print(f"  Period: {months}m | Cash: ${initial_cash:,.0f}")
+    print(f"  Exit triggers: death_cross+momentum, stop_loss>25%, momentum_collapse, breakdown")
+    print(f"  Buy rule: only when cash > 15% of portfolio after an exit")
     print(f"{Fore.CYAN}{'='*80}{Style.RESET_ALL}\n")
 
     # Load histories
@@ -151,7 +196,7 @@ def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positio
         try: dyn_fund._fetch_quarterly_data(t)
         except: pass
 
-    # Monthly rebalance dates
+    # Monthly check dates (we check triggers monthly, but DON'T force trades)
     ref_ticker = list(all_hist.keys())[0]
     ref = all_hist[ref_ticker]
     monthly = ref.resample("MS").first().index
@@ -163,14 +208,15 @@ def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positio
     portfolio = {"cash": initial_cash, "positions": {}, "cost_basis": {}}
 
     # B&H: equal weight top stocks (picked at start)
-    # For fair comparison: use first period's ranking to pick B&H stocks
     bh_shares = {}
     bh_tickers = []
 
     pv = []
     bh_v = []
+    total_exits = 0
+    total_buys = 0
 
-    print(f"\n  {'Date':<11s} {'AI':>10s} {'AI%':>7s} {'B&H':>10s} {'B&H%':>7s} {'Alpha':>7s} {'Pos':>4s} Trades")
+    print(f"\n  {'Date':<11s} {'AI':>10s} {'AI%':>7s} {'B&H':>10s} {'B&H%':>7s} {'Alpha':>7s} {'Pos':>4s} Action")
     print(f"  {'-'*80}")
 
     for period_i, idx in enumerate(rebal_idx):
@@ -193,8 +239,9 @@ def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positio
         pv.append(ai_val)
         bh_v.append(bh_val)
 
+        # ==================== PERIOD 0: INITIAL BUY ====================
         if period_i == 0:
-            print(f"  {date_str:<11s} ${ai_val:>9,.0f}    ---  ${initial_cash:>9,.0f}    ---     ---    0 (start)")
+            print(f"  {date_str:<11s} ${ai_val:>9,.0f}    ---  ${initial_cash:>9,.0f}    ---     ---    0 (initial scan)")
 
             # Compute metrics for all stocks at start
             stock_data = {}
@@ -214,104 +261,95 @@ def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positio
 
             rankings = _rank_tickers(list(stock_data.keys()), stock_data, analyst_signals)
             top = sorted(rankings.items(), key=lambda x: x[1], reverse=True)[:max_positions]
+
+            # B&H benchmark: equal weight in top stocks
             bh_tickers = [t for t, _ in top]
             for t in bh_tickers:
                 if t in current_prices:
                     bh_shares[t] = (initial_cash / len(bh_tickers)) / current_prices[t]
             bh_val = sum(bh_shares.get(t, 0) * current_prices.get(t, 0) for t in bh_tickers)
             bh_v[-1] = bh_val
+
+            # Initial buy: equal weight into top N stocks
+            buy_tickers = [t for t, _ in top if t in current_prices]
+            alloc_per = initial_cash / len(buy_tickers) if buy_tickers else 0
+            buy_trades = []
+            for t in buy_tickers:
+                price = current_prices[t]
+                qty = int(alloc_per / price)
+                if qty > 0:
+                    portfolio["positions"][t] = qty
+                    portfolio["cost_basis"][t] = price
+                    portfolio["cash"] -= qty * price
+                    buy_trades.append(f"BUY {qty} {t}")
+                    total_buys += 1
+
+            t_str = ", ".join(buy_trades[:4]) + (f" +{len(buy_trades)-4}" if len(buy_trades) > 4 else "")
+            print(f"  {'':11s} {'':>10s} {'':>7s} {'':>10s} {'':>7s} {'':>7s} {len(portfolio['positions']):>4d} {t_str}")
             continue
 
-        # === MONTHLY: Score all stocks, decide rotations ===
-        stock_data = {}
-        for t in list(current_prices.keys()):
-            try:
-                m = compute_live_metrics(t, all_hist[t], idx, dyn_fund, info_cache)
-                if m:
-                    stock_data[t] = m
-            except:
-                pass
-
-        # Run all 15 agents
-        analyst_signals = {}
-        for aid, (name, func) in AGENTS.items():
-            for t in stock_data:
-                try:
-                    analyst_signals.setdefault(aid, {})[t] = func(t, stock_data[t])
-                except:
-                    analyst_signals.setdefault(aid, {})[t] = {"signal": "neutral", "confidence": 20, "reasoning": ""}
-
-        # Rank all stocks
-        rankings = _rank_tickers(list(stock_data.keys()), stock_data, analyst_signals)
-        sorted_all = sorted(rankings.items(), key=lambda x: x[1], reverse=True)
-
-        # Check EXIT triggers for held positions
-        trades = []
+        # ==================== SUBSEQUENT MONTHS: CHECK EXIT TRIGGERS ONLY ====================
+        exits_this_period = []
         for t in list(portfolio["positions"].keys()):
-            if t not in stock_data:
-                continue
-            shares = portfolio["positions"][t]
-            pos = {"long_cost_basis": portfolio["cost_basis"].get(t, current_prices.get(t, 0))}
-            trigger = check_exit_triggers(t, stock_data[t], pos)
-            if trigger:
-                revenue = shares * current_prices.get(t, 0)
+            should_exit, triggers = _check_technical_exit(t, all_hist, idx, portfolio["cost_basis"].get(t, 0))
+            if should_exit:
+                shares = portfolio["positions"][t]
+                sell_price = current_prices.get(t, 0)
+                revenue = shares * sell_price
+                cost = portfolio["cost_basis"].get(t, 0)
+                pnl = (sell_price / cost - 1) * 100 if cost > 0 else 0
                 portfolio["cash"] += revenue
                 del portfolio["positions"][t]
                 del portfolio["cost_basis"][t]
-                trades.append(f"EXIT {t}")
+                exits_this_period.append(f"EXIT {t}({pnl:+.0f}%): {'; '.join(triggers)}")
+                total_exits += 1
 
-        # Select top stocks for new portfolio
-        target_tickers = [t for t, s in sorted_all if s > 0 and t in stock_data][:max_positions]
-        valid = [t for t in target_tickers if t in current_prices]
+        # ONLY buy replacements if we exited something AND cash > 15% of portfolio
+        buy_trades = []
+        if exits_this_period and portfolio["cash"] > ai_val * 0.15:
+            # Score available stocks (only those NOT already held)
+            held = set(portfolio["positions"].keys())
+            candidates = [t for t in current_prices if t not in held and t in all_hist]
 
-        # Risk + Committee for BUY decisions
-        risk = run_risk_management(valid, {
-            "cash": portfolio["cash"], "margin_requirement": 0, "margin_used": 0,
-            "positions": {t: {"long": portfolio["positions"].get(t, 0), "short": 0,
-                              "long_cost_basis": portfolio["cost_basis"].get(t, 0),
-                              "short_cost_basis": 0, "short_margin_used": 0} for t in valid},
-            "realized_gains": {t: {"long": 0, "short": 0} for t in valid},
-        }, current_prices)
-        analyst_signals["risk_management_agent"] = risk
+            stock_data = {}
+            for t in candidates:
+                try:
+                    m = compute_live_metrics(t, all_hist[t], idx, dyn_fund, info_cache)
+                    if m:
+                        stock_data[t] = m
+                except:
+                    pass
 
-        port_for_committee = {
-            "cash": portfolio["cash"], "margin_requirement": 0, "margin_used": 0,
-            "positions": {t: {"long": portfolio["positions"].get(t, 0), "short": 0,
-                              "long_cost_basis": portfolio["cost_basis"].get(t, 0),
-                              "short_cost_basis": 0, "short_margin_used": 0} for t in valid},
-            "realized_gains": {t: {"long": 0, "short": 0} for t in valid},
-        }
-        decisions, _ = run_investment_committee(valid, analyst_signals, risk, port_for_committee, stock_data=stock_data)
+            if stock_data:
+                # Run agents on candidates only
+                analyst_signals = {}
+                for aid, (name, func) in AGENTS.items():
+                    for t in stock_data:
+                        try:
+                            analyst_signals.setdefault(aid, {})[t] = func(t, stock_data[t])
+                        except:
+                            analyst_signals.setdefault(aid, {})[t] = {"signal": "neutral", "confidence": 20, "reasoning": ""}
 
-        # Execute
-        for t in valid:
-            dec = decisions.get(t, {"action": "hold", "quantity": 0})
-            price = current_prices[t]
-            qty = dec["quantity"]
+                rankings = _rank_tickers(list(stock_data.keys()), stock_data, analyst_signals)
+                sorted_cands = sorted(rankings.items(), key=lambda x: x[1], reverse=True)
 
-            if dec["action"] == "buy" and qty > 0:
-                cost = qty * price
-                if cost <= portfolio["cash"]:
-                    old = portfolio["positions"].get(t, 0)
-                    old_basis = portfolio["cost_basis"].get(t, 0)
-                    new_total = old + qty
-                    portfolio["cost_basis"][t] = (old_basis * old + cost) / new_total if new_total > 0 else price
-                    portfolio["positions"][t] = new_total
-                    portfolio["cash"] -= cost
-                    trades.append(f"BUY {qty} {t}")
+                # Buy replacements for the slots we freed
+                slots_free = max_positions - len(portfolio["positions"])
+                replacements = [t for t, s in sorted_cands if s > 0][:slots_free]
 
-            elif dec["action"] == "sell" and qty > 0:
-                held = portfolio["positions"].get(t, 0)
-                qty = min(qty, held)
-                if qty > 0:
-                    portfolio["positions"][t] = held - qty
-                    portfolio["cash"] += qty * price
-                    if portfolio["positions"][t] == 0:
-                        del portfolio["positions"][t]
-                        portfolio["cost_basis"].pop(t, None)
-                    trades.append(f"SELL {qty} {t}")
+                if replacements:
+                    alloc_per = portfolio["cash"] * 0.85 / len(replacements)  # keep 15% cash buffer
+                    for t in replacements:
+                        price = current_prices[t]
+                        qty = int(alloc_per / price)
+                        if qty > 0 and qty * price <= portfolio["cash"]:
+                            portfolio["positions"][t] = qty
+                            portfolio["cost_basis"][t] = price
+                            portfolio["cash"] -= qty * price
+                            buy_trades.append(f"BUY {qty} {t}")
+                            total_buys += 1
 
-        # Recalc
+        # Recalc portfolio value after trades
         ai_val = portfolio["cash"] + sum(s * current_prices.get(t, 0) for t, s in portfolio["positions"].items())
         bh_val = sum(bh_shares.get(t, 0) * current_prices.get(t, 0) for t in bh_tickers)
         pv[-1] = ai_val
@@ -322,7 +360,13 @@ def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positio
         alpha = ai_ret - bh_ret
         n_pos = len(portfolio["positions"])
         ac = Fore.GREEN if alpha > 0 else Fore.RED
-        t_str = ", ".join(trades[:3]) + (f"+{len(trades)-3}" if len(trades) > 3 else "") if trades else "Hold"
+
+        # Build action string
+        all_trades = exits_this_period + buy_trades
+        if all_trades:
+            t_str = ", ".join(all_trades[:3]) + (f" +{len(all_trades)-3}" if len(all_trades) > 3 else "")
+        else:
+            t_str = "-- no triggers --"
         print(f"  {date_str:<11s} ${ai_val:>9,.0f} {ai_ret:>+6.1f}% ${bh_val:>9,.0f} {bh_ret:>+6.1f}% {ac}{alpha:>+6.1f}%{Style.RESET_ALL} {n_pos:>4d} {t_str}")
 
     # Final
@@ -334,12 +378,13 @@ def run_backtest(universe_tickers, initial_cash=100000.0, months=18, max_positio
 
     aic = Fore.GREEN if ai_total > bh_total else Fore.RED
     print(f"\n{Fore.CYAN}{'='*80}")
-    print(f"  ADAPTIVE FUND RESULTS")
+    print(f"  ADAPTIVE FUND RESULTS (Event-Driven)")
     print(f"{'='*80}{Style.RESET_ALL}")
     print(f"  AI: {aic}{ai_total:>+.2f}%{Style.RESET_ALL} | B&H: {bh_total:>+.2f}% | Alpha: {aic}{ai_total-bh_total:>+.2f}%{Style.RESET_ALL}")
     print(f"  Sharpe: {sharpe:.2f} | Max DD: {max_dd*100:.1f}%")
     ratio = ai_total / bh_total if bh_total > 0 else 0
     print(f"  Ratio: {ratio:.2f}x B&H")
+    print(f"  Total exits: {total_exits} | Total buys: {total_buys} (incl. initial)")
     print(f"  Final positions: {len(portfolio['positions'])}")
     for t, s in sorted(portfolio["positions"].items(), key=lambda x: -x[1] * current_prices.get(x[0], 0)):
         val = s * current_prices.get(t, 0)
