@@ -295,3 +295,96 @@ class YFinanceAdapter:
         """Get current market cap."""
         ticker = self._get_ticker(symbol)
         return ticker.info.get("marketCap")
+
+    def get_insider_trades(self, symbol: str, limit: int = 50) -> List[Dict]:
+        """Get insider transactions in format compatible with original agents."""
+        try:
+            ticker = self._get_ticker(symbol)
+            ins = ticker.insider_transactions
+            if ins is None or ins.empty:
+                return []
+
+            trades = []
+            for _, row in ins.head(limit).iterrows():
+                shares = row.get("Shares", 0) or 0
+                # Negative shares = sale
+                is_sale = "Sale" in str(row.get("Text", ""))
+                trades.append({
+                    "transaction_shares": -abs(shares) if is_sale else abs(shares),
+                    "transaction_date": str(row.get("Start Date", "")),
+                    "name": str(row.get("Insider", "")),
+                    "title": str(row.get("Position", "")),
+                    "transaction_value": row.get("Value", 0) or 0,
+                })
+            return trades
+        except Exception:
+            return []
+
+    def get_company_news(self, symbol: str, limit: int = 20) -> List[Dict]:
+        """Get company news headlines for sentiment analysis."""
+        try:
+            ticker = self._get_ticker(symbol)
+            news = ticker.news or []
+            return [
+                {
+                    "title": n.get("title", ""),
+                    "source": n.get("publisher", ""),
+                    "date": str(n.get("providerPublishTime", "")),
+                    "url": n.get("link", ""),
+                }
+                for n in news[:limit]
+            ]
+        except Exception:
+            return []
+
+    def get_analyst_upgrades(self, symbol: str, months: int = 6) -> List[Dict]:
+        """Get recent analyst upgrades/downgrades."""
+        try:
+            ticker = self._get_ticker(symbol)
+            ud = ticker.upgrades_downgrades
+            if ud is None or ud.empty:
+                return []
+
+            # Filter to recent months
+            from datetime import datetime, timedelta
+            cutoff = datetime.now() - timedelta(days=months * 30)
+            recent = ud[ud.index >= cutoff] if hasattr(ud.index, 'tz') else ud.tail(20)
+
+            upgrades = []
+            for date, row in recent.iterrows():
+                upgrades.append({
+                    "date": str(date),
+                    "firm": row.get("Firm", ""),
+                    "to_grade": row.get("ToGrade", ""),
+                    "from_grade": row.get("FromGrade", ""),
+                    "action": row.get("Action", ""),
+                })
+            return upgrades
+        except Exception:
+            return []
+
+    def get_insider_summary(self, symbol: str) -> Dict:
+        """Get insider buying/selling summary."""
+        try:
+            ticker = self._get_ticker(symbol)
+            ip = ticker.insider_purchases
+            if ip is None or ip.empty:
+                return {}
+
+            result = {}
+            for _, row in ip.iterrows():
+                label = str(row.get("Insider Purchases Last 6m", ""))
+                shares = row.get("Shares", 0)
+                if "Purchases" in label and "Net" not in label:
+                    result["purchases_6m"] = shares
+                elif "Sales" in label:
+                    result["sales_6m"] = shares
+                elif "Net" in label and "%" not in label:
+                    result["net_shares_6m"] = shares
+                elif "% Net" in label:
+                    result["net_pct"] = shares
+
+            result["net_buying"] = (result.get("net_shares_6m", 0) or 0) > 0
+            return result
+        except Exception:
+            return {}
