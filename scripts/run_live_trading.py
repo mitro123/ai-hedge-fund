@@ -819,6 +819,21 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
                 confidence = 75.0
                 reasoning = f"ANALYST BUY OVERRIDE: Score {a_score:.1f}, {upside*100:.0f}% upside, no position yet. Initiating."
 
+        # TRAILING STOP: Sell positions that have lost >20% from cost AND signals bearish
+        # This is a GENERAL rule, not stock-specific. Protects against all large drawdowns.
+        if action in ("hold", "buy") and long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
+            loss_pct = (price / pos["long_cost_basis"] - 1)
+            if loss_pct < -0.20 and n_bear >= 2:
+                # Lost 20%+ AND majority of groups bearish -> cut losses
+                quantity = long_shares
+                action = "sell"
+                reasoning = f"STOP LOSS: Position down {loss_pct:.0%} from cost basis, {n_bear}/{total_groups} groups bearish. Cutting losses."
+            elif loss_pct < -0.15 and n_bear >= 3:
+                # Lost 15%+ AND strong bearish consensus -> cut losses
+                quantity = long_shares
+                action = "sell"
+                reasoning = f"STOP LOSS: Position down {loss_pct:.0%}, strong bearish ({n_bear}/{total_groups}). Exiting."
+
         # REBALANCING RULES for existing positions
         if action == "hold" and long_shares > 0:
             # Compute portfolio-level values for rebalancing
@@ -830,9 +845,22 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
             pos_pct = pos_value / portfolio_value if portfolio_value > 0 else 0
             target_pct = 1.0 / len(tickers)  # equal weight target
 
-            # PROFIT TAKING / TRIM OVERWEIGHT: Free up cash for rebalancing
-            # Trim positions that are significantly overweight OR have large gains
+            # LOSER ROTATION: Sell losing positions that rank in bottom half
+            # This is a general rule: cut losers, ride winners
             if long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
+                gain_pct = (price / pos["long_cost_basis"] - 1)
+                rank_position = sorted_tickers.index(ticker) if ticker in sorted_tickers else len(sorted_tickers)
+                is_bottom_half = rank_position >= len(sorted_tickers) / 2
+
+                # Sell if: in loss AND ranked in bottom half AND bearish signals
+                if gain_pct < -0.10 and is_bottom_half and n_bear >= 2:
+                    sell_qty = long_shares  # Sell all
+                    quantity = sell_qty
+                    action = "sell"
+                    reasoning = f"LOSER ROTATION: Down {gain_pct:.0%}, ranked #{rank_position+1}/{len(sorted_tickers)}, {n_bear} groups bearish. Rotating to better opportunities."
+
+            # PROFIT TAKING / TRIM OVERWEIGHT: Free up cash for rebalancing
+            if action == "hold" and long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
                 gain_pct = (price / pos["long_cost_basis"] - 1)
                 # Trim if: (a) big gain + weakening signals, or (b) very overweight
                 if gain_pct > 0.30 and n_bull < 2:
