@@ -1,0 +1,304 @@
+"""
+Score Interpreter - "LLM-equivalent" decision engine.
+Takes raw scores from all original agents + market context
+and produces unified buy/sell/hold decisions.
+
+This replaces the LLM call with deterministic logic that captures
+what a smart portfolio manager would conclude from the data.
+
+Key principle: NEVER override market reality with theoretical valuation.
+DCF says "overvalued" for most tech stocks, but the market disagrees.
+We listen to the market (analyst consensus, momentum) while using
+fundamental scores for QUALITY assessment.
+"""
+
+from typing import Any, Dict, List, Optional, Tuple
+
+
+# Agent accuracy weights (from our deep analysis)
+AGENT_WEIGHTS = {
+    "buffett_fundamentals": 1.5,    # ROE, margins, balance sheet = high quality
+    "buffett_moat": 1.8,            # Moat consistency = best long-term predictor
+    "buffett_consistency": 1.3,     # Earnings trend
+    "buffett_dcf": 0.3,            # DCF is almost always "overvalued" = low signal
+    "technical_ensemble": 1.4,      # 5-strategy = good timing
+    "burry_value": 0.5,            # Too conservative in bull market
+    "burry_balance": 0.8,          # Balance sheet quality matters
+    "lynch_peg": 1.2,              # PEG is predictive for growth
+    "lynch_growth": 1.1,           # Revenue/EPS growth
+    "fisher_rnd": 1.0,             # R&D investment = future moat
+    "fisher_margins": 1.1,         # Margin stability
+    "ackman_quality": 1.0,         # Business quality
+    "ackman_dcf": 0.4,             # Same DCF problem as Buffett
+    "munger_moat": 1.3,            # ROIC consistency
+    "munger_predictability": 1.2,  # Revenue/margin stability
+    "graham_strength": 0.9,        # Balance sheet
+    "graham_valuation": 0.3,       # Too strict for tech
+    "analyst_consensus": 2.0,      # HIGHEST weight - real money behind it
+    "momentum": 1.5,               # Trend following works
+    "relative_strength": 1.0,      # Outperformance vs index
+}
+
+
+def interpret_scores(
+    ticker: str,
+    original_scores: Dict[str, Any],
+    live_data: Dict[str, Any],
+    world_context: Optional[Dict] = None,
+    category: str = "core",
+) -> Dict[str, Any]:
+    """
+    Interpret multiple agent scores + market context into a unified signal.
+
+    This is the "brain" - it weighs fundamental quality (from originals)
+    against market reality (analyst consensus, momentum, regime).
+
+    Args:
+        ticker: Stock symbol
+        original_scores: Dict of agent_name -> {score, max_score, details}
+        live_data: Real-time data from MarketDataProvider
+        world_context: Global market intelligence
+        category: Stock category (core/growth/unicorn/cyclical/defensive)
+
+    Returns:
+        {signal, confidence, reasoning, conviction_score}
+    """
+    if not live_data or "error" in live_data:
+        return {"signal": "neutral", "confidence": 20, "reasoning": "No data", "conviction_score": 0}
+
+    weighted_bull = 0.0
+    weighted_bear = 0.0
+    total_weight = 0.0
+    reasons = []
+
+    # === PHASE 1: Process original agent scores ===
+    for agent_key, score_data in original_scores.items():
+        if not score_data or not isinstance(score_data, dict):
+            continue
+
+        score = score_data.get("score", 0)
+        max_score = score_data.get("max_score", 1)
+        weight = AGENT_WEIGHTS.get(agent_key, 1.0)
+
+        if max_score <= 0:
+            continue
+
+        pct = score / max_score
+        total_weight += weight
+
+        if pct >= 0.65:
+            weighted_bull += weight * pct
+            if weight >= 1.0:
+                reasons.append(f"{agent_key}:BULL({pct:.0%})")
+        elif pct <= 0.30:
+            weighted_bear += weight * pct
+            if weight >= 1.0:
+                reasons.append(f"{agent_key}:BEAR({pct:.0%})")
+        # Neutral scores don't vote
+
+    # === PHASE 2: Market reality overlay ===
+
+    # Analyst consensus (HIGHEST WEIGHT)
+    analyst_score = live_data.get("analyst_score", 3.0)
+    analyst_weight = AGENT_WEIGHTS["analyst_consensus"]
+    total_weight += analyst_weight
+
+    if analyst_score <= 1.5:
+        weighted_bull += analyst_weight * 0.9
+        reasons.append(f"Street:STRONG_BUY({analyst_score:.1f})")
+    elif analyst_score <= 2.0:
+        weighted_bull += analyst_weight * 0.7
+        reasons.append(f"Street:BUY({analyst_score:.1f})")
+    elif analyst_score >= 4.0:
+        weighted_bear += analyst_weight * 0.8
+        reasons.append(f"Street:SELL({analyst_score:.1f})")
+    elif analyst_score >= 3.0:
+        weighted_bear += analyst_weight * 0.4
+
+    # Upside to analyst target
+    upside = live_data.get("upside_to_target", 0)
+    if upside > 0.30:
+        weighted_bull += 1.0
+        reasons.append(f"Upside:{upside:.0%}")
+    elif upside < -0.10:
+        weighted_bear += 0.5
+
+    # Momentum (SECOND HIGHEST)
+    m12 = live_data.get("momentum_12m", 0)
+    m6 = live_data.get("momentum_6m", 0)
+    mom_weight = AGENT_WEIGHTS["momentum"]
+    total_weight += mom_weight
+
+    mom_score = 0.4 * (live_data.get("momentum_3m", 0)) + 0.3 * m6 + 0.3 * m12
+    if mom_score > 0.05:
+        weighted_bull += mom_weight * min(mom_score * 3, 1.0)
+        if m12 > 0.20:
+            reasons.append(f"Momentum:+{m12:.0%}")
+    elif mom_score < -0.05:
+        weighted_bear += mom_weight * min(abs(mom_score) * 3, 1.0)
+        if m12 < -0.10:
+            reasons.append(f"Momentum:{m12:.0%}")
+
+    # Technical health
+    if live_data.get("golden_cross", False):
+        weighted_bull += 0.5
+    if not live_data.get("price_above_sma200", True):
+        weighted_bear += 0.5
+        reasons.append("Below_SMA200")
+
+    # RSI context
+    rsi = live_data.get("rsi", 50)
+    if rsi < 30 and analyst_score <= 2.0:
+        weighted_bull += 1.0  # Oversold + analyst buy = strong opportunity
+        reasons.append(f"Oversold_RSI{rsi:.0f}")
+    elif rsi > 75:
+        weighted_bear += 0.3
+
+    # Relative strength vs S&P
+    rs = live_data.get("relative_strength_vs_sp500", 0)
+    rs_weight = AGENT_WEIGHTS["relative_strength"]
+    total_weight += rs_weight
+    if rs > 0.10:
+        weighted_bull += rs_weight * 0.7
+    elif rs < -0.15:
+        weighted_bear += rs_weight * 0.5
+
+    # === PHASE 3: World context adjustments ===
+    if world_context:
+        regime = world_context.get("market_regime", {}).get("regime", "unknown")
+        vix = world_context.get("fear_greed", {}).get("vix", 20)
+
+        # Bear market: reduce aggression
+        if regime == "bear":
+            weighted_bear += 1.0
+            if category in ("unicorn", "special"):
+                weighted_bear += 1.0  # Extra penalty for risky stocks in bear
+
+        # High VIX: reduce sizes (handled in conviction, not signal)
+
+        # Sector rotation: boost stocks in leading sectors
+        sectors = world_context.get("sectors", {})
+        stock_sector = live_data.get("sector", "")
+        for sec_name, sec_data in sectors.items():
+            if sec_name.lower() in stock_sector.lower() and sec_data.get("trend") == "bullish":
+                weighted_bull += 0.5
+                reasons.append(f"Sector_Leader:{sec_name}")
+                break
+
+    # === PHASE 4: Unicorn bonus ===
+    if category == "unicorn":
+        mcap = live_data.get("market_cap_b", 0)
+        rg = live_data.get("revenue_growth", 0)
+        if mcap < 50 and rg > 0.25:
+            weighted_bull += 1.5
+            reasons.append(f"Unicorn:${mcap:.0f}B+{rg:.0%}growth")
+
+    # === PHASE 5: Anti-short rule ===
+    # NEVER recommend shorting when analysts say buy
+    net_signal = weighted_bull - weighted_bear
+
+    # === FINAL DECISION ===
+    if total_weight > 0:
+        bull_pct = weighted_bull / total_weight
+        bear_pct = weighted_bear / total_weight
+    else:
+        bull_pct = bear_pct = 0
+
+    net = bull_pct - bear_pct
+
+    if net > 0.15:
+        signal = "bullish"
+    elif net < -0.10:
+        signal = "bearish"
+    else:
+        signal = "neutral"
+
+    # Confidence from signal strength
+    confidence = min(95, max(20, abs(net) * 200 + 30))
+
+    # Conviction score (0-100) for portfolio sizing
+    conviction = min(100, max(0, (weighted_bull - weighted_bear) * 10 + 50))
+
+    return {
+        "signal": signal,
+        "confidence": round(confidence, 1),
+        "reasoning": "; ".join(reasons[:8]),
+        "conviction_score": round(conviction, 1),
+        "bull_weight": round(weighted_bull, 2),
+        "bear_weight": round(weighted_bear, 2),
+        "net_signal": round(net, 3),
+    }
+
+
+def aggregate_original_scores(
+    buffett_scores: Optional[Dict] = None,
+    burry_scores: Optional[Dict] = None,
+    lynch_scores: Optional[Dict] = None,
+    fisher_scores: Optional[Dict] = None,
+    ackman_scores: Optional[Dict] = None,
+    munger_scores: Optional[Dict] = None,
+    graham_scores: Optional[Dict] = None,
+    technical_signal: Optional[Dict] = None,
+) -> Dict[str, Dict]:
+    """
+    Aggregate all original agent sub-scores into a flat dict for interpret_scores().
+    """
+    scores = {}
+
+    if buffett_scores:
+        if "fundamentals" in buffett_scores:
+            scores["buffett_fundamentals"] = buffett_scores["fundamentals"]
+        if "moat" in buffett_scores:
+            scores["buffett_moat"] = buffett_scores["moat"]
+        if "consistency" in buffett_scores:
+            scores["buffett_consistency"] = buffett_scores["consistency"]
+        if "intrinsic_value" in buffett_scores:
+            scores["buffett_dcf"] = buffett_scores["intrinsic_value"]
+        if "management" in buffett_scores:
+            scores["buffett_management"] = buffett_scores["management"]
+
+    if burry_scores:
+        if "value" in burry_scores:
+            scores["burry_value"] = burry_scores["value"]
+        if "balance_sheet" in burry_scores:
+            scores["burry_balance"] = burry_scores["balance_sheet"]
+
+    if lynch_scores:
+        for key in ("growth", "fundamentals", "valuation"):
+            if key in lynch_scores:
+                scores[f"lynch_{key}"] = lynch_scores[key]
+
+    if fisher_scores:
+        for key in ("growth_quality", "margins", "management", "valuation"):
+            if key in fisher_scores:
+                scores[f"fisher_{key.replace('growth_quality', 'rnd')}"] = fisher_scores[key]
+
+    if ackman_scores:
+        if "quality" in ackman_scores:
+            scores["ackman_quality"] = ackman_scores["quality"]
+        if "valuation" in ackman_scores:
+            scores["ackman_dcf"] = ackman_scores["valuation"]
+
+    if munger_scores:
+        if "moat" in munger_scores:
+            scores["munger_moat"] = munger_scores["moat"]
+        if "predictability" in munger_scores:
+            scores["munger_predictability"] = munger_scores["predictability"]
+
+    if graham_scores:
+        if "strength" in graham_scores:
+            scores["graham_strength"] = graham_scores["strength"]
+        if "valuation" in graham_scores:
+            scores["graham_valuation"] = graham_scores["valuation"]
+
+    if technical_signal:
+        # Technical is already a signal, convert to score format
+        conf = technical_signal.get("confidence", 50) / 100
+        if technical_signal.get("signal") == "bullish":
+            scores["technical_ensemble"] = {"score": conf, "max_score": 1.0}
+        elif technical_signal.get("signal") == "bearish":
+            scores["technical_ensemble"] = {"score": 1 - conf, "max_score": 1.0}
+        else:
+            scores["technical_ensemble"] = {"score": 0.5, "max_score": 1.0}
+
+    return scores
