@@ -83,7 +83,7 @@ def interpret_scores(
         if max_score <= 0:
             continue
 
-        pct = score / max_score
+        pct = min(score / max_score, 1.0)  # Cap at 100%
         total_weight += weight
 
         if pct >= 0.65:
@@ -91,7 +91,7 @@ def interpret_scores(
             if weight >= 1.0:
                 reasons.append(f"{agent_key}:BULL({pct:.0%})")
         elif pct <= 0.30:
-            weighted_bear += weight * pct
+            weighted_bear += weight * (1 - pct)  # Inverse: lower score = more bearish
             if weight >= 1.0:
                 reasons.append(f"{agent_key}:BEAR({pct:.0%})")
         # Neutral scores don't vote
@@ -213,11 +213,35 @@ def interpret_scores(
     else:
         signal = "neutral"
 
-    # Confidence from signal strength
-    confidence = min(95, max(20, abs(net) * 200 + 30))
+    # Confidence: how strong is the signal (0-95)
+    confidence = min(95, max(20, abs(net) * 150 + 25))
 
-    # Conviction score (0-100) for portfolio sizing
-    conviction = min(100, max(0, (weighted_bull - weighted_bear) * 10 + 50))
+    # Conviction score (0-100) for portfolio RANKING and sizing
+    # Uses more granular scoring to differentiate between stocks
+    # Count how many different agents agree
+    n_bull_agents = len([r for r in reasons if "BULL" in r])
+    n_bear_agents = len([r for r in reasons if "BEAR" in r])
+
+    # Base conviction from net signal
+    base_conviction = net * 80 + 50  # -0.5 to +0.5 maps to 10 to 90
+
+    # Boost for analyst consensus
+    if analyst_score <= 1.5: base_conviction += 10
+    elif analyst_score <= 2.0: base_conviction += 5
+
+    # Boost for momentum
+    if m12 > 0.30: base_conviction += 10
+    elif m12 > 0.15: base_conviction += 5
+
+    # Boost for strong fundamentals agreement
+    if n_bull_agents >= 5: base_conviction += 10
+    elif n_bull_agents >= 3: base_conviction += 5
+
+    # Penalty for being below SMA200
+    if not live_data.get("price_above_sma200", True):
+        base_conviction -= 10
+
+    conviction = min(100, max(0, base_conviction))
 
     return {
         "signal": signal,
