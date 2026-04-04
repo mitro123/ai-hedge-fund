@@ -260,6 +260,26 @@ def run_original_ackman(ticker: str, adapter: YFinanceAdapter) -> dict:
             "reasoning": f"Ackman score {total}/{max_s}. Quality={aq['score']}/7, Discipline={ad['score']}/4, Activism={aa['score']}/2, DCF={av['score']}/3"}
 
 
+def run_original_munger(ticker: str, adapter: YFinanceAdapter) -> dict:
+    """Charlie Munger - ORIGINAL moat(35%) + management(25%) + predictability(25%) + valuation(15%)."""
+    from src.agents.charlie_munger import analyze_moat_strength, analyze_management_quality, analyze_predictability, calculate_munger_valuation
+    m = adapter.get_financial_metrics(ticker, 10)
+    li = adapter.get_line_items(ticker)
+    mc = adapter.get_market_cap(ticker)
+    if not li: return {"signal": "neutral", "confidence": 20, "reasoning": "No data"}
+
+    moat = analyze_moat_strength(m, li)
+    mgmt = analyze_management_quality(li, [])  # No insider trade data from yfinance
+    pred = analyze_predictability(li)
+    val = calculate_munger_valuation(li, mc)
+
+    score = moat["score"]*0.35 + mgmt["score"]*0.25 + pred["score"]*0.25 + val["score"]*0.15
+    signal = "bullish" if score >= 7.5 else ("bearish" if score <= 4.5 else "neutral")
+    conf = min(95, max(20, score * 10))
+    return {"signal": signal, "confidence": round(conf, 1),
+            "reasoning": f"Munger {score:.1f}/10. Moat={moat['score']:.0f}/10, Mgmt={mgmt['score']:.0f}/10, Predict={pred['score']:.0f}/10, Val={val['score']:.0f}/10"}
+
+
 # For agents that don't have complex pre-analysis, use the live trading versions
 from scripts.run_live_trading import (
     ben_graham_analyze, charlie_munger_analyze, cathie_wood_analyze,
@@ -357,16 +377,16 @@ def main():
                 "reasoning": f"Burry {total}/{max_s}. {val['details'][:60]}. {bs['details'][:60]}"}
 
     original_agents["michael_burry_agent"] = ("Michael Burry [ORIG FCF]", run_original_burry)
+    original_agents["charlie_munger_agent"] = ("Charlie Munger [ORIG]", run_original_munger)
 
     for t in valid_tickers:
         for agent_id, (name, func) in original_agents.items():
             sig = func(t, adapter)
             analyst_signals.setdefault(agent_id, {})[t] = sig
 
-    # 5 agents use live trading rule-based versions (still real data)
+    # 4 agents use live trading rule-based versions (still real data)
     other_agents = {
         "ben_graham_agent": ("Ben Graham", ben_graham_analyze),
-        "charlie_munger_agent": ("Charlie Munger", charlie_munger_analyze),
         "cathie_wood_agent": ("Cathie Wood", cathie_wood_analyze),
         "stanley_druckenmiller_agent": ("Stanley Druckenmiller", stanley_druckenmiller_analyze),
         "rakesh_jhunjhunwala_agent": ("Rakesh Jhunjhunwala", rakesh_jhunjhunwala_analyze),
