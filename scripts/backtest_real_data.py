@@ -173,13 +173,15 @@ def compute_metrics_at_date(ticker, hist, spy_hist, date_idx, info_cache, dynami
         "institutional_ownership": info.get("heldPercentInstitutions", 0) or 0,
         "short_ratio": info.get("shortRatio", 0) or 0,
         "short_pct_float": info.get("shortPercentOfFloat", 0) or 0,
-        "analyst_recommendation": info.get("recommendationKey", "none"),
-        "analyst_score": info.get("recommendationMean", 3.0) or 3.0,
-        "analyst_target_mean": info.get("targetMeanPrice", 0) or 0,
-        "analyst_target_high": info.get("targetHighPrice", 0) or 0,
-        "analyst_target_low": info.get("targetLowPrice", 0) or 0,
-        "analyst_count": info.get("numberOfAnalystOpinions", 0) or 0,
-        "upside_to_target": ((info.get("targetMeanPrice", 0) or 0) / current - 1) if current > 0 and (info.get("targetMeanPrice", 0) or 0) > 0 else 0,
+        # LOOK-AHEAD FIX: Don't use current analyst data in historical backtest
+        # Instead, set neutral defaults that don't bias the signal
+        "analyst_recommendation": "none",  # Can't know this historically
+        "analyst_score": 3.0,  # Neutral - no look-ahead
+        "analyst_target_mean": 0,
+        "analyst_target_high": 0,
+        "analyst_target_low": 0,
+        "analyst_count": 0,
+        "upside_to_target": 0,
         # Technicals (REAL)
         "momentum_3m": m3, "momentum_6m": m6, "momentum_12m": m12,
         "distance_from_52w_high": dist_high,
@@ -209,7 +211,7 @@ def run_backtest(tickers, initial_cash=100000.0, months=18):
     print(f"{Fore.CYAN}{'='*80}{Style.RESET_ALL}\n")
 
     # Fetch real data
-    all_hist = fetch_all_history(tickers, "3y")
+    all_hist = fetch_all_history(tickers, "5y")
     spy_hist = all_hist.get("SPY")
 
     # Dynamic fundamentals engine - computes PE, growth etc. at each point in time
