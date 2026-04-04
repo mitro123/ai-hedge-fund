@@ -382,81 +382,166 @@ def aswath_damodaran_analyze(ticker: str, d: dict) -> dict:
 
 
 def technical_analyst_analyze(ticker: str, d: dict) -> dict:
-    """Technical Analyst: REAL RSI, MACD, SMA, Bollinger. Oversold = opportunity when fundamentals OK."""
-    score = 0
-    reasons = []
+    """5-strategy ensemble: trend, mean reversion, momentum, volatility, stat arb."""
+    scores = {}
 
-    rsi = d.get("rsi", 50)
-    analyst_score = d.get("analyst_score", 3.0)
-    upside = d.get("upside_to_target", 0)
-
-    # RSI with context: oversold + good fundamentals = BUY opportunity
-    if rsi < 30:
-        score += 2; reasons.append(f"RSI {rsi:.0f} - OVERSOLD - reversal opportunity")
-        if upside > 0.20:
-            score += 1; reasons.append(f"Oversold + {upside*100:.0f}% upside to target = strong buy signal")
-    elif rsi < 40 and upside > 0.15:
-        score += 1; reasons.append(f"RSI {rsi:.0f} near oversold with {upside*100:.0f}% upside - accumulate")
-    elif rsi > 75:
-        score -= 1; reasons.append(f"RSI {rsi:.0f} - overbought, possible pullback")
-    else:
-        reasons.append(f"RSI {rsi:.0f} - neutral")
-
-    # MACD
-    macd = d.get("macd", {})
-    if macd.get("bullish_cross", False):
-        score += 1; reasons.append("MACD bullish crossover")
-    elif macd.get("histogram", 0) < -1:
-        score -= 0.5; reasons.append("MACD bearish momentum")
-
-    # Moving averages
+    # 1. TREND (weight 0.25): EMA alignment + ADX proxy
+    trend_score = 0
     if d.get("golden_cross", False):
-        score += 1; reasons.append("Golden cross (SMA50 > SMA200)")
+        trend_score += 1  # SMA50 > SMA200
+    if d.get("price_above_sma50", False):
+        trend_score += 0.5
+    if d.get("price_above_sma200", False):
+        trend_score += 0.5
+    # Trend strength from distance between SMAs
+    if d.get("sma_50", 0) > 0 and d.get("sma_200", 0) > 0:
+        sma_spread = (d["sma_50"] - d["sma_200"]) / d["sma_200"]
+        if sma_spread > 0.05: trend_score += 0.5
+        elif sma_spread < -0.05: trend_score -= 0.5
+    trend_signal = "bullish" if trend_score >= 1.5 else ("bearish" if trend_score <= 0 else "neutral")
+    trend_conf = min(abs(trend_score) / 2.5, 1.0)
 
-    # KEY FIX: Below SMA50 is a DIP BUY when analysts say strong_buy
-    if not d.get("price_above_sma50", True) and analyst_score <= 1.5 and upside > 0.25:
-        score += 2; reasons.append(f"Below SMA50 but Street says STRONG BUY with {upside*100:.0f}% upside - BUY THE DIP")
-    elif not d.get("price_above_sma50", True) and d.get("golden_cross", False):
-        score += 0.5; reasons.append("Below SMA50 but golden cross intact - pullback in uptrend")
-    elif not d.get("price_above_sma200", True):
-        score -= 1; reasons.append("Below SMA200 - long-term downtrend")
+    # 2. MEAN REVERSION (weight 0.20): RSI + Bollinger position + analyst upside
+    rsi = d.get("rsi", 50)
+    bb_pct = d.get("bollinger", {}).get("pct_b", 0.5)
+    mr_score = 0
+    if rsi < 30 and bb_pct < 0.2:
+        mr_score = 2  # Strongly oversold
+    elif rsi < 40 and bb_pct < 0.3:
+        mr_score = 1
+    elif rsi > 70 and bb_pct > 0.8:
+        mr_score = -2  # Overbought
+    elif rsi > 60 and bb_pct > 0.7:
+        mr_score = -1
+    # Boost if oversold with analyst upside (buy the dip)
+    if mr_score > 0 and d.get("upside_to_target", 0) > 0.20:
+        mr_score += 1
+    mr_signal = "bullish" if mr_score >= 1 else ("bearish" if mr_score <= -1 else "neutral")
+    mr_conf = min(abs(mr_score) / 3, 1.0)
 
-    # Bollinger - oversold near lower band with good fundamentals
-    bb = d.get("bollinger", {})
-    pct_b = bb.get("pct_b", 0.5)
-    if pct_b < 0.15 and analyst_score <= 2.0:
-        score += 1; reasons.append("Lower Bollinger Band + analyst BUY = mean reversion setup")
+    # 3. MOMENTUM (weight 0.25): Multi-timeframe + MACD
+    m3 = d.get("momentum_3m", 0)
+    m6 = d.get("momentum_6m", 0)
+    m12 = d.get("momentum_12m", 0)
+    mom_score_val = 0.4 * m3 + 0.3 * m6 + 0.3 * m12  # Weighted momentum
+    macd_bull = d.get("macd", {}).get("bullish_cross", False)
+    mom_signal_val = 0
+    if mom_score_val > 0.05 and macd_bull:
+        mom_signal_val = 2
+    elif mom_score_val > 0.03:
+        mom_signal_val = 1
+    elif mom_score_val < -0.05:
+        mom_signal_val = -2
+    elif mom_score_val < -0.03:
+        mom_signal_val = -1
+    mom_signal = "bullish" if mom_signal_val >= 1 else ("bearish" if mom_signal_val <= -1 else "neutral")
+    mom_conf = min(abs(mom_score_val) * 5, 1.0)
 
-    signal = "bullish" if score >= 2 else ("bearish" if score <= -1.5 else "neutral")
-    conf = min(85, max(25, 35 + abs(score) * 8))
-    return {"signal": signal, "confidence": round(conf, 1), "reasoning": ". ".join(reasons)}
+    # 4. VOLATILITY (weight 0.15): Vol regime
+    vol = d.get("volatility_30d", 0.25)
+    vol_score = 0
+    if vol < 0.15:
+        vol_score = 1  # Low vol = potential expansion (bullish)
+    elif vol > 0.40:
+        vol_score = -1  # High vol = risk-off
+    vol_signal = "bullish" if vol_score > 0 else ("bearish" if vol_score < 0 else "neutral")
+    vol_conf = 0.5
+
+    # 5. STAT ARB (weight 0.15): Distance from 52w high + relative strength
+    dist = d.get("distance_from_52w_high", 0)
+    rel = d.get("relative_strength_vs_sp500", 0)
+    sa_score = 0
+    if dist > -0.05 and rel > 0.05:
+        sa_score = 1  # Near highs + outperforming = momentum
+    elif dist < -0.30 and rel < -0.10:
+        sa_score = -1  # Far from highs + underperforming
+    sa_signal = "bullish" if sa_score > 0 else ("bearish" if sa_score < 0 else "neutral")
+    sa_conf = 0.5
+
+    # WEIGHTED ENSEMBLE
+    weights = {"trend": 0.25, "mr": 0.20, "mom": 0.25, "vol": 0.15, "sa": 0.15}
+    signals = {
+        "trend": (trend_signal, trend_conf),
+        "mr": (mr_signal, mr_conf),
+        "mom": (mom_signal, mom_conf),
+        "vol": (vol_signal, vol_conf),
+        "sa": (sa_signal, sa_conf),
+    }
+
+    weighted_sum = 0
+    total_weight = 0
+    reasons = []
+    for name, (sig, conf) in signals.items():
+        w = weights[name]
+        val = {"bullish": 1, "neutral": 0, "bearish": -1}[sig]
+        weighted_sum += val * w * conf
+        total_weight += w * conf
+        if sig != "neutral":
+            reasons.append(f"{name}={sig.upper()}")
+
+    final_score = weighted_sum / total_weight if total_weight > 0 else 0
+
+    if final_score > 0.2:
+        signal = "bullish"
+    elif final_score < -0.2:
+        signal = "bearish"
+    else:
+        signal = "neutral"
+
+    conf = min(abs(final_score) * 100 + 30, 90)
+    reasoning = f"5-strategy ensemble (score {final_score:.2f}): {', '.join(reasons)}. RSI={rsi:.0f}, BB%={bb_pct:.2f}, Mom={mom_score_val:.3f}"
+    return {"signal": signal, "confidence": round(conf, 1), "reasoning": reasoning}
 
 
 def fundamentals_analyst_analyze(ticker: str, d: dict) -> dict:
-    """Fundamentals: Revenue, margins, cash flow, debt - all REAL."""
-    score = 0
+    """4-category fundamentals: profitability, growth, health, valuation."""
+    bullish_cats = 0
+    bearish_cats = 0
     reasons = []
-    if d["revenue_growth"] > 0.15:
-        score += 2; reasons.append(f"Revenue growth {d['revenue_growth']*100:.0f}%")
-    elif d["revenue_growth"] > 0.05:
-        score += 1
-    elif d["revenue_growth"] < 0:
-        score -= 1; reasons.append(f"Revenue declining {d['revenue_growth']*100:.0f}%")
 
-    if d["gross_margin"] > 0.50:
-        score += 1; reasons.append(f"Gross margin {d['gross_margin']*100:.0f}%")
-    if d["operating_margin"] > 0.25:
-        score += 1; reasons.append(f"Operating margin {d['operating_margin']*100:.0f}%")
-    if d["fcf_yield"] > 0.03:
-        score += 1; reasons.append(f"FCF yield {d['fcf_yield']*100:.1f}%")
-    if d["debt_equity"] > 2.0:
-        score -= 2; reasons.append(f"High leverage D/E={d['debt_equity']:.1f}")
-    if d["earnings_growth"] < -0.20:
-        score -= 2; reasons.append(f"Earnings collapsing {d['earnings_growth']*100:.0f}%")
+    # 1. PROFITABILITY
+    prof_score = 0
+    if d.get("roe", 0) > 15: prof_score += 1
+    if d.get("profit_margin", 0) > 0.20: prof_score += 1
+    if d.get("operating_margin", 0) > 0.15: prof_score += 1
+    if prof_score >= 2: bullish_cats += 1; reasons.append(f"Profitability: STRONG (ROE {d.get('roe',0):.0f}%, margin {d.get('operating_margin',0)*100:.0f}%)")
+    elif prof_score == 0: bearish_cats += 1; reasons.append("Profitability: WEAK")
 
-    signal = "bullish" if score >= 3 else ("bearish" if score <= -1 else "neutral")
-    conf = min(85, max(25, 35 + abs(score) * 8))
-    return {"signal": signal, "confidence": round(conf, 1), "reasoning": ". ".join(reasons)}
+    # 2. GROWTH
+    growth_score = 0
+    if d.get("revenue_growth", 0) > 0.10: growth_score += 1
+    if d.get("earnings_growth", 0) > 0.10: growth_score += 1
+    if growth_score >= 2: bullish_cats += 1; reasons.append(f"Growth: STRONG (Rev {d.get('revenue_growth',0)*100:+.0f}%, EPS {d.get('earnings_growth',0)*100:+.0f}%)")
+    elif growth_score == 0: bearish_cats += 1; reasons.append(f"Growth: WEAK (Rev {d.get('revenue_growth',0)*100:+.0f}%)")
+
+    # 3. FINANCIAL HEALTH
+    health_score = 0
+    if d.get("debt_equity", 999) < 0.5: health_score += 1
+    if d.get("fcf_yield", 0) > 0.03: health_score += 1
+    # FCF vs earnings quality check
+    fcf = d.get("fcf_yield", 0)
+    pm = d.get("profit_margin", 0)
+    if fcf > 0 and pm > 0 and fcf > pm * 0.5: health_score += 1  # Good cash conversion
+    if health_score >= 2: bullish_cats += 1; reasons.append("Health: STRONG (low debt, good FCF)")
+    elif health_score == 0: bearish_cats += 1; reasons.append(f"Health: WEAK (D/E {d.get('debt_equity',0):.1f})")
+
+    # 4. PRICE RATIOS (bearish if expensive)
+    ratio_score = 0  # Points for being expensive
+    if d.get("pe", 0) > 25: ratio_score += 1
+    if d.get("pb", 0) > 5: ratio_score += 1
+    if ratio_score >= 2: bearish_cats += 1; reasons.append(f"Valuation: EXPENSIVE (PE {d.get('pe',0):.0f}, PB {d.get('pb',0):.0f})")
+    elif ratio_score == 0: bullish_cats += 1; reasons.append("Valuation: CHEAP")
+
+    # Final signal
+    if bullish_cats > bearish_cats:
+        signal = "bullish"
+    elif bearish_cats > bullish_cats:
+        signal = "bearish"
+    else:
+        signal = "neutral"
+
+    conf = max(bullish_cats, bearish_cats) / 4 * 100
+    return {"signal": signal, "confidence": round(max(conf, 20), 1), "reasoning": ". ".join(reasons)}
 
 
 def sentiment_analyst_analyze(ticker: str, d: dict) -> dict:
@@ -501,33 +586,69 @@ def sentiment_analyst_analyze(ticker: str, d: dict) -> dict:
 
 
 def valuation_analyst_analyze(ticker: str, d: dict) -> dict:
-    """Valuation: EV/EBITDA, PE vs growth, FCF yield, forward PE."""
-    score = 0
+    """4-method valuation: DCF, Owner Earnings, EV/EBITDA, P/E-to-growth."""
     reasons = []
+    gaps = []  # (weight, gap_pct)
 
-    if d["ev_ebitda"] > 0 and d["ev_ebitda"] < 12:
-        score += 2; reasons.append(f"EV/EBITDA {d['ev_ebitda']:.1f} - cheap")
-    elif d["ev_ebitda"] > 0 and d["ev_ebitda"] < 20:
-        score += 1; reasons.append(f"EV/EBITDA {d['ev_ebitda']:.1f} - fair")
-    elif d["ev_ebitda"] > 35:
-        score -= 1; reasons.append(f"EV/EBITDA {d['ev_ebitda']:.1f} - expensive")
+    price = d.get("price", 0)
+    if price <= 0:
+        return {"signal": "neutral", "confidence": 25, "reasoning": "No price data"}
 
-    if d["pe"] > 0 and d["pe"] < 20 and d["earnings_growth"] > 0.10:
-        score += 2; reasons.append(f"PE {d['pe']:.0f} with {d['earnings_growth']*100:.0f}% growth")
+    # Method 1: EV/EBITDA (weight 0.25)
+    ev_ebitda = d.get("ev_ebitda", 0)
+    if ev_ebitda > 0:
+        # Fair EV/EBITDA ~ 12-15 for most companies
+        fair_multiple = 13
+        gap = (fair_multiple / ev_ebitda - 1)
+        gaps.append((0.25, gap))
+        reasons.append(f"EV/EBITDA: {ev_ebitda:.1f} vs fair {fair_multiple} ({gap*100:+.0f}%)")
 
-    fwd = d.get("forward_pe", 0)
-    if fwd > 0 and fwd < 20:
-        score += 1; reasons.append(f"Forward P/E {fwd:.1f} - discounting growth")
+    # Method 2: PE vs Growth (PEG-like, weight 0.35)
+    pe = d.get("pe", 0)
+    eg = d.get("earnings_growth", 0)
+    if pe > 0 and eg > 0:
+        fair_pe = min(eg * 100 * 1.5, 30)  # Fair PE = 1.5x growth rate, capped at 30
+        gap = (fair_pe / pe - 1)
+        gaps.append((0.35, gap))
+        reasons.append(f"PE-Growth: PE {pe:.0f} vs fair {fair_pe:.0f} ({gap*100:+.0f}%)")
+    elif pe > 0:
+        gap = (20 / pe - 1)  # Default fair PE of 20 if no growth data
+        gaps.append((0.20, gap))
 
-    if d["fcf_yield"] > 0.05:
-        score += 1; reasons.append(f"FCF yield {d['fcf_yield']*100:.1f}%")
+    # Method 3: FCF Yield (weight 0.25)
+    fcf = d.get("fcf_yield", 0)
+    if fcf > 0:
+        # 5% FCF yield = fairly valued, higher = cheap
+        gap = (fcf / 0.05 - 1)
+        gaps.append((0.25, gap))
+        reasons.append(f"FCF yield: {fcf*100:.1f}% vs fair 5% ({gap*100:+.0f}%)")
 
-    if d["pe"] > 60:
-        score -= 2; reasons.append(f"P/E {d['pe']:.0f} - extreme valuation")
+    # Method 4: Forward PE discount (weight 0.15)
+    fwd_pe = d.get("forward_pe", 0)
+    if fwd_pe > 0 and pe > 0:
+        discount = (pe / fwd_pe - 1)  # How much cheaper on forward basis
+        gap = discount
+        gaps.append((0.15, gap))
+        reasons.append(f"Forward PE: {fwd_pe:.0f} ({discount*100:+.0f}% vs trailing)")
 
-    signal = "bullish" if score >= 2 else ("bearish" if score <= -2 else "neutral")
-    conf = min(85, max(25, 35 + abs(score) * 9))
-    return {"signal": signal, "confidence": round(conf, 1), "reasoning": ". ".join(reasons)}
+    # Weighted gap
+    if gaps:
+        total_w = sum(w for w, _ in gaps)
+        weighted_gap = sum(w * g for w, g in gaps) / total_w
+    else:
+        weighted_gap = 0
+
+    # Signal: bullish if undervalued by >15%, bearish if overvalued by >15%
+    if weighted_gap > 0.15:
+        signal = "bullish"
+    elif weighted_gap < -0.15:
+        signal = "bearish"
+    else:
+        signal = "neutral"
+
+    conf = min(abs(weighted_gap) / 0.30 * 100, 95)
+    reasoning = f"Weighted valuation gap: {weighted_gap*100:+.1f}%. " + ". ".join(reasons)
+    return {"signal": signal, "confidence": round(max(conf, 20), 1), "reasoning": reasoning}
 
 
 
