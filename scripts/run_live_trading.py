@@ -860,23 +860,23 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
                     action = "sell"
                     reasoning = f"DATA EXIT: Down {gain_pct:.0%}, ranked #{rank_position+1}/{len(sorted_tickers)}, {n_bear} groups bearish."
 
-            # SELL TRIGGER 2: Big gain + STRONG bearish (3+ groups) = take profit
-            # This is different from "weakening" - this is active deterioration
+            # SELL TRIGGER 2: Profit protect - but NEVER sell strong momentum winners
             if action == "hold" and long_shares > 0 and pos.get("long_cost_basis", 0) > 0:
                 gain_pct = (price / pos["long_cost_basis"] - 1)
-                if gain_pct > 0.40 and n_bear >= 3:
-                    # 40%+ gain AND 3+ groups turned bearish = genuine deterioration
+                # Check momentum - if stock is in strong uptrend, DON'T sell
+                sd = stock_data.get(ticker, {}) if stock_data else {}
+                m12 = sd.get("momentum_12m", 0) if sd else 0
+                m6 = sd.get("momentum_6m", 0) if sd else 0
+
+                # Only profit-protect if momentum has ACTUALLY reversed
+                momentum_reversed = m6 < -0.10  # 6m momentum turned negative
+                if gain_pct > 0.50 and n_bear >= 3 and momentum_reversed:
+                    # 50%+ gain AND bearish AND momentum reversed = genuine top
                     sell_qty = max(1, int(long_shares * 0.30))
                     quantity = sell_qty
                     action = "sell"
-                    reasoning = f"PROFIT PROTECT: Up {gain_pct:.0%} but {n_bear}/{total_groups} groups NOW BEARISH. Protecting gains."
-                elif pos_pct > target_pct * 1.5 and gain_pct > 0.20:
-                    # Overweight winner - trim back toward target
-                    excess_shares = int((pos_value - portfolio_value * target_pct) / price * 0.5)
-                    if excess_shares > 0:
-                        quantity = excess_shares
-                        action = "sell"
-                        reasoning = f"REBALANCE TRIM: {pos_pct:.0%} of portfolio (target {target_pct:.0%}), up {gain_pct:.0%}. Trimming {excess_shares} shares."
+                    reasoning = f"PROFIT PROTECT: Up {gain_pct:.0%}, {n_bear} bearish, momentum reversed ({m6:+.0%}). Protecting gains."
+                # Let winners run - no overweight trimming
 
             # If still holding and this is a strong bullish stock but underweight, add to it
             if action == "hold":
