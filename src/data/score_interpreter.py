@@ -15,7 +15,31 @@ fundamental scores for QUALITY assessment.
 from typing import Any, Dict, List, Optional, Tuple
 
 
-# Agent accuracy weights (from our deep analysis)
+# Dynamic agent weight adjustments by market regime
+REGIME_WEIGHT_ADJUSTMENTS = {
+    "strong_bull": {
+        "momentum": 1.8, "analyst_consensus": 2.2,
+        "buffett_dcf": 0.2, "graham_valuation": 0.2,
+    },
+    "bull": {},  # Use defaults
+    "correction": {
+        "momentum": 0.8, "buffett_dcf": 0.8, "graham_valuation": 0.7,
+        "buffett_moat": 2.0, "analyst_consensus": 1.5,
+    },
+    "bear": {
+        "momentum": 0.3, "buffett_dcf": 0.8, "graham_valuation": 0.8,
+        "graham_strength": 1.5, "buffett_moat": 2.2,
+        "analyst_consensus": 1.0, "relative_strength": 0.5,
+    },
+    "sideways": {
+        "momentum": 0.7, "buffett_moat": 1.5, "munger_predictability": 1.5,
+    },
+    "recovery": {
+        "momentum": 1.2, "buffett_dcf": 0.6, "relative_strength": 1.5,
+    },
+}
+
+# Base agent accuracy weights (from our deep analysis)
 AGENT_WEIGHTS = {
     "buffett_fundamentals": 1.5,    # ROE, margins, balance sheet = high quality
     "buffett_moat": 1.8,            # Moat consistency = best long-term predictor
@@ -71,6 +95,12 @@ def interpret_scores(
     total_weight = 0.0
     reasons = []
 
+    # Determine market regime for dynamic weight adjustment
+    regime = "unknown"
+    if world_context:
+        regime = world_context.get("market_regime", {}).get("regime", "unknown")
+    regime_adjustments = REGIME_WEIGHT_ADJUSTMENTS.get(regime, {})
+
     # === PHASE 1: Process original agent scores ===
     for agent_key, score_data in original_scores.items():
         if not score_data or not isinstance(score_data, dict):
@@ -78,7 +108,9 @@ def interpret_scores(
 
         score = score_data.get("score", 0)
         max_score = score_data.get("max_score", 1)
-        weight = AGENT_WEIGHTS.get(agent_key, 1.0)
+        # Dynamic weight: base * regime adjustment
+        base_weight = AGENT_WEIGHTS.get(agent_key, 1.0)
+        weight = regime_adjustments.get(agent_key, base_weight)
 
         if max_score <= 0:
             continue
@@ -100,7 +132,7 @@ def interpret_scores(
 
     # Analyst consensus (HIGHEST WEIGHT)
     analyst_score = live_data.get("analyst_score", 3.0)
-    analyst_weight = AGENT_WEIGHTS["analyst_consensus"]
+    analyst_weight = regime_adjustments.get("analyst_consensus", AGENT_WEIGHTS["analyst_consensus"])
     total_weight += analyst_weight
 
     if analyst_score <= 1.5:
@@ -126,7 +158,7 @@ def interpret_scores(
     # Momentum (SECOND HIGHEST)
     m12 = live_data.get("momentum_12m", 0)
     m6 = live_data.get("momentum_6m", 0)
-    mom_weight = AGENT_WEIGHTS["momentum"]
+    mom_weight = regime_adjustments.get("momentum", AGENT_WEIGHTS["momentum"])
     total_weight += mom_weight
 
     mom_score = 0.4 * (live_data.get("momentum_3m", 0)) + 0.3 * m6 + 0.3 * m12
@@ -156,7 +188,7 @@ def interpret_scores(
 
     # Relative strength vs S&P
     rs = live_data.get("relative_strength_vs_sp500", 0)
-    rs_weight = AGENT_WEIGHTS["relative_strength"]
+    rs_weight = regime_adjustments.get("relative_strength", AGENT_WEIGHTS["relative_strength"])
     total_weight += rs_weight
     if rs > 0.10:
         weighted_bull += rs_weight * 0.7
@@ -176,14 +208,22 @@ def interpret_scores(
         elif regime == "strong_bull":
             weighted_bull += 0.5  # Tailwind in strong bull
 
-        # High VIX: penalize risky stocks, boost defensive
+        # VIX: REGIME-AWARE (Bull+HighVIX = opportunity, Bear+HighVIX = danger)
         vix = world_context.get("fear_greed", {}).get("vix", 20)
-        if vix > 30:
+        if regime in ("bear", "correction") and vix > 25:
+            # Bear + fear = genuinely dangerous for risky stocks
             if category in ("unicorn", "growth", "special"):
-                weighted_bear += 1.0
-                reasons.append(f"VIX={vix:.0f}_FEAR")
+                weighted_bear += 1.5
+                reasons.append(f"BEAR+VIX={vix:.0f}")
             elif category == "defensive":
-                weighted_bull += 0.5  # Flight to safety
+                weighted_bull += 1.0  # Strong flight to safety
+        elif regime in ("strong_bull", "bull") and vix > 25:
+            # Bull + elevated VIX = buying opportunity (83% win rate!)
+            weighted_bear += 0.3  # Only mild caution
+            # Quality dips in bull = buy signal
+            if category in ("core", "growth"):
+                weighted_bull += 0.3
+                reasons.append(f"BullDip_VIX={vix:.0f}")
 
         # Yield curve inversion = recession signal
         yc = world_context.get("yield_curve", {})
