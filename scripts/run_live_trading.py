@@ -746,8 +746,17 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
             parts.append(f"{AGENT_GROUPS[gn]['perspective']}: {gv['view'].upper()} ({gv['strength']:.0%})")
         debate_summaries[ticker] = " | ".join(parts)
 
+        # CTA OVERLAY: Market-level timing
+        # When broad market is in distress, reduce ALL position sizes
+        market_multiplier = 1.0
+        sd = stock_data.get(ticker, {}) if stock_data else {}
+        market_regime = sd.get("market_regime", "unknown") if sd else "unknown"
+        if market_regime == "bear":
+            market_multiplier = 0.50  # Half size in bear market
+        elif market_regime == "correction":
+            market_multiplier = 0.75  # Reduced in correction
+
         # CONVICTION-WEIGHTED SIZING (Kelly-inspired)
-        # Top-ranked stocks get up to 1.5x allocation, bottom get 0.5x
         rank = rankings.get(ticker, 0)
         rank_pct = (rank - min_rank) / (max_rank - min_rank) if max_rank != min_rank else 0.5
         rank_boost = 0.8 + rank_pct * 0.4  # Range: 0.8x to 1.2x sizing (balanced)
@@ -757,12 +766,13 @@ def run_investment_committee(tickers, analyst_signals, risk_analysis, portfolio,
         confidence = min(95, max(20, abs(net) * 50 + n_bull * 5 + 25))
 
         if n_bull >= 3 and max_shares > 0:
-            sizing = (0.75 + (n_bull - 3) * 0.10) * rank_boost
+            sizing = (0.75 + (n_bull - 3) * 0.10) * rank_boost * market_multiplier
             quantity = max(1, int(max_shares * min(sizing, 1.0)))
             action = "buy"
-            reasoning = f"Strong consensus: {n_bull}/{total_groups} bullish. Rank #{rank_pos}/{len(tickers)} (score {rank:.0f}). Conviction {sizing:.0%}."
+            regime_note = f" [MKT:{market_regime}x{market_multiplier}]" if market_multiplier < 1.0 else ""
+            reasoning = f"Strong consensus: {n_bull}/{total_groups} bullish. Rank #{rank_pos}/{len(tickers)} (score {rank:.0f}). Conviction {sizing:.0%}.{regime_note}"
         elif n_bull >= 2 and n_bear <= 1 and max_shares > 0:
-            sizing = 0.50 * rank_boost
+            sizing = 0.50 * rank_boost * market_multiplier
             quantity = max(1, int(max_shares * min(sizing, 1.0)))
             action = "buy"
             reasoning = f"Moderate consensus: {n_bull}/{total_groups} bullish. Rank #{rank_pos}/{len(tickers)}. Conviction {sizing:.0%}."
