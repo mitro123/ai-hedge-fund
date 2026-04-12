@@ -104,9 +104,9 @@ class MT5TradingAgent:
                 return None
 
             return {
-                "account_info": account_info.dict(),
+                "account_info": account_info.model_dump(),
                 "positions_count": len(positions),
-                "positions": [pos.dict() for pos in positions],
+                "positions": [pos.model_dump() for pos in positions],
                 "connected": True,
                 "timestamp": datetime.now().isoformat(),
             }

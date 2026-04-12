@@ -7,6 +7,14 @@ from unittest.mock import Mock, patch, MagicMock
 import pandas as pd
 from datetime import datetime
 
+try:
+    import MetaTrader5
+    HAS_MT5 = True
+except ImportError:
+    HAS_MT5 = False
+
+pytestmark = pytest.mark.skipif(not HAS_MT5, reason="MetaTrader5 not installed")
+
 from src.integrations.metatrader5_integration import (
     MetaTrader5Integration,
     OrderType,

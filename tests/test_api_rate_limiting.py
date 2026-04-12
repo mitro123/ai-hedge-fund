@@ -220,27 +220,26 @@ class TestRateLimiting:
     @patch('src.tools.api.time.sleep')
     @patch('src.tools.api.requests.get')
     def test_max_retries_exceeded(self, mock_get, mock_sleep):
-        """Test that function stops retrying after max_retries and returns final 429."""
+        """Test that function raises APIRateLimitError after max_retries exceeded."""
+        from src.exceptions import APIRateLimitError
+
         # Setup mock responses: all 429s (exceeds max retries)
         mock_429_response = Mock()
         mock_429_response.status_code = 429
         mock_429_response.text = "Too Many Requests"
-        
+
         mock_get.return_value = mock_429_response
-        
-        # Call the function with max_retries=2
+
+        # Call the function with max_retries=2 - should raise APIRateLimitError
         headers = {"X-API-KEY": "test-key"}
         url = "https://api.financialdatasets.ai/test"
-        
-        result = _make_api_request(url, headers, max_retries=2)
-        
-        # Verify final 429 is returned
-        assert result.status_code == 429
-        assert result.text == "Too Many Requests"
-        
+
+        with pytest.raises(APIRateLimitError):
+            _make_api_request(url, headers, max_retries=2)
+
         # Verify requests.get was called 3 times (1 initial + 2 retries)
         assert mock_get.call_count == 3
-        
+
         # Verify sleep was called 2 times with linear backoff: 60s, 90s
         assert mock_sleep.call_count == 2
         expected_calls = [call(60), call(90)]
