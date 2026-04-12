@@ -1,18 +1,14 @@
 """Equity Historical Price Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Optional, Union
+
+from pydantic import Field, field_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class EquityHistoricalQueryParams(QueryParams):
@@ -38,19 +34,13 @@ class EquityHistoricalQueryParams(QueryParams):
 class EquityHistoricalData(Data):
     """Equity Historical Price Data."""
 
-    date: Union[dateType, datetime] = Field(
-        description=DATA_DESCRIPTIONS.get("date", "")
-    )
+    date: Union[dateType, datetime] = Field(description=DATA_DESCRIPTIONS.get("date", ""))
     open: float = Field(description=DATA_DESCRIPTIONS.get("open", ""))
     high: float = Field(description=DATA_DESCRIPTIONS.get("high", ""))
     low: float = Field(description=DATA_DESCRIPTIONS.get("low", ""))
     close: float = Field(description=DATA_DESCRIPTIONS.get("close", ""))
-    volume: Optional[Union[float, int]] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("volume", "")
-    )
-    vwap: Optional[float] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("vwap", "")
-    )
+    volume: Optional[Union[float, int]] = Field(default=None, description=DATA_DESCRIPTIONS.get("volume", ""))
+    vwap: Optional[float] = Field(default=None, description=DATA_DESCRIPTIONS.get("vwap", ""))
 
     @field_validator("date", mode="before", check_fields=False)
     @classmethod

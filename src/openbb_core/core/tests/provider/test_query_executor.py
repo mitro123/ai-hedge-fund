@@ -5,11 +5,12 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import SecretStr
+
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.fetcher import Fetcher
 from openbb_core.provider.abstract.provider import Provider
 from openbb_core.provider.query_executor import QueryExecutor
-from pydantic import SecretStr
 
 
 @pytest.fixture
@@ -62,9 +63,7 @@ def test_filter_credentials_success(mock_query_executor):
         "other_api_key": SecretStr("12345"),
     }
 
-    filtered_credentials = mock_query_executor.filter_credentials(
-        credentials, provider, True
-    )
+    filtered_credentials = mock_query_executor.filter_credentials(credentials, provider, True)
 
     assert filtered_credentials == {"test_provider_api_key": "12345"}
 
@@ -98,9 +97,7 @@ def test_filter_credentials_missing_dont_require(mock_query_executor):
     provider.credentials = ["test_provider_api_key"]
     credentials = {"other_api_key": SecretStr("12345")}
 
-    filtered_credentials = mock_query_executor.filter_credentials(
-        credentials, provider, False
-    )
+    filtered_credentials = mock_query_executor.filter_credentials(credentials, provider, False)
 
     assert filtered_credentials == {}
 
@@ -114,9 +111,7 @@ async def test_execute_success(mock_query_executor: QueryExecutor):
     credentials = {"api_key": SecretStr("12345")}
 
     with patch.object(Fetcher, "fetch_data", return_value=mock_result) as mock_fetch:
-        result = await mock_query_executor.execute(
-            "test_provider", "test_fetcher", params, credentials
-        )
+        result = await mock_query_executor.execute("test_provider", "test_fetcher", params, credentials)
 
         assert result == mock_result
         mock_fetch.assert_called_once_with(params, {}, **{})

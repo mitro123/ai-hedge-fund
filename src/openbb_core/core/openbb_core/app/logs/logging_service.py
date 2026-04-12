@@ -6,16 +6,15 @@ from enum import Enum
 from types import TracebackType
 from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
-from openbb_core.app.logs.formatters.formatter_with_exceptions import (
-    FormatterWithExceptions,
-)
+from pydantic import BaseModel
+from pydantic_core import to_jsonable_python
+
+from openbb_core.app.logs.formatters.formatter_with_exceptions import FormatterWithExceptions
 from openbb_core.app.logs.handlers_manager import HandlersManager
 from openbb_core.app.logs.models.logging_settings import LoggingSettings
 from openbb_core.app.model.abstract.singleton import SingletonMeta
 from openbb_core.app.model.system_settings import SystemSettings
 from openbb_core.app.model.user_settings import UserSettings
-from pydantic import BaseModel
-from pydantic_core import to_jsonable_python
 
 
 class DummyProvider(BaseModel):
@@ -125,9 +124,7 @@ class LoggingService(metaclass=SingletonMeta):
         HandlersManager
             Handlers Manager object.
         """
-        handlers_manager = HandlersManager(
-            self._logger, settings=self._logging_settings
-        )
+        handlers_manager = HandlersManager(self._logger, settings=self._logging_settings)
         handlers_manager.setup()
 
         self._logger.info("Logging configuration finished")
@@ -154,11 +151,7 @@ class LoggingService(metaclass=SingletonMeta):
                 undefined = "undefined"
 
             return {
-                c: (
-                    CredentialsDefinition.defined.value
-                    if credentials[c]
-                    else CredentialsDefinition.undefined.value
-                )
+                c: (CredentialsDefinition.defined.value if credentials[c] else CredentialsDefinition.undefined.value)
                 for c in credentials
             }
 
@@ -169,9 +162,7 @@ class LoggingService(metaclass=SingletonMeta):
                     "route": route,
                     "PREFERENCES": self._user_settings.preferences,
                     "KEYS": check_credentials_defined(
-                        self._user_settings.credentials.model_dump()
-                        if self._user_settings.credentials
-                        else {}
+                        self._user_settings.credentials.model_dump() if self._user_settings.credentials else {}
                     ),
                     "SYSTEM": self._system_settings,
                     "custom_headers": custom_headers,
@@ -232,11 +223,7 @@ class LoggingService(metaclass=SingletonMeta):
                 kwargs.pop("cc", None)
 
                 passed_model = kwargs.get("provider_choices", DummyProvider())
-                provider = (
-                    passed_model.provider
-                    if hasattr(passed_model, "provider")
-                    else "not_passed_to_kwargs"
-                )
+                provider = passed_model.provider if hasattr(passed_model, "provider") else "not_passed_to_kwargs"
 
                 # Truncate kwargs if too long
                 kwargs = {k: str(v)[:300] for k, v in kwargs.items()}

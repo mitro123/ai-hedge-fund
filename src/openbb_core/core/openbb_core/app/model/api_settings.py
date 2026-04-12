@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, computed_field, ConfigDict, Field
 
 
 class Cors(BaseModel):
@@ -52,6 +52,4 @@ class APISettings(BaseModel):
 
     def __repr__(self) -> str:
         """Return a string representation of the model."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())

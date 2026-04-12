@@ -1,17 +1,13 @@
 """Spot Rate Standard Model."""
 
-from datetime import (
-    date as dateType,
-)
+from datetime import date as dateType
 from typing import Optional, Union
+
+from pydantic import Field, field_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class SpotRateQueryParams(QueryParams):
@@ -25,9 +21,7 @@ class SpotRateQueryParams(QueryParams):
         default=None,
         description=QUERY_DESCRIPTIONS.get("end_date", ""),
     )
-    maturity: Union[float, str] = Field(
-        default=10.0, description="Maturities in years."
-    )
+    maturity: Union[float, str] = Field(default=10.0, description="Maturities in years.")
     category: str = Field(
         default="spot_rate",
         description="Rate category. Options: spot_rate, par_yield.",

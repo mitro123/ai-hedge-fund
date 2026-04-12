@@ -3,10 +3,7 @@
 import logging
 from unittest.mock import Mock, patch
 
-from openbb_core.app.logs.handlers_manager import (
-    HandlersManager,
-    PathTrackingFileHandler,
-)
+from openbb_core.app.logs.handlers_manager import HandlersManager, PathTrackingFileHandler
 
 # pylint: disable=W0231
 
@@ -30,12 +27,15 @@ class MockFormatterWithExceptions(logging.Formatter):
 
 def test_handlers_added_correctly():
     """Test if the handlers are added correctly."""
-    with patch(
-        "openbb_core.app.logs.handlers_manager.PathTrackingFileHandler",
-        MockPathTrackingFileHandler,
-    ), patch(
-        "openbb_core.app.logs.handlers_manager.FormatterWithExceptions",
-        MockFormatterWithExceptions,
+    with (
+        patch(
+            "openbb_core.app.logs.handlers_manager.PathTrackingFileHandler",
+            MockPathTrackingFileHandler,
+        ),
+        patch(
+            "openbb_core.app.logs.handlers_manager.FormatterWithExceptions",
+            MockFormatterWithExceptions,
+        ),
     ):
         settings = Mock()
         settings.verbosity = 20
@@ -66,12 +66,15 @@ def test_handlers_added_correctly():
 
 def test_update_handlers():
     """Test if the handlers are updated correctly."""
-    with patch(
-        "openbb_core.app.logs.handlers_manager.PathTrackingFileHandler",
-        MockPathTrackingFileHandler,
-    ), patch(
-        "openbb_core.app.logs.handlers_manager.FormatterWithExceptions",
-        MockFormatterWithExceptions,
+    with (
+        patch(
+            "openbb_core.app.logs.handlers_manager.PathTrackingFileHandler",
+            MockPathTrackingFileHandler,
+        ),
+        patch(
+            "openbb_core.app.logs.handlers_manager.FormatterWithExceptions",
+            MockFormatterWithExceptions,
+        ),
     ):
         settings = Mock()
         settings.handler_list = ["file"]

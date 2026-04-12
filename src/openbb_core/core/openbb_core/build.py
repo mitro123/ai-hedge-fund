@@ -27,9 +27,7 @@ def main():
             check=True,
         )
         logger.info(result.stdout)
-        building_found = any(
-            line.startswith("Building") for line in result.stdout.splitlines()
-        )
+        building_found = any(line.startswith("Building") for line in result.stdout.splitlines())
 
         if result.returncode != 0:
             raise ModuleNotFoundError(result.stderr)
@@ -74,13 +72,9 @@ def main():
                 check=True,
             )
             logger.info(result.stdout)
-            building_found = any(
-                line.startswith("Building") for line in result.stdout.splitlines()
-            )
+            building_found = any(line.startswith("Building") for line in result.stdout.splitlines())
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(
-                f"Failed to import the OpenBB package. \n{e.stderr}"
-            ) from e
+            raise RuntimeError(f"Failed to import the OpenBB package. \n{e.stderr}") from e
 
     if not building_found:
         logger.info("Did not build on import, triggering rebuild...\n")
@@ -124,20 +118,20 @@ def main():
         except Exception as e:  # pylint: disable=broad-except
             raise RuntimeError(  # noqa
                 "Failed to build the OpenBB platform static assets. \n"
-                f"{e} -> {e.__traceback__.tb_frame.f_code.co_filename}:"  # type:ignore  # pylint: disable=E1101
-                f"{e.__traceback__.tb_lineno}"  # type:ignore
+                f"{e} -> {e.__traceback__.tb_frame.f_code.co_filename}:"  # type: ignore  # pylint: disable=E1101
+                f"{e.__traceback__.tb_lineno}"  # type: ignore
                 if hasattr(e, "__traceback__")
-                and hasattr(e.__traceback__, "tb_frame")  # type:ignore
+                and hasattr(e.__traceback__, "tb_frame")  # type: ignore
                 and hasattr(
-                    e.__traceback__.tb_frame,  # type:ignore
+                    e.__traceback__.tb_frame,  # type: ignore
                     "f_code",
                 )
                 and hasattr(
-                    e.__traceback__.tb_frame.f_code,  # type:ignore  # pylint: disable=E1101
+                    e.__traceback__.tb_frame.f_code,  # type: ignore  # pylint: disable=E1101
                     "co_filename",
                 )
                 and hasattr(
-                    e.__traceback__,  # type:ignore
+                    e.__traceback__,  # type: ignore
                     "tb_lineno",
                 )
                 else f"Failed to build the OpenBB platform static assets. \n{e}"

@@ -45,10 +45,8 @@ def migrate_api_keys():
             "DEEPSEEK_API_KEY": "DEEPSEEK_API_KEY",
             "GOOGLE_API_KEY": "GOOGLE_API_KEY",
             "OPENROUTER_API_KEY": "OPENROUTER_API_KEY",
-            
             # Finanční data API klíče
             "FINANCIAL_DATASETS_API_KEY": "FINANCIAL_DATASETS_API_KEY",
-            
             # OpenBB Platform API klíče
             "FMP_API_KEY": "FMP_API_KEY",
             "ALPHA_VANTAGE_API_KEY": "ALPHA_VANTAGE_API_KEY",

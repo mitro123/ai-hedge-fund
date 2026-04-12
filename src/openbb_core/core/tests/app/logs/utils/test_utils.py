@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 from openbb_core.app.logs.utils.utils import get_app_id, get_log_dir, get_session_id
 
 ## get_session_id
@@ -52,9 +53,7 @@ def test_get_app_id_success():
     # Mock the return value of get_log_dir to simulate a successful scenario
     with patch("openbb_core.app.logs.utils.utils.get_log_dir") as mock_get_log_dir:
         mock_get_log_dir  # pylint: disable=pointless-statement
-        mock_get_log_dir.return_value = Path(
-            "/path/to/contextual_user_data_directory/app_id.log"
-        )
+        mock_get_log_dir.return_value = Path("/path/to/contextual_user_data_directory/app_id.log")
         app_id = get_app_id("/path/to/contextual_user_data_directory")
         assert app_id == "app_id"
 
@@ -82,16 +81,20 @@ def test_get_app_id_other_exception():
 
 def test_get_log_dir():
     """Test get_log_dir function."""
-    with patch(
-        "openbb_core.app.logs.utils.utils.create_log_dir_if_not_exists",
-        return_value="/test_dir",
-    ) as mock_create_log_dir, patch(
-        "openbb_core.app.logs.utils.utils.create_log_uuid_if_not_exists",
-        return_value="12345",
-    ) as mock_create_log_uuid, patch(
-        "openbb_core.app.logs.utils.utils.create_uuid_dir_if_not_exists",
-        return_value="/test_dir/12345",
-    ) as mock_create_uuid_dir:
+    with (
+        patch(
+            "openbb_core.app.logs.utils.utils.create_log_dir_if_not_exists",
+            return_value="/test_dir",
+        ) as mock_create_log_dir,
+        patch(
+            "openbb_core.app.logs.utils.utils.create_log_uuid_if_not_exists",
+            return_value="12345",
+        ) as mock_create_log_uuid,
+        patch(
+            "openbb_core.app.logs.utils.utils.create_uuid_dir_if_not_exists",
+            return_value="/test_dir/12345",
+        ) as mock_create_uuid_dir,
+    ):
         # Call the get_log_dir function
         result = get_log_dir("contextual_user_data_directory")
 

@@ -2,35 +2,17 @@
 
 from dataclasses import dataclass, make_dataclass
 from difflib import SequenceMatcher
-from typing import (
-    Annotated,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 from fastapi import Body, Query
+from pydantic import BaseModel, ConfigDict, create_model, Discriminator, Field, SerializeAsAny, Tag
+from pydantic.fields import FieldInfo
+
 from openbb_core.app.model.abstract.singleton import SingletonMeta
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.provider.query_executor import QueryExecutor
 from openbb_core.provider.registry_map import MapType, RegistryMap
 from openbb_core.provider.utils.helpers import to_snake_case
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Discriminator,
-    Field,
-    SerializeAsAny,
-    Tag,
-    create_model,
-)
-from pydantic.fields import FieldInfo
 
 TupleFieldType = Tuple[str, Optional[Type], Optional[Any]]
 
@@ -112,9 +94,7 @@ class ProviderInterface(metaclass=SingletonMeta):
         self._params = self._generate_params_dc(self._map)
         self._data = self._generate_data_dc(self._map)
         self._return_schema = self._generate_return_schema(self._data)
-        self._return_annotations = self._generate_return_annotations(
-            self._registry_map.original_models
-        )
+        self._return_annotations = self._generate_return_annotations(self._registry_map.original_models)
 
         self._available_providers = self._registry_map.available_providers
         self._provider_choices = self._get_provider_choices(self._available_providers)
@@ -174,9 +154,7 @@ class ProviderInterface(metaclass=SingletonMeta):
         return self._query_executor(self._registry_map.registry)  # type: ignore[operator]
 
     @staticmethod
-    def _merge_fields(
-        current: DataclassField, incoming: DataclassField, query: bool = False
-    ) -> DataclassField:
+    def _merge_fields(current: DataclassField, incoming: DataclassField, query: bool = False) -> DataclassField:
         """Merge 2 dataclass fields."""
         curr_name = current.name
         curr_type: Optional[Type] = current.annotation
@@ -233,9 +211,7 @@ class ProviderInterface(metaclass=SingletonMeta):
         )
 
         merged_type: Optional[Type] = (
-            Union[curr_type, inc_type]  # type: ignore[assignment]
-            if curr_type != inc_type
-            else curr_type
+            Union[curr_type, inc_type] if curr_type != inc_type else curr_type  # type: ignore[assignment]
         )
 
         return DataclassField(curr_name, merged_type, merged_default)
@@ -284,9 +260,7 @@ class ProviderInterface(metaclass=SingletonMeta):
                         + ", ".join(providers)  # type: ignore[arg-type]
                         + "."
                     )
-        provider_field = (
-            f"(provider: {provider_name})" if provider_name != "openbb" else ""
-        )
+        provider_field = f"(provider: {provider_name})" if provider_name != "openbb" else ""
         description = (
             f"{field.description}{additional_description} {provider_field}"
             if provider_name and field.description
@@ -403,10 +377,7 @@ class ProviderInterface(metaclass=SingletonMeta):
         for provider_name, model_details in providers.items():
             if provider_name == "openbb":
                 for name, field in model_details["Data"]["fields"].items():
-                    if (
-                        name == "provider"
-                        and field.description == "The data provider for the data."
-                    ):  # noqa
+                    if name == "provider" and field.description == "The data provider for the data.":  # noqa
                         continue
                     incoming = cls._create_field(name, field, "openbb")
 
@@ -418,10 +389,7 @@ class ProviderInterface(metaclass=SingletonMeta):
             else:
                 for name, field in model_details["Data"]["fields"].items():
                     if name not in providers["openbb"]["Data"]["fields"]:
-                        if (
-                            name == "provider"
-                            and field.description == "The data provider for the data."
-                        ):  # noqa
+                        if name == "provider" and field.description == "The data provider for the data.":  # noqa
                             continue
                         incoming = cls._create_field(
                             to_snake_case(name),
@@ -444,9 +412,7 @@ class ProviderInterface(metaclass=SingletonMeta):
 
         return standard, extra
 
-    def _generate_params_dc(
-        self, map_: MapType
-    ) -> Dict[str, Dict[str, Union[StandardParams, ExtraParams]]]:
+    def _generate_params_dc(self, map_: MapType) -> Dict[str, Dict[str, Union[StandardParams, ExtraParams]]]:
         """Generate dataclasses for params.
 
         This creates a dictionary of dataclasses that can be injected as a FastAPI
@@ -520,9 +486,7 @@ class ProviderInterface(metaclass=SingletonMeta):
 
         return result
 
-    def _generate_data_dc(
-        self, map_: MapType
-    ) -> Dict[str, Dict[str, Union[StandardData, ExtraData]]]:
+    def _generate_data_dc(self, map_: MapType) -> Dict[str, Dict[str, Union[StandardData, ExtraData]]]:
         """Generate dataclasses for data.
 
         This creates a dictionary of dataclasses.
@@ -603,9 +567,7 @@ class ProviderInterface(metaclass=SingletonMeta):
             bases=(ProviderChoices,),
         )
 
-    def _generate_return_annotations(
-        self, original_models: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Type[OBBject]]:
+    def _generate_return_annotations(self, original_models: Dict[str, Dict[str, Any]]) -> Dict[str, Type[OBBject]]:
         """Generate return annotations for FastAPI.
 
         Example

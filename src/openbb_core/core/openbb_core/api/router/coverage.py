@@ -3,10 +3,11 @@
 import json
 
 from fastapi import APIRouter, Depends
+from typing_extensions import Annotated
+
 from openbb_core.api.dependency.coverage import get_command_map, get_provider_interface
 from openbb_core.app.provider_interface import ProviderInterface
 from openbb_core.app.router import CommandMap
-from typing_extensions import Annotated
 
 router = APIRouter(prefix="/coverage", tags=["Coverage"])
 
@@ -39,9 +40,7 @@ async def get_commands_model_map(
             data_fields = data.get("fields", {})
 
             for field, field_info in query_fields.items():
-                attributes = (
-                    field_info._attributes_set  # pylint: disable=protected-access
-                )
+                attributes = field_info._attributes_set  # pylint: disable=protected-access
                 if attributes.get("annotation"):
                     _annotation = str(attributes.get("annotation"))
                     attributes["annotation"] = _annotation
@@ -51,9 +50,7 @@ async def get_commands_model_map(
             new_command[provider]["QueryParams"]["docstring"] = query.get("docstring")
 
             for field, field_info in data_fields.items():
-                attributes = (
-                    field_info._attributes_set  # pylint: disable=protected-access
-                )
+                attributes = field_info._attributes_set  # pylint: disable=protected-access
                 if attributes.get("annotation"):
                     _annotation = str(attributes.get("annotation"))
                     attributes["annotation"] = _annotation
@@ -66,9 +63,7 @@ async def get_commands_model_map(
                     if key == "response_schema_name":
                         continue
 
-                    if obb_params := openbb_info.get("QueryParams", {}).get(
-                        "fields", {}
-                    ):
+                    if obb_params := openbb_info.get("QueryParams", {}).get("fields", {}):
                         old_fields = new_command[key]["QueryParams"].get("fields", {})
                         new_command[key]["QueryParams"]["fields"] = {
                             **obb_params,
@@ -90,16 +85,12 @@ async def get_commands_model_map(
 
 
 @router.get("/providers", openapi_extra={"widget_config": {"exclude": True}})
-async def get_provider_coverage(
-    command_map: Annotated[CommandMap, Depends(get_command_map)]
-):
+async def get_provider_coverage(command_map: Annotated[CommandMap, Depends(get_command_map)]):
     """Get command coverage by provider."""
     return command_map.provider_coverage
 
 
 @router.get("/commands", openapi_extra={"widget_config": {"exclude": True}})
-async def get_command_coverage(
-    command_map: Annotated[CommandMap, Depends(get_command_map)]
-):
+async def get_command_coverage(command_map: Annotated[CommandMap, Depends(get_command_map)]):
     """Get provider coverage by command."""
     return command_map.command_coverage

@@ -1,17 +1,13 @@
 """Selected Treasury Constant Maturity Standard Model."""
 
-from datetime import (
-    date as dateType,
-)
+from datetime import date as dateType
 from typing import Literal, Optional
+
+from pydantic import Field, field_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class SelectedTreasuryConstantMaturityQueryParams(QueryParams):
@@ -41,6 +37,4 @@ class SelectedTreasuryConstantMaturityData(Data):
     """Selected Treasury Constant Maturity Data."""
 
     date: dateType = Field(description=DATA_DESCRIPTIONS.get("date", ""))
-    rate: Optional[float] = Field(
-        description="Selected Treasury Constant Maturity Rate."
-    )
+    rate: Optional[float] = Field(description="Selected Treasury Constant Maturity Rate.")

@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, SecretStr, field_serializer
+from pydantic import BaseModel, field_serializer, SecretStr
 
 
 class HubSession(BaseModel):
@@ -17,9 +17,7 @@ class HubSession(BaseModel):
 
     def __repr__(self) -> str:
         """Return string representation."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())
 
     @field_serializer("access_token", when_used="json-unless-none")
     def _dump_secret(self, v):

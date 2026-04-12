@@ -31,9 +31,7 @@ class SystemService(metaclass=SingletonMeta):
         **kwargs,
     ):
         """Initialize system service."""
-        self._system_settings = self._read_from_file(
-            path=self.SYSTEM_SETTINGS_PATH, **kwargs
-        )
+        self._system_settings = self._read_from_file(path=self.SYSTEM_SETTINGS_PATH, **kwargs)
 
     @classmethod
     def _compare_hash(cls, input_value, existing_hash: Optional[str] = None):

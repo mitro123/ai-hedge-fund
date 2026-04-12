@@ -5,18 +5,13 @@ import platform as pl  # I do this so that the import doesn't conflict with the 
 from pathlib import Path
 from typing import List, Literal, Optional
 
-from openbb_core.app.constants import (
-    HOME_DIRECTORY,
-    OPENBB_DIRECTORY,
-    SYSTEM_SETTINGS_PATH,
-    USER_SETTINGS_PATH,
-)
+from pydantic import ConfigDict, Field, field_validator, model_validator
+
+from openbb_core.app.constants import HOME_DIRECTORY, OPENBB_DIRECTORY, SYSTEM_SETTINGS_PATH, USER_SETTINGS_PATH
 from openbb_core.app.model.abstract.tagged import Tagged
 from openbb_core.app.model.api_settings import APISettings
-
 from openbb_core.app.model.python_settings import PythonSettings
 from openbb_core.app.version import CORE_VERSION, VERSION
-from pydantic import ConfigDict, Field, field_validator, model_validator
 
 
 class SystemSettings(Tagged):
@@ -60,9 +55,7 @@ class SystemSettings(Tagged):
 
     def __repr__(self) -> str:
         """Return a string representation of the model."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())
 
     @staticmethod
     def create_json(path: Path, template: Optional[dict] = None) -> None:

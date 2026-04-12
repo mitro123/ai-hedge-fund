@@ -8,11 +8,7 @@ from pathlib import Path
 # IMPORTATION THIRD PARTY
 # IMPORTATION INTERNAL
 from openbb_core.app.logs.models.logging_settings import LoggingSettings
-from openbb_core.app.logs.utils.expired_files import (
-    get_expired_file_list,
-    get_timestamp_from_x_days,
-    remove_file_list,
-)
+from openbb_core.app.logs.utils.expired_files import get_expired_file_list, get_timestamp_from_x_days, remove_file_list
 
 ARCHIVES_FOLDER_NAME = "archives"
 TMP_FOLDER_NAME = "tmp"

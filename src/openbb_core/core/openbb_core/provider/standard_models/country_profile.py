@@ -2,13 +2,11 @@
 
 from typing import Optional
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class CountryProfileQueryParams(QueryParams):
@@ -28,9 +26,7 @@ class CountryProfileData(Data):
 
     country: str = Field(description=DATA_DESCRIPTIONS.get("country", ""))
     population: Optional[int] = Field(default=None, description="Population.")
-    gdp_usd: Optional[float] = Field(
-        default=None, description="Gross Domestic Product, in billions of USD."
-    )
+    gdp_usd: Optional[float] = Field(default=None, description="Gross Domestic Product, in billions of USD.")
     gdp_qoq: Optional[float] = Field(
         default=None,
         description="GDP growth quarter-over-quarter change, as a normalized percent.",

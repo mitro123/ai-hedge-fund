@@ -47,9 +47,7 @@ class ClientResponse(aiohttp.ClientResponse):
         super().__init__(*args, **kwargs)
 
     @classmethod
-    def obfuscate_request_info(
-        cls, request_info: aiohttp.RequestInfo
-    ) -> aiohttp.RequestInfo:
+    def obfuscate_request_info(cls, request_info: aiohttp.RequestInfo) -> aiohttp.RequestInfo:
         """Remove sensitive information from request info."""
         query = obfuscate(request_info.url.query.copy())
         headers = CIMultiDictProxy(CIMultiDict(obfuscate(request_info.headers.copy())))
@@ -70,9 +68,7 @@ class ClientSession(aiohttp.ClientSession):
 
     def __init__(self, *args, **kwargs):
         """Initialize the session."""
-        kwargs["connector"] = kwargs.get(
-            "connector", aiohttp.TCPConnector(ttl_dns_cache=300)
-        )
+        kwargs["connector"] = kwargs.get("connector", aiohttp.TCPConnector(ttl_dns_cache=300))
         kwargs["response_class"] = kwargs.get("response_class", ClientResponse)
         kwargs["auto_decompress"] = kwargs.get("auto_decompress", False)
 
@@ -107,9 +103,7 @@ class ClientSession(aiohttp.ClientSession):
 
         return data
 
-    async def request(  # type: ignore
-        self, *args, raise_for_status: bool = False, **kwargs
-    ) -> ClientResponse:
+    async def request(self, *args, raise_for_status: bool = False, **kwargs) -> ClientResponse:  # type: ignore
         """Send request."""
         # pylint: disable=import-outside-toplevel
         import zlib

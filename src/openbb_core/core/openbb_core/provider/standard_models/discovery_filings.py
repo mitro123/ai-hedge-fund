@@ -1,18 +1,14 @@
 """Discovery Filings Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Optional
+
+from pydantic import Field, NonNegativeInt
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, NonNegativeInt
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class DiscoveryFilingsQueryParams(QueryParams):
@@ -28,14 +24,9 @@ class DiscoveryFilingsQueryParams(QueryParams):
     )
     form_type: Optional[str] = Field(
         default=None,
-        description=(
-            "Filter by form type. Visit https://www.sec.gov/forms "
-            "for a list of supported form types."
-        ),
+        description=("Filter by form type. Visit https://www.sec.gov/forms " "for a list of supported form types."),
     )
-    limit: NonNegativeInt = Field(
-        default=100, description=QUERY_DESCRIPTIONS.get("limit", "")
-    )
+    limit: NonNegativeInt = Field(default=100, description=QUERY_DESCRIPTIONS.get("limit", ""))
 
 
 class DiscoveryFilingsData(Data):

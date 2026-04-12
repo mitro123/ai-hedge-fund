@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional
 
 import pytest
+
 from openbb_core.provider.abstract.fetcher import Data, Fetcher, QueryParams
 
 # Step 1: Create a dummy subclass of Fetcher
@@ -25,9 +26,7 @@ class MockFetcher(Fetcher[MockQueryParams, List[MockData]]):
         return MockQueryParams()
 
     @staticmethod
-    def extract_data(
-        query: MockQueryParams, credentials: Optional[Dict[str, str]]
-    ) -> Any:
+    def extract_data(query: MockQueryParams, credentials: Optional[Dict[str, str]]) -> Any:
         """Extract the data from the provider."""
         return [{"mock_key": "mock_value"}]  # Mocking a data response
 

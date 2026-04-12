@@ -1,7 +1,8 @@
 """Test the HubSession class."""
 
-from openbb_core.app.model.hub.hub_session import HubSession
 from pydantic import SecretStr
+
+from openbb_core.app.model.hub.hub_session import HubSession
 
 # ruff: noqa: S105 S106
 

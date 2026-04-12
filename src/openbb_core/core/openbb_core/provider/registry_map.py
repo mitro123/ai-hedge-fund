@@ -3,13 +3,14 @@
 from copy import deepcopy
 from inspect import getfile, isclass
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, get_origin
+from typing import Any, Dict, get_origin, List, Literal, Optional, Tuple
+
+from pydantic import BaseModel
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.fetcher import Fetcher
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.registry import Registry, RegistryLoader
-from pydantic import BaseModel
 
 MapType = Dict[str, Dict[str, Dict[str, Dict[str, Any]]]]
 
@@ -60,9 +61,7 @@ class RegistryMap:
 
     def _get_credentials(self, registry: Registry) -> Dict[str, List[str]]:
         """Get map of providers to credentials."""
-        return {
-            name: provider.credentials for name, provider in registry.providers.items()
-        }
+        return {name: provider.credentials for name, provider in registry.providers.items()}
 
     def _get_available_providers(self, registry: Registry) -> List[str]:
         """Get list of available providers."""
@@ -75,9 +74,7 @@ class RegistryMap:
 
         for p in registry.providers:
             for model_name, fetcher in registry.providers[p].fetcher_dict.items():
-                standard_query, extra_query = self._extract_info(
-                    fetcher, "query_params"
-                )
+                standard_query, extra_query = self._extract_info(fetcher, "query_params")
                 standard_data, extra_data = self._extract_info(fetcher, "data")
                 if model_name not in standard_extra:
                     standard_extra[model_name] = {}
@@ -140,9 +137,7 @@ class RegistryMap:
         return get_origin(getattr(fetcher, "return_type", None))
 
     @staticmethod
-    def _extract_info(
-        fetcher: Fetcher, type_: Literal["query_params", "data"]
-    ) -> tuple:
+    def _extract_info(fetcher: Fetcher, type_: Literal["query_params", "data"]) -> tuple:
         """Extract info (fields and docstring) from fetcher query params or data."""
         model: BaseModel = RegistryMap._get_model(fetcher, type_)
         standard_info: Dict[str, Any] = {"fields": {}, "docstring": None}
@@ -165,8 +160,7 @@ class RegistryMap:
                 # when the child simply inherits the parent and does not
                 # define any attributes.
                 # TLDR: Only fields defined in c are included
-                if name in child.__annotations__
-                and child.__annotations__ is not parent.__annotations__
+                if name in child.__annotations__ and child.__annotations__ is not parent.__annotations__
             }
 
             if Path(getfile(child)).parent == STANDARD_MODELS_FOLDER:
@@ -181,9 +175,7 @@ class RegistryMap:
         return standard_info, extra_info
 
     @staticmethod
-    def _get_model(
-        fetcher: Fetcher, type_: Literal["query_params", "data"]
-    ) -> BaseModel:
+    def _get_model(fetcher: Fetcher, type_: Literal["query_params", "data"]) -> BaseModel:
         """Get model from fetcher."""
         model = getattr(fetcher, f"{type_}_type")
         RegistryMap._validate(model, type_)

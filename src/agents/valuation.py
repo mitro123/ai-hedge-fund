@@ -145,9 +145,7 @@ def valuation_analyst_agent(state: AgentState, agent_id: str = "valuation_analys
                 "signal": (
                     "bullish"
                     if vals["gap"] and vals["gap"] > 0.15
-                    else "bearish"
-                    if vals["gap"] and vals["gap"] < -0.15
-                    else "neutral"
+                    else "bearish" if vals["gap"] and vals["gap"] < -0.15 else "neutral"
                 ),
                 "details": (
                     f"Value: ${vals['value']:,.2f}, Market Cap: ${market_cap:,.2f}, "

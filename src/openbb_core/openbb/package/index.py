@@ -2,12 +2,13 @@
 
 from typing import Literal, Optional
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_index(Container):
@@ -30,7 +31,7 @@ class ROUTER_index(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """All indices available from a given provider.
 
@@ -87,7 +88,7 @@ class ROUTER_index(Container):
                 },
                 standard_params={},
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -101,7 +102,7 @@ class ROUTER_index(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Index Constituents.
 
@@ -165,7 +166,7 @@ class ROUTER_index(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @property

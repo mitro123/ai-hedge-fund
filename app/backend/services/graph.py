@@ -185,38 +185,38 @@ def run_graph(
 def compile_graph(nodes, edges, agent_models=None, model_name="gpt-4.1", model_provider="openrouter"):
     """
     Kompiluje graf z node a edge definic pro použití v backtestingu.
-    
+
     Args:
         nodes: Seznam GraphNode objektů
         edges: Seznam GraphEdge objektů
         agent_models: Seznam AgentModelConfig objektů (volitelné)
         model_name: Výchozí název modelu
         model_provider: Výchozí poskytovatel modelu
-    
+
     Returns:
         Zkompilovaný StateGraph připravený k použití
     """
     # Převod Pydantic objektů na slovníky pro kompatibilitu
     graph_nodes = []
     for node in nodes:
-        if hasattr(node, 'dict'):
+        if hasattr(node, "dict"):
             graph_nodes.append(node.dict())
         else:
             graph_nodes.append(node)
-    
+
     graph_edges = []
     for edge in edges:
-        if hasattr(edge, 'dict'):
+        if hasattr(edge, "dict"):
             graph_edges.append(edge.dict())
         else:
             graph_edges.append(edge)
-    
+
     # Vytvoření grafu
     graph = create_graph(graph_nodes, graph_edges)
-    
+
     # Kompilace grafu
     compiled_graph = graph.compile()
-    
+
     return compiled_graph
 
 

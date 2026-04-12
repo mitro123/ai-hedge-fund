@@ -3,10 +3,7 @@
 import asyncio
 from unittest.mock import MagicMock, patch
 
-from openbb_core.api.dependency.system import (
-    SystemSettings,
-    get_system_settings,
-)
+from openbb_core.api.dependency.system import get_system_settings, SystemSettings
 
 
 @patch("openbb_core.api.dependency.system.SystemService")

@@ -1,10 +1,11 @@
 """Coverage API router helper functions."""
 
 from inspect import _empty, signature
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Type
+from typing import Any, Callable, Dict, Optional, Tuple, Type, TYPE_CHECKING
+
+from pydantic import BaseModel, create_model, Field
 
 from openbb_core.app.provider_interface import ProviderInterface
-from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
     from openbb_core.app.static.app_factory import BaseApp
@@ -36,13 +37,9 @@ def signature_to_fields(app: "BaseApp", route: str) -> Dict[str, Tuple[Any, Fiel
     fields = {}
     for name, param in sig.parameters.items():
         if name not in ["kwargs", "args"]:
-            type_annotation = (
-                param.annotation if param.annotation is not _empty else Any
-            )
+            type_annotation = param.annotation if param.annotation is not _empty else Any
             description = (
-                param.annotation.__metadata__[0].description
-                if hasattr(param.annotation, "__metadata__")
-                else None
+                param.annotation.__metadata__[0].description if hasattr(param.annotation, "__metadata__") else None
             )
             fields[name] = (
                 type_annotation,

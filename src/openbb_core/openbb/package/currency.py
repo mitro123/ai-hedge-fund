@@ -2,12 +2,13 @@
 
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_currency(Container):
@@ -41,7 +42,7 @@ class ROUTER_currency(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, polygon."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Currency Search.
 
@@ -130,7 +131,7 @@ class ROUTER_currency(Container):
                     "query": query,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -151,9 +152,7 @@ class ROUTER_currency(Container):
         ] = "indirect",
         counter_currencies: Annotated[
             Union[str, list[str], None],
-            OpenBBField(
-                description="An optional list of counter currency symbols to filter for. None returns all."
-            ),
+            OpenBBField(description="An optional list of counter currency symbols to filter for. None returns all."),
         ] = None,
         provider: Annotated[
             Optional[Literal["fmp", "polygon"]],
@@ -161,7 +160,7 @@ class ROUTER_currency(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, polygon."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Snapshots of currency exchange rates from an indirect or direct perspective of a base currency.
 
@@ -292,5 +291,5 @@ class ROUTER_currency(Container):
                         "polygon": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )

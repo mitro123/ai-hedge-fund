@@ -25,6 +25,4 @@ class Chart(BaseModel):
 
     def __repr__(self) -> str:
         """Return string representation."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())

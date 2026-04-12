@@ -2,11 +2,12 @@
 
 from typing import Any, Dict, Optional, Type
 
+from pydantic import SecretStr
+
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.provider.abstract.fetcher import Fetcher
 from openbb_core.provider.abstract.provider import Provider
 from openbb_core.provider.registry import Registry, RegistryLoader
-from pydantic import SecretStr
 
 
 class QueryExecutor:
@@ -29,9 +30,7 @@ class QueryExecutor:
     def get_fetcher(self, provider: Provider, model_name: str) -> Type[Fetcher]:
         """Get a fetcher from a provider."""
         if model_name not in provider.fetcher_dict:
-            raise OpenBBError(
-                f"Fetcher not found for model '{model_name}' in provider '{provider.name}'."
-            )
+            raise OpenBBError(f"Fetcher not found for model '{model_name}' in provider '{provider.name}'.")
         return provider.fetcher_dict[model_name]
 
     @staticmethod
@@ -92,7 +91,5 @@ class QueryExecutor:
         """
         provider = self.get_provider(provider_name)
         fetcher = self.get_fetcher(provider, model_name)
-        filtered_credentials = self.filter_credentials(
-            credentials, provider, fetcher.require_credentials
-        )
+        filtered_credentials = self.filter_credentials(credentials, provider, fetcher.require_credentials)
         return await fetcher.fetch_data(params, filtered_credentials, **kwargs)

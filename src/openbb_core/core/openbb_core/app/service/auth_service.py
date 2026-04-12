@@ -6,11 +6,10 @@ from types import ModuleType
 from typing import Awaitable, Callable, Optional
 
 from fastapi import APIRouter
-from openbb_core.api.router.user import (
-    auth_hook as default_auth_hook,
-    router as default_router,
-    user_settings_hook as default_user_settings_hook,
-)
+
+from openbb_core.api.router.user import auth_hook as default_auth_hook
+from openbb_core.api.router.user import router as default_router
+from openbb_core.api.router.user import user_settings_hook as default_user_settings_hook
 from openbb_core.app.extension_loader import ExtensionLoader
 from openbb_core.app.model.abstract.singleton import SingletonMeta
 from openbb_core.app.model.user_settings import UserSettings

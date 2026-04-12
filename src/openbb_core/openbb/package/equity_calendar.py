@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_calendar(Container):
@@ -41,7 +42,7 @@ class ROUTER_equity_calendar(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical and upcoming dividend payments. Includes dividend amount, ex-dividend and payment dates.
 
@@ -110,7 +111,7 @@ class ROUTER_equity_calendar(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -131,7 +132,7 @@ class ROUTER_equity_calendar(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical and upcoming company earnings releases. Includes earnings per share (EPS) and revenue data.
 
@@ -206,7 +207,7 @@ class ROUTER_equity_calendar(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -227,7 +228,7 @@ class ROUTER_equity_calendar(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical and upcoming company events, such as Investor Day, Conference Call, Earnings Release.
 
@@ -296,16 +297,14 @@ class ROUTER_equity_calendar(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
     @validate
     def ipo(
         self,
-        symbol: Annotated[
-            Optional[str], OpenBBField(description="Symbol to get data for.")
-        ] = None,
+        symbol: Annotated[Optional[str], OpenBBField(description="Symbol to get data for.")] = None,
         start_date: Annotated[
             Union[datetime.date, None, str],
             OpenBBField(description="Start date of the data, in YYYY-MM-DD format."),
@@ -324,7 +323,7 @@ class ROUTER_equity_calendar(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical and upcoming initial public offerings (IPOs).
 
@@ -433,7 +432,7 @@ class ROUTER_equity_calendar(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -454,7 +453,7 @@ class ROUTER_equity_calendar(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical and upcoming stock split operations.
 
@@ -517,5 +516,5 @@ class ROUTER_equity_calendar(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

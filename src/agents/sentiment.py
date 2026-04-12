@@ -101,11 +101,11 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
         # Vytvoření strukturovaného zdůvodnění podobného technické analýze
         reasoning = {
             "insider_trading": {
-                "signal": "bullish"
-                if insider_signals.count("bullish") > insider_signals.count("bearish")
-                else "bearish"
-                if insider_signals.count("bearish") > insider_signals.count("bullish")
-                else "neutral",
+                "signal": (
+                    "bullish"
+                    if insider_signals.count("bullish") > insider_signals.count("bearish")
+                    else "bearish" if insider_signals.count("bearish") > insider_signals.count("bullish") else "neutral"
+                ),
                 "confidence": round(
                     (
                         max(insider_signals.count("bullish"), insider_signals.count("bearish"))
@@ -123,11 +123,11 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
                 },
             },
             "news_sentiment": {
-                "signal": "bullish"
-                if news_signals.count("bullish") > news_signals.count("bearish")
-                else "bearish"
-                if news_signals.count("bearish") > news_signals.count("bullish")
-                else "neutral",
+                "signal": (
+                    "bullish"
+                    if news_signals.count("bullish") > news_signals.count("bearish")
+                    else "bearish" if news_signals.count("bearish") > news_signals.count("bullish") else "neutral"
+                ),
                 "confidence": round(
                     (max(news_signals.count("bullish"), news_signals.count("bearish")) / max(len(news_signals), 1))
                     * 100
@@ -182,11 +182,12 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
 
 def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_id: str) -> Dict[str, Any]:
     """Analyzuje sentiment pro komodity na základě cenových vzorců a volatility."""
-    from src.tools.api import get_prices, prices_to_df
     import pandas as pd
-    
+
+    from src.tools.api import get_prices, prices_to_df
+
     progress.update_status(agent_id, ticker, "Načítání cenových dat komodity")
-    
+
     # Získání cenových dat pro analýzu sentimentu
     prices = get_prices(
         ticker=ticker,
@@ -194,29 +195,27 @@ def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_
         end_date=end_date,
         api_key=api_key,
     )
-    
+
     if not prices:
         progress.update_status(agent_id, ticker, "Chyba: Nenalezena cenová data")
         return {
             "signal": "neutral",
             "confidence": 0.0,
-            "reasoning": {
-                "message": f"Nelze získat cenová data pro komoditu {ticker}"
-            },
+            "reasoning": {"message": f"Nelze získat cenová data pro komoditu {ticker}"},
         }
-    
+
     prices_df = prices_to_df(prices)
-    
+
     # Komoditní sentiment analýza
     signals = []
     reasoning = {}
-    
+
     progress.update_status(agent_id, ticker, "Analýza cenového momentu")
-    
+
     # 1. Cenové momentum jako indikátor sentimentu
     returns = prices_df["close"].pct_change().dropna()
     recent_returns = returns.tail(10).mean()  # Průměrný výnos za posledních 10 dní
-    
+
     if recent_returns > 0.02:  # Silné pozitivní momentum
         momentum_signal = "bullish"
         momentum_desc = "Silné pozitivní cenové momentum"
@@ -226,24 +225,21 @@ def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_
     else:
         momentum_signal = "neutral"
         momentum_desc = "Neutrální cenové momentum"
-    
+
     signals.append(momentum_signal)
     reasoning["price_momentum"] = {
         "signal": momentum_signal,
         "confidence": min(abs(recent_returns) * 50, 100),
-        "metrics": {
-            "recent_returns": f"{recent_returns:.2%}",
-            "interpretation": momentum_desc
-        }
+        "metrics": {"recent_returns": f"{recent_returns:.2%}", "interpretation": momentum_desc},
     }
-    
+
     progress.update_status(agent_id, ticker, "Analýza objemového sentimentu")
-    
+
     # 2. Objemová analýza jako sentiment indikátor
     volume_ma = prices_df["volume"].rolling(20).mean()
     recent_volume = prices_df["volume"].tail(5).mean()
     volume_ratio = recent_volume / volume_ma.iloc[-1] if volume_ma.iloc[-1] > 0 else 1.0
-    
+
     if volume_ratio > 1.5:  # Vysoký objem = zvýšený zájem
         volume_signal = "bullish"
         volume_desc = "Vysoký objem indikuje zvýšený zájem"
@@ -253,24 +249,21 @@ def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_
     else:
         volume_signal = "neutral"
         volume_desc = "Normální úroveň objemu"
-    
+
     signals.append(volume_signal)
     reasoning["volume_sentiment"] = {
         "signal": volume_signal,
         "confidence": min(abs(volume_ratio - 1) * 100, 100),
-        "metrics": {
-            "volume_ratio": f"{volume_ratio:.2f}",
-            "interpretation": volume_desc
-        }
+        "metrics": {"volume_ratio": f"{volume_ratio:.2f}", "interpretation": volume_desc},
     }
-    
+
     progress.update_status(agent_id, ticker, "Analýza volatilního sentimentu")
-    
+
     # 3. Volatilita jako sentiment indikátor
-    volatility = returns.std() * (252 ** 0.5)  # Anualizovaná volatilita
-    recent_volatility = returns.tail(10).std() * (252 ** 0.5)
+    volatility = returns.std() * (252**0.5)  # Anualizovaná volatilita
+    recent_volatility = returns.tail(10).std() * (252**0.5)
     volatility_change = (recent_volatility - volatility) / volatility if volatility > 0 else 0
-    
+
     if volatility_change > 0.2:  # Rostoucí volatilita
         volatility_signal = "bearish"  # Rostoucí volatilita = nejistota
         volatility_desc = "Rostoucí volatilita indikuje nejistotu"
@@ -280,7 +273,7 @@ def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_
     else:
         volatility_signal = "neutral"
         volatility_desc = "Stabilní úroveň volatility"
-    
+
     signals.append(volatility_signal)
     reasoning["volatility_sentiment"] = {
         "signal": volatility_signal,
@@ -288,19 +281,19 @@ def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_
         "metrics": {
             "volatility_change": f"{volatility_change:.2%}",
             "current_volatility": f"{recent_volatility:.2%}",
-            "interpretation": volatility_desc
-        }
+            "interpretation": volatility_desc,
+        },
     }
-    
+
     progress.update_status(agent_id, ticker, "Analýza trendového sentimentu")
-    
+
     # 4. Trendový sentiment
     short_ma = prices_df["close"].rolling(10).mean()
     long_ma = prices_df["close"].rolling(30).mean()
-    
+
     current_price = prices_df["close"].iloc[-1]
     trend_strength = (current_price - long_ma.iloc[-1]) / long_ma.iloc[-1] if long_ma.iloc[-1] > 0 else 0
-    
+
     if trend_strength > 0.05:  # Silný vzestupný trend
         trend_signal = "bullish"
         trend_desc = "Silný vzestupný trend"
@@ -310,44 +303,41 @@ def analyze_commodity_sentiment(ticker: str, end_date: str, api_key: str, agent_
     else:
         trend_signal = "neutral"
         trend_desc = "Boční nebo slabý trend"
-    
+
     signals.append(trend_signal)
     reasoning["trend_sentiment"] = {
         "signal": trend_signal,
         "confidence": min(abs(trend_strength) * 200, 100),
-        "metrics": {
-            "trend_strength": f"{trend_strength:.2%}",
-            "interpretation": trend_desc
-        }
+        "metrics": {"trend_strength": f"{trend_strength:.2%}", "interpretation": trend_desc},
     }
-    
+
     progress.update_status(agent_id, ticker, "Výpočet finálního sentimentu")
-    
+
     # Určení celkového signálu
     bullish_signals = signals.count("bullish")
     bearish_signals = signals.count("bearish")
-    
+
     if bullish_signals > bearish_signals:
         overall_signal = "bullish"
     elif bearish_signals > bullish_signals:
         overall_signal = "bearish"
     else:
         overall_signal = "neutral"
-    
+
     # Výpočet úrovně spolehlivosti
     total_signals = len(signals)
     confidence = round(max(bullish_signals, bearish_signals) / total_signals * 100, 2)
-    
+
     # Přidání souhrnné analýzy
     reasoning["combined_analysis"] = {
         "total_bullish": bullish_signals,
         "total_bearish": bearish_signals,
         "total_neutral": signals.count("neutral"),
-        "signal_determination": f"Sentiment {overall_signal} na základě {total_signals} indikátorů"
+        "signal_determination": f"Sentiment {overall_signal} na základě {total_signals} indikátorů",
     }
-    
+
     progress.update_status(agent_id, ticker, "Hotovo - sentiment komodity", analysis=json.dumps(reasoning, indent=4))
-    
+
     return {
         "signal": overall_signal,
         "confidence": confidence,

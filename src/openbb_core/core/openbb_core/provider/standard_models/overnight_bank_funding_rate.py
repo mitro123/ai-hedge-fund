@@ -3,13 +3,11 @@
 from datetime import date as dateType
 from typing import Optional
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class OvernightBankFundingRateQueryParams(QueryParams):
@@ -55,8 +53,7 @@ class OvernightBankFundingRateData(Data):
     )
     volume: Optional[float] = Field(
         default=None,
-        description=DATA_DESCRIPTIONS.get("volume", "")
-        + "The notional volume of transactions (Billions of $).",
+        description=DATA_DESCRIPTIONS.get("volume", "") + "The notional volume of transactions (Billions of $).",
         json_schema_extra={
             "x-unit_measurement": "currency",
             "x-frontend_multiply": 1e9,

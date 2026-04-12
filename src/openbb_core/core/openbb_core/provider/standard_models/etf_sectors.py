@@ -2,10 +2,11 @@
 
 from typing import Optional
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import QUERY_DESCRIPTIONS
-from pydantic import Field, field_validator
 
 
 class EtfSectorsQueryParams(QueryParams):
@@ -24,6 +25,4 @@ class EtfSectorsData(Data):
     """ETF Sectors Data."""
 
     sector: str = Field(description="Sector of exposure.")
-    weight: Optional[float] = Field(
-        description="Exposure of the ETF to the sector in normalized percentage points."
-    )
+    weight: Optional[float] = Field(description="Exposure of the ETF to the sector in normalized percentage points.")

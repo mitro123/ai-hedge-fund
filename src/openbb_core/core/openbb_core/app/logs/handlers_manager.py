@@ -3,12 +3,8 @@
 import logging
 import sys
 
-from openbb_core.app.logs.formatters.formatter_with_exceptions import (
-    FormatterWithExceptions,
-)
-from openbb_core.app.logs.handlers.path_tracking_file_handler import (
-    PathTrackingFileHandler,
-)
+from openbb_core.app.logs.formatters.formatter_with_exceptions import FormatterWithExceptions
+from openbb_core.app.logs.handlers.path_tracking_file_handler import PathTrackingFileHandler
 from openbb_core.app.logs.models.logging_settings import LoggingSettings
 
 
@@ -71,9 +67,6 @@ class HandlersManager:
         """Update the handlers with new settings."""
         logger = self._logger
         for hdlr in logger.handlers:
-            if (
-                isinstance(hdlr, PathTrackingFileHandler)
-                and not settings.logging_suppress
-            ):
+            if isinstance(hdlr, PathTrackingFileHandler) and not settings.logging_suppress:
                 hdlr.settings = settings
                 hdlr.formatter.settings = settings  # type: ignore

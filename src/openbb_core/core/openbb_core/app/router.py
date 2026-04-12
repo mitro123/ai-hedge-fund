@@ -4,34 +4,19 @@ import traceback
 import warnings
 from functools import lru_cache
 from inspect import isclass
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Type,
-    get_args,
-    get_origin,
-    get_type_hints,
-    overload,
-)
+from typing import Any, Callable, Dict, get_args, get_origin, get_type_hints, List, Optional, overload, Type
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from typing_extensions import Annotated, ParamSpec
+
 from openbb_core.app.deprecation import DeprecationSummary, OpenBBDeprecationWarning
 from openbb_core.app.extension_loader import ExtensionLoader
 from openbb_core.app.model.abstract.warning import OpenBBWarning
 from openbb_core.app.model.example import filter_list
 from openbb_core.app.model.obbject import OBBject
-from openbb_core.app.provider_interface import (
-    ExtraParams,
-    ProviderChoices,
-    ProviderInterface,
-    StandardParams,
-)
+from openbb_core.app.provider_interface import ExtraParams, ProviderChoices, ProviderInterface, StandardParams
 from openbb_core.env import Env
-from pydantic import BaseModel
-from typing_extensions import Annotated, ParamSpec
 
 P = ParamSpec("P")
 
@@ -112,9 +97,7 @@ class Router:
                 providers=ProviderInterface().available_providers,
             )
             kwargs["openapi_extra"]["no_validate"] = no_validate
-            kwargs["operation_id"] = kwargs.get(
-                "operation_id", SignatureInspector.get_operation_id(func)
-            )
+            kwargs["operation_id"] = kwargs.get("operation_id", SignatureInspector.get_operation_id(func))
             kwargs["path"] = kwargs.get("path", f"/{func.__name__}")
             kwargs["endpoint"] = func
             kwargs["methods"] = kwargs.get("methods", ["GET"])
@@ -126,9 +109,7 @@ class Router:
                 if not no_validate
                 else func.__annotations__["return"]
             )
-            kwargs["response_model_by_alias"] = kwargs.get(
-                "response_model_by_alias", False
-            )
+            kwargs["response_model_by_alias"] = kwargs.get("response_model_by_alias", False)
             kwargs["description"] = SignatureInspector.get_description(func)
             kwargs["responses"] = kwargs.get(
                 "responses",
@@ -156,9 +137,7 @@ class Router:
             if kwargs.get("deprecated", False):
                 deprecation: OpenBBDeprecationWarning = kwargs.pop("deprecation")
 
-                kwargs["summary"] = DeprecationSummary(
-                    deprecation.long_message, deprecation
-                )
+                kwargs["summary"] = DeprecationSummary(deprecation.long_message, deprecation)
 
             api_router.add_api_route(**kwargs)
 
@@ -171,9 +150,7 @@ class Router:
     ):
         """Include router."""
         tags = [prefix.strip("/")] if prefix else None
-        self._api_router.include_router(
-            router=router.api_router, prefix=prefix, tags=tags  # type: ignore
-        )
+        self._api_router.include_router(router=router.api_router, prefix=prefix, tags=tags)  # type: ignore
         name = prefix if prefix else router.prefix
         self._routers[name.strip("/")] = router
 
@@ -201,9 +178,7 @@ class Router:
         path = path.strip("/")
         first = path.split("/")[0]
         if first in router.routers:
-            return Router._search_attr(
-                router.routers[first], "/".join(path.split("/")[1:]), attr
-            )
+            return Router._search_attr(router.routers[first], "/".join(path.split("/")[1:]), attr)
         return getattr(router, attr, None)
 
 
@@ -211,13 +186,9 @@ class SignatureInspector:
     """Inspect function signature."""
 
     @classmethod
-    def complete(
-        cls, func: Callable[P, OBBject], model: str
-    ) -> Optional[Callable[P, OBBject]]:
+    def complete(cls, func: Callable[P, OBBject], model: str) -> Optional[Callable[P, OBBject]]:
         """Complete function signature."""
-        if isclass(return_type := func.__annotations__["return"]) and not issubclass(
-            return_type, OBBject
-        ):
+        if isclass(return_type := func.__annotations__["return"]) and not issubclass(return_type, OBBject):
             return func
 
         provider_interface = ProviderInterface()
@@ -291,9 +262,7 @@ class SignatureInspector:
                 results_type = results_type_args[0]
 
             is_list = isinstance(get_origin(results_type), list)
-            inner_type = (
-                results_type_args[0] if is_list and results_type_args else results_type
-            )
+            inner_type = results_type_args[0] if is_list and results_type_args else results_type
             inner_type_name = getattr(inner_type, "__name__", inner_type)
 
             func.__annotations__["return"].__doc__ = "OBBject"
@@ -302,15 +271,11 @@ class SignatureInspector:
         return func
 
     @staticmethod
-    def validate_signature(
-        func: Callable[P, OBBject], expected: Dict[str, type]
-    ) -> None:
+    def validate_signature(func: Callable[P, OBBject], expected: Dict[str, type]) -> None:
         """Validate function signature before binding to model."""
         for k, v in expected.items():
             if k not in func.__annotations__:
-                raise AttributeError(
-                    f"Invalid signature: '{func.__name__}'. Missing '{k}' parameter."
-                )
+                raise AttributeError(f"Invalid signature: '{func.__name__}'. Missing '{k}' parameter.")
 
             if func.__annotations__[k] != v:
                 raise TypeError(
@@ -318,17 +283,13 @@ class SignatureInspector:
                 )
 
     @staticmethod
-    def inject_dependency(
-        func: Callable[P, OBBject], arg: str, callable_: Any
-    ) -> Callable[P, OBBject]:
+    def inject_dependency(func: Callable[P, OBBject], arg: str, callable_: Any) -> Callable[P, OBBject]:
         """Annotate function with dependency injection."""
         func.__annotations__[arg] = Annotated[callable_, Depends()]  # type: ignore
         return func
 
     @staticmethod
-    def inject_return_annotation(
-        func: Callable[P, OBBject], annotation: Type[OBBject]
-    ) -> Callable[P, OBBject]:
+    def inject_return_annotation(func: Callable[P, OBBject], annotation: Type[OBBject]) -> Callable[P, OBBject]:
         """Annotate function with return annotation."""
         func.__annotations__["return"] = annotation
         return func
@@ -350,8 +311,7 @@ class SignatureInspector:
     def get_operation_id(func: Callable, sep: str = "_") -> str:
         """Get operation id."""
         operation_id = [
-            t.replace("_router", "").replace("openbb_", "")
-            for t in func.__module__.split(".") + [func.__name__]
+            t.replace("_router", "").replace("openbb_", "") for t in func.__module__.split(".") + [func.__name__]
         ]
         cleaned_id = sep.join({c: "" for c in operation_id if c}.keys())
         return cleaned_id
@@ -360,9 +320,7 @@ class SignatureInspector:
 class CommandMap:
     """Matching Routes with Commands."""
 
-    def __init__(
-        self, router: Optional[Router] = None, coverage_sep: Optional[str] = None
-    ) -> None:
+    def __init__(self, router: Optional[Router] = None, coverage_sep: Optional[str] = None) -> None:
         """Initialize CommandMap."""
         self._router = router or RouterLoader.from_extensions()
         self._map = self.get_command_map(router=self._router)
@@ -380,27 +338,21 @@ class CommandMap:
     def provider_coverage(self) -> Dict[str, List[str]]:
         """Get provider coverage."""
         if not self._provider_coverage:
-            self._provider_coverage = self.get_provider_coverage(
-                router=self._router, sep=self._coverage_sep
-            )
+            self._provider_coverage = self.get_provider_coverage(router=self._router, sep=self._coverage_sep)
         return self._provider_coverage
 
     @property
     def command_coverage(self) -> Dict[str, List[str]]:
         """Get command coverage."""
         if not self._command_coverage:
-            self._command_coverage = self.get_command_coverage(
-                router=self._router, sep=self._coverage_sep
-            )
+            self._command_coverage = self.get_command_coverage(router=self._router, sep=self._coverage_sep)
         return self._command_coverage
 
     @property
     def commands_model(self) -> Dict[str, str]:
         """Get commands model."""
         if not self._commands_model:
-            self._commands_model = self.get_commands_model(
-                router=self._router, sep=self._coverage_sep
-            )
+            self._commands_model = self.get_commands_model(router=self._router, sep=self._coverage_sep)
         return self._commands_model
 
     @staticmethod
@@ -413,9 +365,7 @@ class CommandMap:
         return command_map
 
     @staticmethod
-    def get_provider_coverage(
-        router: Router, sep: Optional[str] = None
-    ) -> Dict[str, List[str]]:
+    def get_provider_coverage(router: Router, sep: Optional[str] = None) -> Dict[str, List[str]]:
         """Get provider coverage."""
         api_router = router.api_router
 
@@ -444,9 +394,7 @@ class CommandMap:
         return coverage_map
 
     @staticmethod
-    def get_command_coverage(
-        router: Router, sep: Optional[str] = None
-    ) -> Dict[str, List[str]]:
+    def get_command_coverage(router: Router, sep: Optional[str] = None) -> Dict[str, List[str]]:
         """Get command coverage."""
         api_router = router.api_router
 
@@ -463,9 +411,7 @@ class CommandMap:
                         providers.remove("openbb")
 
                     if hasattr(route, "path"):
-                        rp = (
-                            route.path if sep is None else route.path.replace("/", sep)  # type: ignore
-                        )
+                        rp = route.path if sep is None else route.path.replace("/", sep)  # type: ignore
                         if route.path not in coverage_map:  # type: ignore
                             coverage_map[rp] = []
                         coverage_map[rp] = providers
@@ -482,9 +428,7 @@ class CommandMap:
             if openapi_extra:
                 model = openapi_extra.get("model", None)
                 if model and hasattr(route, "path"):
-                    rp = (
-                        route.path if sep is None else route.path.replace("/", sep)  # type: ignore
-                    )
+                    rp = route.path if sep is None else route.path.replace("/", sep)  # type: ignore
                     if route.path not in coverage_map:  # type: ignore
                         coverage_map[rp] = []
                     coverage_map[rp] = model

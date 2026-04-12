@@ -2,15 +2,9 @@
 
 from abc import abstractmethod
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Literal, Optional, Union, _GenericAlias  # type: ignore
+from typing import _GenericAlias, Any, Dict, List, Literal, Optional, Union  # type: ignore
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    computed_field,
-    model_validator,
-)
+from pydantic import BaseModel, computed_field, ConfigDict, Field, model_validator
 
 QUOTE_TYPES = {str, date}
 
@@ -31,9 +25,7 @@ class APIEx(Example):
     """API Example model."""
 
     scope: Literal["api"] = "api"
-    description: Optional[str] = Field(
-        default=None, description="Optional description unless more than 3 parameters"
-    )
+    description: Optional[str] = Field(default=None, description="Optional description unless more than 3 parameters")
     parameters: Dict[str, Union[str, int, float, bool, List[str], List[Dict[str, Any]]]]
 
     @computed_field  # type: ignore[misc]
@@ -59,11 +51,7 @@ class APIEx(Example):
     @staticmethod
     def _unpack_type(type_: type) -> set:
         """Unpack types from types, example Union[List[str], int] -> {typing._GenericAlias, int}."""
-        if (
-            hasattr(type_, "__args__")
-            and type(type_)  # pylint: disable=unidiomatic-typecheck
-            is not _GenericAlias
-        ):
+        if hasattr(type_, "__args__") and type(type_) is not _GenericAlias:  # pylint: disable=unidiomatic-typecheck
             return set().union(*map(APIEx._unpack_type, type_.__args__))  # type: ignore
         return {type_} if isinstance(type_, type) else {type(type_)}
 
@@ -132,9 +120,7 @@ class APIEx(Example):
                 obs = {}
                 for k, v in sample.items():
                     if k == "date":
-                        obs[k] = (
-                            datetime.strptime(v, "%Y-%m-%d") + timedelta(days=i)
-                        ).strftime("%Y-%m-%d")
+                        obs[k] = (datetime.strptime(v, "%Y-%m-%d") + timedelta(days=i)).strftime("%Y-%m-%d")
                     else:
                         obs[k] = round(v * s, 2)
                 result.append(obs)
@@ -224,6 +210,5 @@ def filter_list(
     return [
         e
         for e in examples
-        if (isinstance(e, APIEx) and (not e.provider or e.provider in providers))
-        or e.scope != "api"
+        if (isinstance(e, APIEx) and (not e.provider or e.provider in providers)) or e.scope != "api"
     ]

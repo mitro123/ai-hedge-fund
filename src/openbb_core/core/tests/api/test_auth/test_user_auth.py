@@ -7,12 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.security import HTTPBasicCredentials
-from openbb_core.api.auth.user import (
-    UserSettings,
-    authenticate_user,
-    get_user_service,
-    get_user_settings,
-)
+
+from openbb_core.api.auth.user import authenticate_user, get_user_service, get_user_settings, UserSettings
 
 
 @pytest.mark.parametrize(

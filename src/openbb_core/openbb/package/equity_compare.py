@@ -2,12 +2,13 @@
 
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_compare(Container):
@@ -41,7 +42,7 @@ class ROUTER_equity_compare(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Compare reported company facts and fundamental data points.
 
@@ -135,9 +136,7 @@ class ROUTER_equity_compare(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "symbol": {
-                        "sec": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "symbol": {"sec": {"multiple_items_allowed": True, "choices": None}},
                     "fact": {
                         "sec": {
                             "multiple_items_allowed": False,
@@ -432,7 +431,7 @@ class ROUTER_equity_compare(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -446,7 +445,7 @@ class ROUTER_equity_compare(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the closest peers for a given company.
 
@@ -500,5 +499,5 @@ class ROUTER_equity_compare(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

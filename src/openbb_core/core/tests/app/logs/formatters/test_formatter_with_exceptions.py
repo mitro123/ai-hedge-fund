@@ -5,9 +5,8 @@ import os
 from unittest.mock import Mock
 
 import pytest
-from openbb_core.app.logs.formatters.formatter_with_exceptions import (
-    FormatterWithExceptions,
-)
+
+from openbb_core.app.logs.formatters.formatter_with_exceptions import FormatterWithExceptions
 
 # pylint: disable=W0621
 

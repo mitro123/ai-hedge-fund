@@ -3,7 +3,7 @@
 import unittest
 
 from openbb_core.app.static.package_builder import PathHandler
-from openbb_core.app.version import VERSION, get_major_minor
+from openbb_core.app.version import get_major_minor, VERSION
 
 
 class DeprecatedCommandsTest(unittest.TestCase):
@@ -22,6 +22,5 @@ class DeprecatedCommandsTest(unittest.TestCase):
                         obb_deprecation_warning = deprecation_message.metadata
 
                         assert (
-                            obb_deprecation_warning.expected_removal
-                            != current_major_minor
+                            obb_deprecation_warning.expected_removal != current_major_minor
                         ), f"The expected removal version of `{path}` matches the current version, please remove it."

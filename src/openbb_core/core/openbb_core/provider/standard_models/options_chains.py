@@ -1,18 +1,14 @@
 """Options Chains Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import List, Union
 
-from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from openbb_core.provider.utils.options_chains_properties import OptionsChainsProperties
 from pydantic import Field, field_validator, model_serializer
+
+from openbb_core.provider.abstract.query_params import QueryParams
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
+from openbb_core.provider.utils.options_chains_properties import OptionsChainsProperties
 
 
 class OptionsChainsQueryParams(QueryParams):
@@ -142,9 +138,7 @@ class OptionsChainsData(OptionsChainsProperties):
         description="Date for which the options chains are returned.",
     )
     expiration: List[dateType] = Field(description="Expiration date of the contract.")
-    dte: List[Union[int, None]] = Field(
-        default_factory=list, description="Days to expiration of the contract."
-    )
+    dte: List[Union[int, None]] = Field(default_factory=list, description="Days to expiration of the contract.")
     strike: List[float] = Field(
         description="Strike price of the contract.",
         json_schema_extra={"x-unit_measurement": "currency"},
@@ -156,9 +150,7 @@ class OptionsChainsData(OptionsChainsProperties):
     open_interest: List[Union[int, float, None]] = Field(
         default_factory=list, description="Open interest on the contract."
     )
-    volume: List[Union[int, float, None]] = Field(
-        default_factory=list, description=DATA_DESCRIPTIONS.get("volume", "")
-    )
+    volume: List[Union[int, float, None]] = Field(default_factory=list, description=DATA_DESCRIPTIONS.get("volume", ""))
     theoretical_price: List[Union[float, None]] = Field(
         default_factory=list,
         description="Theoretical value of the option.",
@@ -185,31 +177,23 @@ class OptionsChainsData(OptionsChainsProperties):
         description="Current bid price for the option.",
         json_schema_extra={"x-unit_measurement": "currency"},
     )
-    bid_size: List[Union[int, float, None]] = Field(
-        default_factory=list, description="Bid size for the option."
-    )
+    bid_size: List[Union[int, float, None]] = Field(default_factory=list, description="Bid size for the option.")
     bid_time: List[Union[datetime, None]] = Field(
         default_factory=list,
         description="The timestamp of the bid price.",
     )
-    bid_exchange: List[Union[str, None]] = Field(
-        default_factory=list, description="The exchange of the bid price."
-    )
+    bid_exchange: List[Union[str, None]] = Field(default_factory=list, description="The exchange of the bid price.")
     ask: List[Union[float, None]] = Field(
         default_factory=list,
         description="Current ask price for the option.",
         json_schema_extra={"x-unit_measurement": "currency"},
     )
-    ask_size: List[Union[int, float, None]] = Field(
-        default_factory=list, description="Ask size for the option."
-    )
+    ask_size: List[Union[int, float, None]] = Field(default_factory=list, description="Ask size for the option.")
     ask_time: List[Union[datetime, None]] = Field(
         default_factory=list,
         description="The timestamp of the ask price.",
     )
-    ask_exchange: List[Union[str, None]] = Field(
-        default_factory=list, description="The exchange of the ask price."
-    )
+    ask_exchange: List[Union[str, None]] = Field(default_factory=list, description="The exchange of the ask price.")
     mark: List[Union[float, None]] = Field(
         default_factory=list,
         description="The mid-price between the latest bid and ask.",
@@ -303,9 +287,7 @@ class OptionsChainsData(OptionsChainsProperties):
         description=DATA_DESCRIPTIONS.get("prev_close", ""),
         json_schema_extra={"x-unit_measurement": "currency"},
     )
-    change: List[Union[float, None]] = Field(
-        default_factory=list, description="The change in the price of the option."
-    )
+    change: List[Union[float, None]] = Field(default_factory=list, description="The change in the price of the option.")
     change_percent: List[Union[float, None]] = Field(
         default_factory=list,
         description="Change, in normalized percentage points, of the option.",

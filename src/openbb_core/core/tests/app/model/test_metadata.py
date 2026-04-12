@@ -5,6 +5,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import pytest
+
 from openbb_core.app.model.metadata import Metadata
 from openbb_core.provider.abstract.data import Data
 
@@ -85,21 +86,13 @@ def test_fields():
             },
         ),
         (
-            {
-                "numpy_array": np.array(
-                    [(1, "Alice"), (2, "Bob")], dtype=[("id", int), ("name", "U10")]
-                )
-            },
+            {"numpy_array": np.array([(1, "Alice"), (2, "Bob")], dtype=[("id", int), ("name", "U10")])},
             {"numpy_array": {"type": "ndarray", "columns": ["id", "name"]}},
         ),
         # Test case for long string input
         (
-            {
-                "long_string": "This is a very long string that exceeds 80 characters in length and should be trimmed."
-            },
-            {
-                "long_string": "This is a very long string that exceeds 80 characters in length and should be tr"
-            },
+            {"long_string": "This is a very long string that exceeds 80 characters in length and should be trimmed."},
+            {"long_string": "This is a very long string that exceeds 80 characters in length and should be tr"},
         ),
     ],
 )
@@ -121,9 +114,7 @@ def test_scale_arguments(input_data, expected_output):
     for arg in arguments:  # pylint: disable=E1133
         if "columns" in arguments[arg]:
             # compare the column names disregarding the order with the expected output
-            assert sorted(arguments["extra_params"][arg]["columns"]) == sorted(
-                expected_output[arg]["columns"]
-            )
+            assert sorted(arguments["extra_params"][arg]["columns"]) == sorted(expected_output[arg]["columns"])
             assert arguments[arg]["type"] == expected_output[arg]["type"]
         else:
             # assert m.arguments["extra_params"] == expected_output
@@ -133,12 +124,7 @@ def test_scale_arguments(input_data, expected_output):
 
             for key in keys:
                 if "type" in arguments["extra_params"][key]:
-                    assert (
-                        arguments["extra_params"][key]["type"]
-                        == expected_output[key]["type"]
-                    )
-                    assert sorted(arguments["extra_params"][key]["columns"]) == sorted(
-                        expected_output[key]["columns"]
-                    )
+                    assert arguments["extra_params"][key]["type"] == expected_output[key]["type"]
+                    assert sorted(arguments["extra_params"][key]["columns"]) == sorted(expected_output[key]["columns"])
                 else:
                     assert arguments["extra_params"][key] == expected_output[key]

@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_economy_survey(Container):
@@ -42,7 +43,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: bls."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search BLS surveys by category and keyword or phrase to identify BLS series IDs.
 
@@ -155,7 +156,7 @@ class ROUTER_economy_survey(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -182,7 +183,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: bls."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get time series data for one, or more, BLS series IDs.
 
@@ -270,10 +271,8 @@ class ROUTER_economy_survey(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"bls": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"bls": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -294,7 +293,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get The Survey Of Economic Conditions For The Chicago Region.
 
@@ -397,7 +396,7 @@ class ROUTER_economy_survey(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -418,7 +417,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the Empire State Manufacturing Survey.
 
@@ -541,7 +540,7 @@ class ROUTER_economy_survey(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -562,7 +561,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get The Manufacturing Outlook Survey For The Texas Region.
 
@@ -675,7 +674,7 @@ class ROUTER_economy_survey(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -694,7 +693,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Nonfarm Payrolls Survey.
 
@@ -761,10 +760,8 @@ class ROUTER_economy_survey(Container):
                     "date": date,
                 },
                 extra_params=kwargs,
-                info={
-                    "date": {"fred": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"date": {"fred": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -785,7 +782,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get Senior Loan Officers Opinion Survey.
 
@@ -860,7 +857,7 @@ class ROUTER_economy_survey(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -881,7 +878,7 @@ class ROUTER_economy_survey(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get University of Michigan Consumer Sentiment and Inflation Expectations Surveys.
 
@@ -970,5 +967,5 @@ class ROUTER_economy_survey(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

@@ -3,13 +3,11 @@
 from datetime import date as dateType
 from typing import Optional, Union
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class FuturesCurveQueryParams(QueryParams):
@@ -52,9 +50,7 @@ class FuturesCurveQueryParams(QueryParams):
 class FuturesCurveData(Data):
     """Futures Curve Data."""
 
-    date: Optional[dateType] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("date", "")
-    )
+    date: Optional[dateType] = Field(default=None, description=DATA_DESCRIPTIONS.get("date", ""))
     expiration: str = Field(description="Futures expiration month.")
     price: float = Field(
         default=None,

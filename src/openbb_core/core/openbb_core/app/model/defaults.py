@@ -3,8 +3,9 @@
 from typing import Any
 from warnings import warn
 
-from openbb_core.app.model.abstract.warning import OpenBBWarning
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from openbb_core.app.model.abstract.warning import OpenBBWarning
 
 
 class Defaults(BaseModel):
@@ -19,9 +20,7 @@ class Defaults(BaseModel):
 
     def __repr__(self) -> str:
         """Return string representation."""
-        return f"{self.__class__.__name__}\n\n" + "\n".join(
-            f"{k}: {v}" for k, v in self.model_dump().items()
-        )
+        return f"{self.__class__.__name__}\n\n" + "\n".join(f"{k}: {v}" for k, v in self.model_dump().items())
 
     @model_validator(mode="before")
     @classmethod

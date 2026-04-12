@@ -4,13 +4,14 @@ import datetime
 from typing import Literal, Optional, Union
 from warnings import simplefilter, warn
 
+from typing_extensions import Annotated, deprecated
+
 from openbb_core.app.deprecation import OpenBBDeprecationWarning
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated, deprecated
 
 
 class ROUTER_fixedincome_corporate(Container):
@@ -43,7 +44,7 @@ class ROUTER_fixedincome_corporate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Commercial Paper.
 
@@ -182,7 +183,7 @@ class ROUTER_fixedincome_corporate(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -201,7 +202,7 @@ class ROUTER_fixedincome_corporate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """High Quality Market Corporate Bond.
 
@@ -264,10 +265,8 @@ class ROUTER_fixedincome_corporate(Container):
                     "date": date,
                 },
                 extra_params=kwargs,
-                info={
-                    "date": {"fred": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"date": {"fred": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -296,7 +295,7 @@ class ROUTER_fixedincome_corporate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """ICE BofA US Corporate Bond Indices.
 
@@ -377,7 +376,7 @@ class ROUTER_fixedincome_corporate(Container):
                     "index_type": index_type,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -396,16 +395,14 @@ class ROUTER_fixedincome_corporate(Container):
             Union[datetime.date, None, str],
             OpenBBField(description="End date of the data, in YYYY-MM-DD format."),
         ] = None,
-        index_type: Annotated[
-            Literal["aaa", "baa"], OpenBBField(description="The type of series.")
-        ] = "aaa",
+        index_type: Annotated[Literal["aaa", "baa"], OpenBBField(description="The type of series.")] = "aaa",
         provider: Annotated[
             Optional[Literal["fred"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Moody Corporate Bond Index.
 
@@ -479,7 +476,7 @@ class ROUTER_fixedincome_corporate(Container):
                     "index_type": index_type,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -512,7 +509,7 @@ class ROUTER_fixedincome_corporate(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Spot Rates.
 
@@ -582,9 +579,7 @@ class ROUTER_fixedincome_corporate(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "maturity": {
-                        "fred": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "maturity": {"fred": {"multiple_items_allowed": True, "choices": None}},
                     "category": {
                         "fred": {
                             "multiple_items_allowed": True,
@@ -592,5 +587,5 @@ class ROUTER_fixedincome_corporate(Container):
                         }
                     },
                 },
-            )
+            ),
         )

@@ -2,13 +2,11 @@
 
 from typing import Optional
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class IndexConstituentsQueryParams(QueryParams):
@@ -27,6 +25,4 @@ class IndexConstituentsData(Data):
     """Index Constituents Data."""
 
     symbol: str = Field(description=DATA_DESCRIPTIONS.get("symbol", ""))
-    name: Optional[str] = Field(
-        default=None, description="Name of the constituent company in the index."
-    )
+    name: Optional[str] = Field(default=None, description="Name of the constituent company in the index.")

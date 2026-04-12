@@ -2,7 +2,7 @@
 
 import importlib
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, TYPE_CHECKING
 
 from openbb_core.env import Env
 
@@ -21,12 +21,8 @@ class ChartingSettings:
         system_settings: Optional["SystemSettings"] = None,
     ):
         """Initialize charting settings."""
-        user_settings_module = importlib.import_module(
-            "openbb_core.app.model.user_settings", "UserSettings"
-        )
-        system_settings_module = importlib.import_module(
-            "openbb_core.app.model.system_settings", "SystemSettings"
-        )
+        user_settings_module = importlib.import_module("openbb_core.app.model.user_settings", "UserSettings")
+        system_settings_module = importlib.import_module("openbb_core.app.model.system_settings", "SystemSettings")
 
         UserSettings = user_settings_module.UserSettings
         SystemSettings = system_settings_module.SystemSettings

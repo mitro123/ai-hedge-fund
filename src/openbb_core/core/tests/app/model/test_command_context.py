@@ -1,10 +1,6 @@
 """Test the CommandContext model."""
 
-from openbb_core.app.model.command_context import (
-    CommandContext,
-    SystemSettings,
-    UserSettings,
-)
+from openbb_core.app.model.command_context import CommandContext, SystemSettings, UserSettings
 
 
 def test_command_context():

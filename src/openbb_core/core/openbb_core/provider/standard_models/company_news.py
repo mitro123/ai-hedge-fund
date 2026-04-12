@@ -1,19 +1,15 @@
 """Company News Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from dateutil.relativedelta import relativedelta
+from pydantic import Field, field_validator, NonNegativeInt
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, NonNegativeInt, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class CompanyNewsQueryParams(QueryParams):
@@ -23,15 +19,9 @@ class CompanyNewsQueryParams(QueryParams):
         default=None,
         description=QUERY_DESCRIPTIONS.get("symbol", ""),
     )
-    start_date: Optional[dateType] = Field(
-        default=None, description=QUERY_DESCRIPTIONS.get("start_date", "")
-    )
-    end_date: Optional[dateType] = Field(
-        default=None, description=QUERY_DESCRIPTIONS.get("end_date", "")
-    )
-    limit: Optional[NonNegativeInt] = Field(
-        default=2500, description=QUERY_DESCRIPTIONS.get("limit", "")
-    )
+    start_date: Optional[dateType] = Field(default=None, description=QUERY_DESCRIPTIONS.get("start_date", ""))
+    end_date: Optional[dateType] = Field(default=None, description=QUERY_DESCRIPTIONS.get("end_date", ""))
+    limit: Optional[NonNegativeInt] = Field(default=2500, description=QUERY_DESCRIPTIONS.get("limit", ""))
 
     @field_validator("symbol", mode="before")
     @classmethod
@@ -61,15 +51,10 @@ class CompanyNewsData(Data):
     """Company News Data."""
 
     date: datetime = Field(
-        description=DATA_DESCRIPTIONS.get("date", "")
-        + " Here it is the published date of the article."
+        description=DATA_DESCRIPTIONS.get("date", "") + " Here it is the published date of the article."
     )
     title: str = Field(description="Title of the article.")
     text: Optional[str] = Field(default=None, description="Text/body of the article.")
-    images: Optional[List[Dict[str, str]]] = Field(
-        default=None, description="Images associated with the article."
-    )
+    images: Optional[List[Dict[str, str]]] = Field(default=None, description="Images associated with the article.")
     url: str = Field(description="URL to the article.")
-    symbols: Optional[str] = Field(
-        default=None, description="Symbols associated with the article."
-    )
+    symbols: Optional[str] = Field(default=None, description="Symbols associated with the article.")

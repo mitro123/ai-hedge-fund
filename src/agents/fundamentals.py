@@ -14,9 +14,7 @@ from src.utils.progress import progress
 
 
 # Agent fundamentální analýzy
-def fundamentals_analyst_agent(
-    state: AgentState, agent_id: str = "fundamentals_analyst_agent"
-) -> Dict[str, Any]:
+def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_analyst_agent") -> Dict[str, Any]:
     """Analyzuje fundamentální data a generuje obchodní signály pro více tickerů."""
     data = state["data"]
     end_date = data["end_date"]
@@ -196,11 +194,12 @@ def fundamentals_analyst_agent(
 
 def analyze_commodity_fundamentals(ticker: str, end_date: str, api_key: str, agent_id: str) -> Dict[str, Any]:
     """Analyzuje fundamentální faktory pro komodity."""
-    from src.tools.api import get_prices, prices_to_df
     import pandas as pd
-    
+
+    from src.tools.api import get_prices, prices_to_df
+
     progress.update_status(agent_id, ticker, "Načítání cenových dat komodity")
-    
+
     # Získání cenových dat pro analýzu volatility a trendů
     prices = get_prices(
         ticker=ticker,
@@ -208,29 +207,27 @@ def analyze_commodity_fundamentals(ticker: str, end_date: str, api_key: str, age
         end_date=end_date,
         api_key=api_key,
     )
-    
+
     if not prices:
         progress.update_status(agent_id, ticker, "Chyba: Nenalezena cenová data")
         return {
             "signal": "neutral",
             "confidence": 0.0,
-            "reasoning": {
-                "message": f"Nelze získat cenová data pro komoditu {ticker}"
-            },
+            "reasoning": {"message": f"Nelze získat cenová data pro komoditu {ticker}"},
         }
-    
+
     prices_df = prices_to_df(prices)
-    
+
     # Komoditní fundamentální analýza
     signals = []
     reasoning = {}
-    
+
     progress.update_status(agent_id, ticker, "Analýza volatility komodity")
-    
+
     # 1. Analýza volatility (klíčová pro komodity)
     returns = prices_df["close"].pct_change().dropna()
-    volatility = returns.std() * (252 ** 0.5)  # Anualizovaná volatilita
-    
+    volatility = returns.std() * (252**0.5)  # Anualizovaná volatilita
+
     # Vysoká volatilita může signalizovat nejistotu nebo příležitosti
     if volatility > 0.3:  # Vysoká volatilita
         vol_signal = "neutral"  # Vysoká volatilita = nejistota
@@ -238,24 +235,24 @@ def analyze_commodity_fundamentals(ticker: str, end_date: str, api_key: str, age
         vol_signal = "bullish"  # Zdravá volatilita pro trading
     else:  # Nízká volatilita
         vol_signal = "bearish"  # Možná stagnace
-    
+
     signals.append(vol_signal)
     reasoning["volatility_analysis"] = {
         "signal": vol_signal,
         "details": f"Anualizovaná volatilita: {volatility:.2%}",
-        "interpretation": "Vysoká volatilita = nejistota, střední = příležitost, nízká = stagnace"
+        "interpretation": "Vysoká volatilita = nejistota, střední = příležitost, nízká = stagnace",
     }
-    
+
     progress.update_status(agent_id, ticker, "Analýza trendu komodity")
-    
+
     # 2. Trendová analýza (důležitá pro komodity)
     short_ma = prices_df["close"].rolling(20).mean()
     long_ma = prices_df["close"].rolling(50).mean()
-    
+
     current_price = prices_df["close"].iloc[-1]
     current_short_ma = short_ma.iloc[-1]
     current_long_ma = long_ma.iloc[-1]
-    
+
     if current_price > current_short_ma > current_long_ma:
         trend_signal = "bullish"
         trend_desc = "Silný vzestupný trend"
@@ -265,20 +262,20 @@ def analyze_commodity_fundamentals(ticker: str, end_date: str, api_key: str, age
     else:
         trend_signal = "neutral"
         trend_desc = "Smíšený nebo boční trend"
-    
+
     signals.append(trend_signal)
     reasoning["trend_analysis"] = {
         "signal": trend_signal,
         "details": f"Cena: ${current_price:.2f}, MA20: ${current_short_ma:.2f}, MA50: ${current_long_ma:.2f}",
-        "interpretation": trend_desc
+        "interpretation": trend_desc,
     }
-    
+
     progress.update_status(agent_id, ticker, "Analýza momentum komodity")
-    
+
     # 3. Momentum analýza
     momentum_1m = returns.rolling(21).sum().iloc[-1]  # 1-měsíční momentum
     momentum_3m = returns.rolling(63).sum().iloc[-1]  # 3-měsíční momentum
-    
+
     if momentum_1m > 0.05 and momentum_3m > 0.1:
         momentum_signal = "bullish"
         momentum_desc = "Silné pozitivní momentum"
@@ -288,24 +285,24 @@ def analyze_commodity_fundamentals(ticker: str, end_date: str, api_key: str, age
     else:
         momentum_signal = "neutral"
         momentum_desc = "Smíšené momentum"
-    
+
     signals.append(momentum_signal)
     reasoning["momentum_analysis"] = {
         "signal": momentum_signal,
         "details": f"1M momentum: {momentum_1m:.2%}, 3M momentum: {momentum_3m:.2%}",
-        "interpretation": momentum_desc
+        "interpretation": momentum_desc,
     }
-    
+
     progress.update_status(agent_id, ticker, "Analýza sezónnosti komodity")
-    
+
     # 4. Sezónní analýza (specifická pro komodity)
     try:
-        prices_df['month'] = pd.to_datetime(prices_df.index).month
-        monthly_returns = prices_df.groupby('month')['close'].pct_change().mean()
+        prices_df["month"] = pd.to_datetime(prices_df.index).month
+        monthly_returns = prices_df.groupby("month")["close"].pct_change().mean()
         current_month = pd.to_datetime(end_date).month
-        
+
         # Bezpečné ověření, zda monthly_returns je Series a obsahuje current_month
-        if hasattr(monthly_returns, 'index') and current_month in monthly_returns.index:
+        if hasattr(monthly_returns, "index") and current_month in monthly_returns.index:
             seasonal_return = monthly_returns.loc[current_month]
             if seasonal_return > 0.02:  # Historicky silný měsíc
                 seasonal_signal = "bullish"
@@ -325,33 +322,33 @@ def analyze_commodity_fundamentals(ticker: str, end_date: str, api_key: str, age
         seasonal_return = 0.0
         seasonal_desc = "Chyba při sezónní analýze"
         current_month = 1  # Výchozí hodnota pro případ chyby
-    
+
     signals.append(seasonal_signal)
     reasoning["seasonal_analysis"] = {
         "signal": seasonal_signal,
         "details": f"Průměrný výnos v měsíci {current_month}: {seasonal_return:.2%}",
-        "interpretation": seasonal_desc
+        "interpretation": seasonal_desc,
     }
-    
+
     progress.update_status(agent_id, ticker, "Výpočet finálního signálu komodity")
-    
+
     # Určení celkového signálu
     bullish_signals = signals.count("bullish")
     bearish_signals = signals.count("bearish")
-    
+
     if bullish_signals > bearish_signals:
         overall_signal = "bullish"
     elif bearish_signals > bullish_signals:
         overall_signal = "bearish"
     else:
         overall_signal = "neutral"
-    
+
     # Výpočet úrovně spolehlivosti
     total_signals = len(signals)
     confidence = round(max(bullish_signals, bearish_signals) / total_signals, 2) * 100
-    
+
     progress.update_status(agent_id, ticker, "Hotovo - komodita", analysis=json.dumps(reasoning, indent=4))
-    
+
     return {
         "signal": overall_signal,
         "confidence": confidence,

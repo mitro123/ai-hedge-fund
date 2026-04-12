@@ -1,18 +1,14 @@
 """Economic Calendar Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Optional, Union
+
+from pydantic import Field
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class EconomicCalendarQueryParams(QueryParams):
@@ -31,15 +27,11 @@ class EconomicCalendarQueryParams(QueryParams):
 class EconomicCalendarData(Data):
     """Economic Calendar Data."""
 
-    date: Optional[datetime] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("date", "")
-    )
+    date: Optional[datetime] = Field(default=None, description=DATA_DESCRIPTIONS.get("date", ""))
     country: Optional[str] = Field(default=None, description="Country of event.")
     category: Optional[str] = Field(default=None, description="Category of event.")
     event: Optional[str] = Field(default=None, description="Event name.")
-    importance: Optional[str] = Field(
-        default=None, description="The importance level for the event."
-    )
+    importance: Optional[str] = Field(default=None, description="The importance level for the event.")
     source: Optional[str] = Field(default=None, description="Source of the data.")
     currency: Optional[str] = Field(default=None, description="Currency of the data.")
     unit: Optional[str] = Field(default=None, description="Unit of the data.")
@@ -55,6 +47,4 @@ class EconomicCalendarData(Data):
         default=None,
         description="Revised previous value, if applicable.",
     )
-    actual: Optional[Union[str, float]] = Field(
-        default=None, description="Latest released value."
-    )
+    actual: Optional[Union[str, float]] = Field(default=None, description="Latest released value.")

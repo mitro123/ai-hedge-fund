@@ -8,21 +8,23 @@ from datetime import datetime
 from inspect import Parameter, signature
 from sys import exc_info
 from time import perf_counter_ns
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING
 from warnings import catch_warnings, showwarning, warn
 
+from pydantic import BaseModel, ConfigDict, create_model
+
 from openbb_core.app.model.abstract.error import OpenBBError
-from openbb_core.app.model.abstract.warning import OpenBBWarning, cast_warning
+from openbb_core.app.model.abstract.warning import cast_warning, OpenBBWarning
 from openbb_core.app.model.metadata import Metadata
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.provider_interface import ExtraParams
 from openbb_core.app.static.package_builder import PathHandler
 from openbb_core.env import Env
 from openbb_core.provider.utils.helpers import maybe_coroutine, run_async
-from pydantic import BaseModel, ConfigDict, create_model
 
 if TYPE_CHECKING:
     from fastapi.routing import APIRoute
+
     from openbb_core.app.model.system_settings import SystemSettings
     from openbb_core.app.model.user_settings import UserSettings
     from openbb_core.app.router import CommandMap
@@ -135,12 +137,8 @@ class ParametersBuilder:
         """Warn if kwargs received and ignored by the validation model."""
         # We only check the extra_params annotation because ignored fields
         # will always be there
-        annotation = getattr(
-            model.model_fields.get("extra_params", None), "annotation", None
-        )
-        if is_dataclass(annotation) and any(
-            t is ExtraParams for t in getattr(annotation, "__bases__", [])
-        ):
+        annotation = getattr(model.model_fields.get("extra_params", None), "annotation", None)
+        if is_dataclass(annotation) and any(t is ExtraParams for t in getattr(annotation, "__bases__", [])):
             valid = asdict(annotation())  # type: ignore
             for p in extra_params:
                 if "chart_params" in p:
@@ -249,9 +247,7 @@ class StaticCommandRunner:
         """Create a chart from the command output."""
         try:
             if "charting" not in obbject.accessors:
-                raise OpenBBError(
-                    "Charting is not installed. Please install `openbb-charting`."
-                )
+                raise OpenBBError("Charting is not installed. Please install `openbb-charting`.")
             # Here we will pop the chart_params kwargs and flatten them into the kwargs.
             chart_params = {}
             extra_params = getattr(obbject, "_extra_params", {})
@@ -262,11 +258,7 @@ class StaticCommandRunner:
             if kwargs.get("chart_params"):
                 chart_params.update(kwargs.pop("chart_params", {}))
             # Verify that kwargs is not nested as kwargs so we don't miss any chart params.
-            if (
-                "kwargs" in kwargs
-                and "chart_params" in kwargs["kwargs"]
-                and kwargs["kwargs"].get("chart_params")
-            ):
+            if "kwargs" in kwargs and "chart_params" in kwargs["kwargs"] and kwargs["kwargs"].get("chart_params"):
                 chart_params.update(kwargs.pop("kwargs", {}).get("chart_params", {}))
 
             if chart_params:
@@ -325,8 +317,7 @@ class StaticCommandRunner:
                 # We also pop custom headers
                 model_headers = system_settings.api_settings.custom_headers or {}
                 custom_headers = {
-                    name: kwargs.pop(name.replace("-", "_"), default)
-                    for name, default in model_headers.items() or {}
+                    name: kwargs.pop(name.replace("-", "_"), default) for name, default in model_headers.items() or {}
                 } or None
 
                 obbject = await cls._command(func, kwargs)
@@ -336,16 +327,10 @@ class StaticCommandRunner:
                 if isinstance(obbject, OBBject):
                     # This section prepares the obbject to pass to the charting service.
                     obbject._route = route  # pylint: disable=protected-access
-                    std_params = cls._extract_params(kwargs, "standard_params") or (
-                        kwargs if "data" in kwargs else {}
-                    )
+                    std_params = cls._extract_params(kwargs, "standard_params") or (kwargs if "data" in kwargs else {})
                     extra_params = cls._extract_params(kwargs, "extra_params")
-                    obbject._standard_params = (  # pylint: disable=protected-access
-                        std_params
-                    )
-                    obbject._extra_params = (  # pylint: disable=protected-access
-                        extra_params
-                    )
+                    obbject._standard_params = std_params  # pylint: disable=protected-access
+                    obbject._extra_params = extra_params  # pylint: disable=protected-access
                     if chart and obbject.results:
                         cls._chart(obbject, **kwargs)
 
@@ -413,9 +398,7 @@ class StaticCommandRunner:
 
         duration = perf_counter_ns() - start_ns
 
-        if execution_context.user_settings.preferences.metadata and isinstance(
-            obbject, OBBject
-        ):
+        if execution_context.user_settings.preferences.metadata and isinstance(obbject, OBBject):
             try:
                 obbject.extra["metadata"] = Metadata(
                     arguments=kwargs,
@@ -455,9 +438,7 @@ class CommandRunner:
         # pylint: disable=import-outside-toplevel
         from openbb_core.app.logs.logging_service import LoggingService
 
-        _ = LoggingService(
-            system_settings=self._system_settings, user_settings=self._user_settings
-        )
+        _ = LoggingService(system_settings=self._system_settings, user_settings=self._user_settings)
 
     @property
     def command_map(self) -> "CommandMap":

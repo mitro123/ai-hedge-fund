@@ -2,10 +2,11 @@
 
 from typing import Optional
 
+from pydantic import Field
+
 from openbb_core.provider.abstract.data import Data, ForceInt
 from openbb_core.provider.abstract.query_params import QueryParams
 from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS
-from pydantic import Field
 
 
 class MarketSnapshotsQueryParams(QueryParams):
@@ -32,9 +33,7 @@ class MarketSnapshotsData(Data):
         description=DATA_DESCRIPTIONS.get("close", ""),
         default=None,
     )
-    volume: Optional[ForceInt] = Field(
-        description=DATA_DESCRIPTIONS.get("volume", ""), default=None
-    )
+    volume: Optional[ForceInt] = Field(description=DATA_DESCRIPTIONS.get("volume", ""), default=None)
     prev_close: Optional[float] = Field(
         description=DATA_DESCRIPTIONS.get("prev_close", ""),
         default=None,

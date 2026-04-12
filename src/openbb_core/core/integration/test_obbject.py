@@ -58,9 +58,7 @@ def test_to_polars(obb):
 def test_to_numpy(obb):
     """Test obbject to numpy array."""
 
-    cpi_np = obb.economy.cpi(
-        country=["portugal", "spain", "switzerland"], frequency="annual"
-    ).to_numpy()
+    cpi_np = obb.economy.cpi(country=["portugal", "spain", "switzerland"], frequency="annual").to_numpy()
     assert isinstance(cpi_np, np.ndarray)
 
 
@@ -72,9 +70,7 @@ def test_to_dict(obb):
     assert isinstance(fed_dict, dict)
 
 
-@pytest.mark.skipif(
-    "openbb_charting" not in sys.modules, reason="openbb_charting not installed"
-)
+@pytest.mark.skipif("openbb_charting" not in sys.modules, reason="openbb_charting not installed")
 @pytest.mark.integration
 def test_to_chart(obb):
     """Test obbject to chart."""
@@ -84,9 +80,7 @@ def test_to_chart(obb):
     assert isinstance(res.chart.fig, OpenBBFigure)
 
 
-@pytest.mark.skipif(
-    "openbb_charting" not in sys.modules, reason="openbb_charting not installed"
-)
+@pytest.mark.skipif("openbb_charting" not in sys.modules, reason="openbb_charting not installed")
 @pytest.mark.integration
 def test_show(obb):
     """Test obbject to chart."""

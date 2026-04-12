@@ -2,12 +2,13 @@
 
 from typing import Literal, Optional
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_regulators_sec(Container):
@@ -36,7 +37,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Map a ticker symbol to a CIK number.
 
@@ -88,7 +89,7 @@ class ROUTER_regulators_sec(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -101,7 +102,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Download the index headers, and cover page if available, for any SEC filing.
 
@@ -178,7 +179,7 @@ class ROUTER_regulators_sec(Container):
                 standard_params={},
                 extra_params=kwargs,
                 info={"url": {"sec": {"x-widget_config": {"label": "Filing URL"}}}},
-            )
+            ),
         )
 
     @exception_handler
@@ -191,7 +192,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Download a raw HTML object from the SEC website.
 
@@ -243,7 +244,7 @@ class ROUTER_regulators_sec(Container):
                 },
                 standard_params={},
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -257,7 +258,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search SEC-regulated institutions by name and return a list of results with CIK numbers.
 
@@ -312,7 +313,7 @@ class ROUTER_regulators_sec(Container):
                     "query": query,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -325,7 +326,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the RSS feed that provides links to litigation releases concerning civil lawsuits brought by the Commission in federal court.
 
@@ -379,7 +380,7 @@ class ROUTER_regulators_sec(Container):
                 },
                 standard_params={},
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -393,7 +394,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Use tool for navigating the directory of SEC XML schema files by year.
 
@@ -465,7 +466,7 @@ class ROUTER_regulators_sec(Container):
                     "query": query,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -479,7 +480,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search for Industry Titles, Reporting Office, and SIC Codes. An empty query string returns all results.
 
@@ -536,7 +537,7 @@ class ROUTER_regulators_sec(Container):
                     "query": query,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -546,9 +547,7 @@ class ROUTER_regulators_sec(Container):
         query: Annotated[str, OpenBBField(description="Search query.")],
         use_cache: Annotated[
             Optional[bool],
-            OpenBBField(
-                description="Whether or not to use cache. If True, cache will store for seven days."
-            ),
+            OpenBBField(description="Whether or not to use cache. If True, cache will store for seven days."),
         ] = True,
         provider: Annotated[
             Optional[Literal["sec"]],
@@ -556,7 +555,7 @@ class ROUTER_regulators_sec(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Map a CIK number to a ticker symbol, leading 0s can be omitted or included.
 
@@ -609,5 +608,5 @@ class ROUTER_regulators_sec(Container):
                     "use_cache": use_cache,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

@@ -2,12 +2,13 @@
 
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_estimates(Container):
@@ -47,7 +48,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: benzinga."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search for specific analysts and get their forecast track record.
 
@@ -222,23 +223,13 @@ class ROUTER_equity_estimates(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "analyst_name": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "firm_name": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "analyst_ids": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "firm_ids": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "fields": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "analyst_name": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
+                    "firm_name": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
+                    "analyst_ids": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
+                    "firm_ids": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
+                    "fields": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -257,7 +248,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get consensus price target and recommendation.
 
@@ -349,7 +340,7 @@ class ROUTER_equity_estimates(Container):
                         "yfinance": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -368,7 +359,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get forward EBITDA estimates.
 
@@ -462,7 +453,7 @@ class ROUTER_equity_estimates(Container):
                         "intrinio": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -481,7 +472,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp, intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get forward EPS estimates.
 
@@ -585,7 +576,7 @@ class ROUTER_equity_estimates(Container):
                         "intrinio": {"multiple_items_allowed": True, "choices": None},
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -604,7 +595,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get forward PE estimates.
 
@@ -673,12 +664,8 @@ class ROUTER_equity_estimates(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {
-                        "intrinio": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"symbol": {"intrinio": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -697,7 +684,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: intrinio."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get forward sales estimates.
 
@@ -798,12 +785,8 @@ class ROUTER_equity_estimates(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {
-                        "intrinio": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"symbol": {"intrinio": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -822,7 +805,7 @@ class ROUTER_equity_estimates(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get historical analyst estimates for earnings and revenue.
 
@@ -918,10 +901,8 @@ class ROUTER_equity_estimates(Container):
                     "symbol": symbol,
                 },
                 extra_params=kwargs,
-                info={
-                    "symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}
-                },
-            )
+                info={"symbol": {"fmp": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )
 
     @exception_handler
@@ -934,16 +915,14 @@ class ROUTER_equity_estimates(Container):
                 description="Symbol to get data for. Multiple comma separated items allowed for provider(s): benzinga, fmp."
             ),
         ] = None,
-        limit: Annotated[
-            int, OpenBBField(description="The number of data entries to return.")
-        ] = 200,
+        limit: Annotated[int, OpenBBField(description="The number of data entries to return.")] = 200,
         provider: Annotated[
             Optional[Literal["benzinga", "fmp"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: benzinga, fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get analyst price targets by company.
 
@@ -1097,15 +1076,9 @@ class ROUTER_equity_estimates(Container):
                             ],
                         }
                     },
-                    "analyst_ids": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "firm_ids": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
-                    "fields": {
-                        "benzinga": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "analyst_ids": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
+                    "firm_ids": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
+                    "fields": {"benzinga": {"multiple_items_allowed": True, "choices": None}},
                 },
-            )
+            ),
         )

@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_commodity(Container):
@@ -39,7 +40,7 @@ class ROUTER_commodity(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: eia."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """EIA Weekly Petroleum Status Report.
 
@@ -224,7 +225,7 @@ class ROUTER_commodity(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @property
@@ -232,9 +233,7 @@ class ROUTER_commodity(Container):
         # pylint: disable=import-outside-toplevel
         from . import commodity_price
 
-        return commodity_price.ROUTER_commodity_price(
-            command_runner=self._command_runner
-        )
+        return commodity_price.ROUTER_commodity_price(command_runner=self._command_runner)
 
     @exception_handler
     @validate
@@ -254,7 +253,7 @@ class ROUTER_commodity(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: eia."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Monthly short term (18 month) projections using EIA's STEO model.
 
@@ -358,9 +357,7 @@ class ROUTER_commodity(Container):
                 },
                 extra_params=kwargs,
                 info={
-                    "symbol": {
-                        "eia": {"multiple_items_allowed": True, "choices": None}
-                    },
+                    "symbol": {"eia": {"multiple_items_allowed": True, "choices": None}},
                     "table": {
                         "eia": {
                             "multiple_items_allowed": False,
@@ -401,5 +398,5 @@ class ROUTER_commodity(Container):
                         }
                     },
                 },
-            )
+            ),
         )

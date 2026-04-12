@@ -3,6 +3,7 @@
 # pylint: disable=redefined-outer-name
 
 import pytest
+
 from openbb_core.app.service.system_service import SystemService
 
 

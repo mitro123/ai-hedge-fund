@@ -3,13 +3,11 @@
 from datetime import date as dateType
 from typing import List, Optional, Set, Union
 
+from pydantic import Field, field_validator
+
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class ShareStatisticsQueryParams(QueryParams):
@@ -28,9 +26,7 @@ class ShareStatisticsData(Data):
     """Share Statistics Data."""
 
     symbol: str = Field(description=DATA_DESCRIPTIONS.get("symbol", ""))
-    date: Optional[dateType] = Field(
-        default=None, description=DATA_DESCRIPTIONS.get("date", "")
-    )
+    date: Optional[dateType] = Field(default=None, description=DATA_DESCRIPTIONS.get("date", ""))
     free_float: Optional[float] = Field(
         default=None,
         description="Percentage of unrestricted shares of a publicly-traded company.",
@@ -42,9 +38,7 @@ class ShareStatisticsData(Data):
     outstanding_shares: Optional[float] = Field(
         default=None, description="Total number of shares of a publicly-traded company."
     )
-    source: Optional[str] = Field(
-        default=None, description="Source of the received data."
-    )
+    source: Optional[str] = Field(default=None, description="Source of the received data.")
 
     @field_validator("symbol", mode="before", check_fields=False)
     @classmethod

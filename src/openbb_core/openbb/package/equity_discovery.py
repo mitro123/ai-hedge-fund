@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_equity_discovery(Container):
@@ -33,9 +34,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -43,7 +42,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the most actively traded stocks based on volume.
 
@@ -146,7 +145,7 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -155,9 +154,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -165,7 +162,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get top small cap stocks based on earnings growth.
 
@@ -268,7 +265,7 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -289,16 +286,14 @@ class ROUTER_equity_discovery(Container):
                 description="Filter by form type. Visit https://www.sec.gov/forms for a list of supported form types."
             ),
         ] = None,
-        limit: Annotated[
-            int, OpenBBField(description="The number of data entries to return.")
-        ] = 100,
+        limit: Annotated[int, OpenBBField(description="The number of data entries to return.")] = 100,
         provider: Annotated[
             Optional[Literal["fmp"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the URLs to SEC filings reported to EDGAR database, such as 10-K, 10-Q, 8-K, and more.
 
@@ -377,7 +372,7 @@ class ROUTER_equity_discovery(Container):
                     "limit": limit,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -386,9 +381,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -396,7 +389,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the top price gainers in the stock market.
 
@@ -499,7 +492,7 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -508,9 +501,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -518,7 +509,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get top tech stocks based on revenue and earnings growth.
 
@@ -621,7 +612,7 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -634,7 +625,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: sec."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the newest quarterly, annual, and current reports for all companies.
 
@@ -732,7 +723,7 @@ class ROUTER_equity_discovery(Container):
                         }
                     }
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -741,9 +732,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -751,7 +740,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get the top price losers in the stock market.
 
@@ -854,7 +843,7 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -863,9 +852,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -873,7 +860,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get potentially undervalued growth stocks.
 
@@ -976,7 +963,7 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -985,9 +972,7 @@ class ROUTER_equity_discovery(Container):
         self,
         sort: Annotated[
             Literal["asc", "desc"],
-            OpenBBField(
-                description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."
-            ),
+            OpenBBField(description="Sort order. Possible values: 'asc', 'desc'. Default: 'desc'."),
         ] = "desc",
         provider: Annotated[
             Optional[Literal["yfinance"]],
@@ -995,7 +980,7 @@ class ROUTER_equity_discovery(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Get potentially undervalued large cap stocks.
 
@@ -1098,5 +1083,5 @@ class ROUTER_equity_discovery(Container):
                     "sort": sort,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

@@ -6,11 +6,14 @@ from dataclasses import dataclass
 from inspect import _empty
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
-from unittest.mock import PropertyMock, mock_open, patch
+from unittest.mock import mock_open, patch, PropertyMock
 
 import pandas
 import pytest
 from importlib_metadata import EntryPoint, EntryPoints
+from pydantic import Field
+from typing_extensions import Annotated
+
 from openbb_core.app.static.package_builder import (
     ClassDefinition,
     DocstringGenerator,
@@ -22,8 +25,6 @@ from openbb_core.app.static.package_builder import (
     PathHandler,
 )
 from openbb_core.env import Env
-from pydantic import Field
-from typing_extensions import Annotated
 
 
 @pytest.fixture(scope="module")
@@ -109,9 +110,7 @@ def test_method_definition_init(method_definition):
 
 def test_build_class_loader_method(method_definition):
     """Test build class loader method."""
-    code = method_definition.build_class_loader_method(
-        "openbb_core.app.static.container.Container"
-    )
+    code = method_definition.build_class_loader_method("openbb_core.app.static.container.Container")
     assert code
 
 
@@ -264,12 +263,8 @@ def test_reorder_params(method_definition, params, var_kw, expected):
 def test_build_func_params(method_definition):
     """Test build func params."""
     param_map = {
-        "param1": Parameter(
-            name="param1", kind=Parameter.POSITIONAL_OR_KEYWORD, annotation=type(None)
-        ),
-        "param2": Parameter(
-            "param2", kind=Parameter.POSITIONAL_OR_KEYWORD, annotation=int
-        ),
+        "param1": Parameter(name="param1", kind=Parameter.POSITIONAL_OR_KEYWORD, annotation=type(None)),
+        "param2": Parameter("param2", kind=Parameter.POSITIONAL_OR_KEYWORD, annotation=int),
         "param3": Parameter(
             "param3",
             kind=Parameter.POSITIONAL_OR_KEYWORD,
@@ -277,9 +272,7 @@ def test_build_func_params(method_definition):
         ),
     }
 
-    expected_output = (
-        "param1: None,\n        param2: int,\n        param3: pandas.DataFrame"
-    )
+    expected_output = "param1: None,\n        param2: int,\n        param3: pandas.DataFrame"
     output = method_definition.build_func_params(param_map)
 
     assert output == expected_output
@@ -317,9 +310,7 @@ def test_build_command_method_signature(mock_method_definitions, method_definiti
 
 
 @patch("openbb_core.app.static.package_builder.MethodDefinition")
-def test_build_command_method_signature_deprecated(
-    mock_method_definitions, method_definition
-):
+def test_build_command_method_signature_deprecated(mock_method_definitions, method_definition):
     """Test build command method signature."""
     mock_method_definitions.is_deprecated_function.return_value = True
     formatted_params = {
@@ -361,12 +352,15 @@ def test_build_command_method_body(method_definition):
         """Do some func doc."""
         return 42
 
-    with patch(
-        "openbb_core.app.static.package_builder.MethodDefinition.is_data_processing_function",
-        return_value=False,
-    ), patch(
-        "openbb_core.app.static.package_builder.MethodDefinition.is_deprecated_function",
-        return_value=False,
+    with (
+        patch(
+            "openbb_core.app.static.package_builder.MethodDefinition.is_data_processing_function",
+            return_value=False,
+        ),
+        patch(
+            "openbb_core.app.static.package_builder.MethodDefinition.is_deprecated_function",
+            return_value=False,
+        ),
     ):
         output = method_definition.build_command_method_body(
             path="openbb_core.app.static.container.Container", func=some_func
@@ -383,12 +377,15 @@ def test_build_command_method(method_definition):
         """Do some func doc."""
         return 42
 
-    with patch(
-        "openbb_core.app.static.package_builder.MethodDefinition.is_data_processing_function",
-        return_value=False,
-    ), patch(
-        "openbb_core.app.static.package_builder.MethodDefinition.is_deprecated_function",
-        return_value=False,
+    with (
+        patch(
+            "openbb_core.app.static.package_builder.MethodDefinition.is_data_processing_function",
+            return_value=False,
+        ),
+        patch(
+            "openbb_core.app.static.package_builder.MethodDefinition.is_deprecated_function",
+            return_value=False,
+        ),
     ):
         output = method_definition.build_command_method(
             path="openbb_core.app.static.container.Container",
@@ -421,9 +418,7 @@ def test_filter_hint_type_list(import_definition):
 
 def test_import_definition_get_path_hint_type_list(import_definition):
     """Test import definition get path hint type list."""
-    hint_type_list = import_definition.get_path_hint_type_list(
-        path="openbb_core.app.static.container.Container"
-    )
+    hint_type_list = import_definition.get_path_hint_type_list(path="openbb_core.app.static.container.Container")
     assert hint_type_list == []
 
 
@@ -477,9 +472,7 @@ def test_get_route(path_handler, route_map):
 
 def test_get_child_path_list(path_handler, path_list):
     """Test get child path list."""
-    child_path_list = path_handler.get_child_path_list(
-        path="/equity", path_list=path_list
-    )
+    child_path_list = path_handler.get_child_path_list(path="/equity", path_list=path_list)
 
     assert child_path_list
     assert isinstance(child_path_list, list)
@@ -523,9 +516,7 @@ def test_docstring_generator_init(docstring_generator):
 
 def test_get_OBBject_description(docstring_generator):
     """Test build docstring."""
-    docstring = docstring_generator.get_OBBject_description(
-        "SomeModel", "some_provider"
-    )
+    docstring = docstring_generator.get_OBBject_description("SomeModel", "some_provider")
     assert docstring
 
 
@@ -628,9 +619,7 @@ def test__read(package_builder, tmp_openbb_dir):
     open_mock = mock_open()
     with patch(PATH + "open", open_mock), patch(PATH + "load") as mock_load:
         package_builder._read(Path(tmp_openbb_dir / "assets" / "reference.json"))
-        open_mock.assert_called_once_with(
-            Path(tmp_openbb_dir / "assets" / "reference.json")
-        )
+        open_mock.assert_called_once_with(Path(tmp_openbb_dir / "assets" / "reference.json"))
         mock_load.assert_called_once()
 
 
@@ -650,12 +639,8 @@ def test__read(package_builder, tmp_openbb_dir):
             },
             EntryPoints(
                 (
-                    EntryPoint(
-                        name="ext_2", value="...", group="openbb_core_extension"
-                    ),
-                    EntryPoint(
-                        name="prov_2", value="...", group="openbb_provider_extension"
-                    ),
+                    EntryPoint(name="ext_2", value="...", group="openbb_core_extension"),
+                    EntryPoint(name="prov_2", value="...", group="openbb_provider_extension"),
                 )
             ),
             "0.0.0",
@@ -669,12 +654,8 @@ def test__read(package_builder, tmp_openbb_dir):
             },
             EntryPoints(
                 (
-                    EntryPoint(
-                        name="ext_2", value="...", group="openbb_core_extension"
-                    ),
-                    EntryPoint(
-                        name="prov_1", value="...", group="openbb_provider_extension"
-                    ),
+                    EntryPoint(name="ext_2", value="...", group="openbb_core_extension"),
+                    EntryPoint(name="prov_1", value="...", group="openbb_provider_extension"),
                 )
             ),
             "5.5.5",
@@ -698,9 +679,10 @@ def test_package_diff(
         return ext_installed.select(**{"group": group})
 
     PATH = "openbb_core.app.static.package_builder."
-    with patch(PATH + "entry_points", mock_entry_points), patch.object(
-        EntryPoint, "dist", new_callable=PropertyMock
-    ) as mock_obj:
+    with (
+        patch(PATH + "entry_points", mock_entry_points),
+        patch.object(EntryPoint, "dist", new_callable=PropertyMock) as mock_obj,
+    ):
 
         class MockPathDistribution:
             version = ext_inst_version
@@ -728,9 +710,11 @@ def test_package_diff(
 def test_auto_build(package_builder, add, remove, openbb_auto_build):
     """Test auto build."""
 
-    with patch.object(PackageBuilder, "_diff") as mock_assets_diff, patch.object(
-        PackageBuilder, "build"
-    ) as mock_build, patch.object(Env, "AUTO_BUILD", openbb_auto_build):
+    with (
+        patch.object(PackageBuilder, "_diff") as mock_assets_diff,
+        patch.object(PackageBuilder, "build") as mock_build,
+        patch.object(Env, "AUTO_BUILD", openbb_auto_build),
+    ):
         mock_assets_diff.return_value = add, remove
 
         package_builder.auto_build()

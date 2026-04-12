@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 import pytest
+
 from openbb_core.app.extension_loader import EntryPoint, ExtensionLoader, OpenBBGroups
 
 

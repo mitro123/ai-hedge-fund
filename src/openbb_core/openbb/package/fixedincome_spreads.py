@@ -3,12 +3,13 @@
 import datetime
 from typing import Literal, Optional, Union
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_fixedincome_spreads(Container):
@@ -33,16 +34,14 @@ class ROUTER_fixedincome_spreads(Container):
             Union[datetime.date, None, str],
             OpenBBField(description="End date of the data, in YYYY-MM-DD format."),
         ] = None,
-        maturity: Annotated[
-            Optional[Literal["3m", "2y"]], OpenBBField(description="The maturity")
-        ] = "3m",
+        maturity: Annotated[Optional[Literal["3m", "2y"]], OpenBBField(description="The maturity")] = "3m",
         provider: Annotated[
             Optional[Literal["fred"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Treasury Constant Maturity.
 
@@ -107,7 +106,7 @@ class ROUTER_fixedincome_spreads(Container):
                     "maturity": maturity,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -132,7 +131,7 @@ class ROUTER_fixedincome_spreads(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Select Treasury Constant Maturity.
 
@@ -197,7 +196,7 @@ class ROUTER_fixedincome_spreads(Container):
                     "maturity": maturity,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
 
     @exception_handler
@@ -212,16 +211,14 @@ class ROUTER_fixedincome_spreads(Container):
             Union[datetime.date, None, str],
             OpenBBField(description="End date of the data, in YYYY-MM-DD format."),
         ] = None,
-        maturity: Annotated[
-            Optional[Literal["3m", "6m"]], OpenBBField(description="The maturity")
-        ] = "3m",
+        maturity: Annotated[Optional[Literal["3m", "6m"]], OpenBBField(description="The maturity")] = "3m",
         provider: Annotated[
             Optional[Literal["fred"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fred."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Select Treasury Bill.
 
@@ -287,5 +284,5 @@ class ROUTER_fixedincome_spreads(Container):
                     "maturity": maturity,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )

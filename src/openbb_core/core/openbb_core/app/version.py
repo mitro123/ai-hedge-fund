@@ -1,9 +1,7 @@
 """Version script for the OpenBB Platform."""
 
-from importlib.metadata import (
-    PackageNotFoundError,
-    version as pkg_version,
-)
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 from pathlib import Path
 
 PACKAGE = "openbb"

@@ -1,18 +1,14 @@
 """Equity FTD Standard Model."""
 
-from datetime import (
-    date as dateType,
-    datetime,
-)
+from datetime import date as dateType
+from datetime import datetime
 from typing import Optional
+
+from pydantic import Field, field_validator
 
 from openbb_core.provider.abstract.data import Data
 from openbb_core.provider.abstract.query_params import QueryParams
-from openbb_core.provider.utils.descriptions import (
-    DATA_DESCRIPTIONS,
-    QUERY_DESCRIPTIONS,
-)
-from pydantic import Field, field_validator
+from openbb_core.provider.utils.descriptions import DATA_DESCRIPTIONS, QUERY_DESCRIPTIONS
 
 
 class EquityFtdQueryParams(QueryParams):
@@ -30,9 +26,7 @@ class EquityFtdQueryParams(QueryParams):
 class EquityFtdData(Data):
     """Equity FTD Data."""
 
-    settlement_date: Optional[dateType] = Field(
-        description="The settlement date of the fail.", default=None
-    )
+    settlement_date: Optional[dateType] = Field(description="The settlement date of the fail.", default=None)
     symbol: Optional[str] = Field(
         description=DATA_DESCRIPTIONS.get("symbol", ""),
         default=None,

@@ -25,22 +25,14 @@ def filter_inputs(
             for p in ("standard_params", "extra_params"):
                 if field in kwargs.get(p, {}):
                     current = kwargs[p][field]
-                    new = (
-                        ",".join(map(str, current))
-                        if isinstance(current, list)
-                        else current
-                    )
+                    new = ",".join(map(str, current)) if isinstance(current, list) else current
 
                     provider_properties = properties.get(provider, {})
                     if isinstance(provider_properties, dict):
-                        multiple_items_allowed = provider_properties.get(
-                            "multiple_items_allowed"
-                        )
+                        multiple_items_allowed = provider_properties.get("multiple_items_allowed")
                     elif isinstance(provider_properties, list):
                         # For backwards compatibility, before this was a list
-                        multiple_items_allowed = (
-                            "multiple_items_allowed" in provider_properties
-                        )
+                        multiple_items_allowed = "multiple_items_allowed" in provider_properties
                     else:
                         multiple_items_allowed = True
 

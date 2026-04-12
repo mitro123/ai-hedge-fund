@@ -4,12 +4,13 @@ import datetime
 from typing import Literal, Optional, Union
 
 from annotated_types import Ge
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_news(Container):
@@ -44,14 +45,12 @@ class ROUTER_news(Container):
             OpenBBField(description="The number of data entries to return."),
         ] = 2500,
         provider: Annotated[
-            Optional[
-                Literal["benzinga", "fmp", "intrinio", "polygon", "tiingo", "yfinance"]
-            ],
+            Optional[Literal["benzinga", "fmp", "intrinio", "polygon", "tiingo", "yfinance"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: benzinga, fmp, intrinio, polygon, tiingo, yfinance."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Company News. Get news for one or more companies.
 
@@ -264,7 +263,7 @@ class ROUTER_news(Container):
                         }
                     },
                 },
-            )
+            ),
         )
 
     @exception_handler
@@ -273,9 +272,7 @@ class ROUTER_news(Container):
         self,
         limit: Annotated[
             int,
-            OpenBBField(
-                description="The number of data entries to return. The number of articles to return."
-            ),
+            OpenBBField(description="The number of data entries to return. The number of articles to return."),
         ] = 2500,
         start_date: Annotated[
             Union[datetime.date, None, str],
@@ -291,7 +288,7 @@ class ROUTER_news(Container):
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: benzinga, fmp, intrinio, tiingo."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """World News. Global news data.
 
@@ -454,10 +451,6 @@ class ROUTER_news(Container):
                     "end_date": end_date,
                 },
                 extra_params=kwargs,
-                info={
-                    "source": {
-                        "tiingo": {"multiple_items_allowed": True, "choices": None}
-                    }
-                },
-            )
+                info={"source": {"tiingo": {"multiple_items_allowed": True, "choices": None}}},
+            ),
         )

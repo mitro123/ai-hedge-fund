@@ -65,3 +65,8 @@ outputs/
 
 # Alembic (keep migration files, but ignore generated/cache files)
 app/backend/alembic/versions/__pycache__/
+
+# Paper trading logs
+logs/paper_trading/
+.coverage
+coverage.xml

@@ -7,20 +7,15 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from pydantic import BaseModel, ConfigDict, create_model, Field, SecretStr
+from pydantic.functional_serializers import PlainSerializer
+from typing_extensions import Annotated
+
 from openbb_core.app.constants import USER_SETTINGS_PATH
 from openbb_core.app.extension_loader import ExtensionLoader
 from openbb_core.app.model.abstract.warning import OpenBBWarning
 from openbb_core.app.provider_interface import ProviderInterface
 from openbb_core.env import Env
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    SecretStr,
-    create_model,
-)
-from pydantic.functional_serializers import PlainSerializer
-from typing_extensions import Annotated
 
 
 class LoadingError(Exception):
@@ -30,9 +25,7 @@ class LoadingError(Exception):
 # @model_serializer blocks model_dump with pydantic parameters (include, exclude)
 OBBSecretStr = Annotated[
     SecretStr,
-    PlainSerializer(
-        lambda x: x.get_secret_value(), return_type=str, when_used="json-unless-none"
-    ),
+    PlainSerializer(lambda x: x.get_secret_value(), return_type=str, when_used="json-unless-none"),
 ]
 
 
@@ -109,12 +102,7 @@ class CredentialsLoader:
                     additional = data["credentials"]
 
         # Collect all keys from providers to match with environment variables
-        all_keys = [
-            key
-            for keys in ProviderInterface().credentials.values()
-            if keys
-            for key in keys
-        ]
+        all_keys = [key for keys in ProviderInterface().credentials.values() if keys for key in keys]
 
         for key in all_keys:
             if key.upper() in os.environ:
@@ -149,20 +137,14 @@ class Credentials(_Credentials):  # type: ignore
 
     def __repr__(self) -> str:
         """Define the string representation of the credentials."""
-        return (
-            self.__class__.__name__
-            + "\n\n"
-            + "\n".join([f"{k}: {v}" for k, v in sorted(self.__dict__.items())])
-        )
+        return self.__class__.__name__ + "\n\n" + "\n".join([f"{k}: {v}" for k, v in sorted(self.__dict__.items())])
 
     def show(self):
         """Unmask credentials and print them."""
         print(  # noqa: T201
             self.__class__.__name__
             + "\n\n"
-            + "\n".join(
-                [f"{k}: {v}" for k, v in sorted(self.model_dump(mode="json").items())]
-            )
+            + "\n".join([f"{k}: {v}" for k, v in sorted(self.model_dump(mode="json").items())])
         )
 
     def update(self, incoming: "Credentials"):

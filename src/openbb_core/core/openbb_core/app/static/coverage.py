@@ -1,6 +1,6 @@
 """Coverage module."""
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from openbb_core.api.router.helpers.coverage_helpers import get_route_schema_map
 from openbb_core.app.provider_interface import ProviderInterface
@@ -45,8 +45,7 @@ class Coverage:  # noqa: D205, D400
     def command_model(self) -> Dict[str, Dict[str, Dict[str, Dict[str, Any]]]]:
         """Return command to model mapping."""
         return {
-            command: self._provider_interface.map[value]
-            for command, value in self._command_map.commands_model.items()
+            command: self._provider_interface.map[value] for command, value in self._command_map.commands_model.items()
         }
 
     @property
@@ -56,6 +55,4 @@ class Coverage:  # noqa: D205, D400
 
     def command_schemas(self, filter_by_provider: Optional[str] = None):
         """Return route schema for a command."""
-        return get_route_schema_map(
-            self._app, self._command_map.commands_model, filter_by_provider
-        )
+        return get_route_schema_map(self._app, self._command_map.commands_model, filter_by_provider)

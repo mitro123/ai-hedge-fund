@@ -3,20 +3,9 @@
 # pylint: disable=too-many-branches, too-many-locals, too-many-statements
 
 from collections.abc import Hashable
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    ClassVar,
-    Dict,
-    Generic,
-    List,
-    Literal,
-    Optional,
-    Set,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, ClassVar, Dict, Generic, List, Literal, Optional, Set, TYPE_CHECKING, TypeVar, Union
+
+from pydantic import BaseModel, Field, PrivateAttr
 
 from openbb_core.app.model.abstract.error import OpenBBError
 from openbb_core.app.model.abstract.tagged import Tagged
@@ -24,11 +13,11 @@ from openbb_core.app.model.abstract.warning import Warning_
 from openbb_core.app.model.charts.chart import Chart
 from openbb_core.provider.abstract.annotated_result import AnnotatedResult
 from openbb_core.provider.abstract.data import Data
-from pydantic import BaseModel, Field, PrivateAttr
 
 if TYPE_CHECKING:
     from numpy import ndarray  # noqa
     from pandas import DataFrame  # noqa
+
     from openbb_core.app.query import Query  # noqa
 
     try:
@@ -78,10 +67,7 @@ class OBBject(Tagged, Generic[T]):
 
     def __repr__(self) -> str:
         """Human readable representation of the object."""
-        items = [
-            f"{k}: {v}"[:83] + ("..." if len(f"{k}: {v}") > 83 else "")
-            for k, v in self.model_dump().items()
-        ]
+        items = [f"{k}: {v}"[:83] + ("..." if len(f"{k}: {v}") > 83 else "") for k, v in self.model_dump().items()]
         return f"{self.__class__.__name__}\n\n" + "\n".join(items)
 
     def to_df(
@@ -163,13 +149,12 @@ class OBBject(Tagged, Generic[T]):
             Pandas DataFrame.
         """
         # pylint: disable=import-outside-toplevel
-        from pandas import DataFrame, Series, concat  # noqa
+        from pandas import concat, DataFrame, Series  # noqa
+
         from openbb_core.app.utils import basemodel_to_df  # noqa
 
         def is_list_of_basemodel(items: Union[List[T], T]) -> bool:
-            return isinstance(items, list) and all(
-                isinstance(item, BaseModel) for item in items
-            )
+            return isinstance(items, list) and all(isinstance(item, BaseModel) for item in items)
 
         if self.results is None or not self.results:
             raise OpenBBError("Results not found.")
@@ -184,16 +169,10 @@ class OBBject(Tagged, Generic[T]):
 
             # BaseModel
             if isinstance(res, BaseModel):
-                res_dict = res.model_dump(  # pylint: disable=no-member
-                    exclude_unset=True, exclude_none=True
-                )
+                res_dict = res.model_dump(exclude_unset=True, exclude_none=True)  # pylint: disable=no-member
                 # Model is serialized as a dict[str, list] or list[dict]
                 if (
-                    (
-                        isinstance(res_dict, dict)
-                        and res_dict
-                        and all(isinstance(v, list) for v in res_dict.values())
-                    )
+                    (isinstance(res_dict, dict) and res_dict and all(isinstance(v, list) for v in res_dict.values()))
                     or isinstance(res_dict, list)
                     and all(isinstance(item, dict) for item in res_dict)
                 ):
@@ -237,8 +216,7 @@ class OBBject(Tagged, Generic[T]):
                 dt: Union[List[Data], Data] = res  # type: ignore
                 r = dt[0] if isinstance(dt, list) and len(dt) == 1 else None  # type: ignore
                 if r and all(
-                    prop.get("type") == "array"
-                    for prop in r.model_json_schema()["properties"].values()  # type: ignore
+                    prop.get("type") == "array" for prop in r.model_json_schema()["properties"].values()  # type: ignore
                 ):
                     sort_columns = False
                     df = DataFrame(r.model_dump(exclude_unset=True, exclude_none=True))  # type: ignore
@@ -279,13 +257,9 @@ class OBBject(Tagged, Generic[T]):
         except OpenBBError as e:
             raise e
         except ValueError as ve:
-            raise OpenBBError(
-                f"ValueError: {ve}. Ensure the data format matches the expected format."
-            ) from ve
+            raise OpenBBError(f"ValueError: {ve}. Ensure the data format matches the expected format.") from ve
         except TypeError as te:
-            raise OpenBBError(
-                f"TypeError: {te}. Check the data types in your results."
-            ) from te
+            raise OpenBBError(f"TypeError: {te}. Check the data types in your results.") from te
         except Exception as ex:
             raise OpenBBError(f"An unexpected error occurred: {ex}") from ex
 
@@ -296,9 +270,7 @@ class OBBject(Tagged, Generic[T]):
         try:
             from polars import from_pandas  # type: ignore # pylint: disable=import-outside-toplevel
         except ImportError as exc:
-            raise ImportError(
-                "Please install polars: `pip install polars pyarrow`  to use this method."
-            ) from exc
+            raise ImportError("Please install polars: `pip install polars pyarrow`  to use this method.") from exc
 
         return from_pandas(self.to_dataframe(index=None))
 
@@ -308,9 +280,7 @@ class OBBject(Tagged, Generic[T]):
 
     def to_dict(
         self,
-        orient: Literal[
-            "dict", "list", "series", "split", "tight", "records", "index"
-        ] = "list",
+        orient: Literal["dict", "list", "series", "split", "tight", "records", "index"] = "list",
     ) -> Union[Dict[Hashable, Any], List[Dict[Hashable, Any]]]:
         """Convert results field to a dictionary using any of Pandas `to_dict` options.
 
@@ -328,10 +298,7 @@ class OBBject(Tagged, Generic[T]):
         if (
             orient == "list"
             and isinstance(self.results, dict)
-            and all(
-                isinstance(value, dict)
-                for value in self.results.values()  # pylint: disable=no-member
-            )
+            and all(isinstance(value, dict) for value in self.results.values())  # pylint: disable=no-member
         ):
             df = df.T
         results = df.to_dict(orient=orient)
@@ -381,7 +348,5 @@ class OBBject(Tagged, Generic[T]):
         """
         results = await query.execute()
         if isinstance(results, AnnotatedResult):
-            return cls(
-                results=results.result, extra={"results_metadata": results.metadata}
-            )
+            return cls(results=results.result, extra={"results_metadata": results.metadata})
         return cls(results=results)

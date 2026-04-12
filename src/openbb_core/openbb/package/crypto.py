@@ -2,12 +2,13 @@
 
 from typing import Literal, Optional
 
+from typing_extensions import Annotated
+
 from openbb_core.app.model.field import OpenBBField
 from openbb_core.app.model.obbject import OBBject
 from openbb_core.app.static.container import Container
 from openbb_core.app.static.utils.decorators import exception_handler, validate
 from openbb_core.app.static.utils.filters import filter_inputs
-from typing_extensions import Annotated
 
 
 class ROUTER_crypto(Container):
@@ -30,16 +31,14 @@ class ROUTER_crypto(Container):
     @validate
     def search(
         self,
-        query: Annotated[
-            Optional[str], OpenBBField(description="Search query.")
-        ] = None,
+        query: Annotated[Optional[str], OpenBBField(description="Search query.")] = None,
         provider: Annotated[
             Optional[Literal["fmp"]],
             OpenBBField(
                 description="The provider to use, by default None. If None, the priority list configured in the settings is used. Default priority: fmp."
             ),
         ] = None,
-        **kwargs
+        **kwargs,
     ) -> OBBject:
         """Search available cryptocurrency pairs within a provider.
 
@@ -98,5 +97,5 @@ class ROUTER_crypto(Container):
                     "query": query,
                 },
                 extra_params=kwargs,
-            )
+            ),
         )
